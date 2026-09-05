@@ -8,22 +8,23 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 from app.config import settings
-from app.services.retrieval.embedding import embed_texts, get_embedding_dim
+from app.services.retrieval.embedding import (
+    embed_documents_with_fallback,
+    VECTOR_DIMS,
+)
 from app.ingestion.loaders.pdf import parse_pdf
 from app.ingestion.loaders.html import parse_html
 from app.ingestion.loaders.text import parse_text
 from app.ingestion.chunking.splitter import chunk_text
+from app.services.retrieval.qdrant_service import get_qdrant_client
 
-logfire.configure(service_name="enterprise-ingestion-service")
+logfire.configure(service_name="enterprise-ingestion-service", inspect_arguments=False)
 
 # Local folder where parsed + chunked JSON metadata is saved (replaces GCS processed bucket)
 PROCESSED_DATA_DIR = "processed_data"
 
 # Initialize Qdrant Client
-qdrant_client = QdrantClient(
-    url=settings.QDRANT_URL,
-    api_key=settings.QDRANT_API_KEY,
-)
+qdrant_client = get_qdrant_client()
 
 
 def save_processed_locally(data: dict, source_type: str, filename: str) -> str:
@@ -73,27 +74,35 @@ def process_file(file_path: str, filename: str, source_type: str):
             local_path = save_processed_locally(processed_data, source_type, filename)
             logfire.info(f"Saved processed data → {local_path}")
 
-            # 4. Embed and index in Qdrant
+            # 4. Embed (Gemini with per-batch local fallback) and index in Qdrant.
+            #    Each point stores its vector under the named field matching the
+            #    model that produced it ("gemini" 3072-dim or "local" 768-dim).
             with logfire.span("Vectorizing & Indexing"):
-                embeddings = embed_texts(chunks)
+                embedded = embed_documents_with_fallback(chunks)
                 points = [
                     models.PointStruct(
                         id=str(uuid.uuid4()),
-                        vector=vector,
+                        vector={vector_name: vector},
                         payload={
                             "text": chunk,
                             "source": filename,
                             "source_type": source_type,
+                            "embedder": vector_name,
                         },
                     )
-                    for chunk, vector in zip(chunks, embeddings)
+                    for chunk, (vector_name, vector) in zip(chunks, embedded)
                 ]
 
                 qdrant_client.upsert(
                     collection_name=settings.QDRANT_COLLECTION,
                     points=points,
                 )
-                logfire.info(f"Indexed {len(points)} points to Qdrant from {filename}.")
+                n_gemini = sum(1 for vn, _ in embedded if vn == "gemini")
+                n_local = len(embedded) - n_gemini
+                logfire.info(
+                    f"Indexed {len(points)} points from {filename} "
+                    f"(gemini={n_gemini}, local={n_local})."
+                )
 
         except Exception as e:
             logfire.error(f"Failed to process {filename}: {e}")
@@ -122,20 +131,32 @@ def run_universal_ingestion(base_dir: str, explicit_source_type: str = None, wip
                     qdrant_client.delete_collection(settings.QDRANT_COLLECTION)
                     logfire.info(f"Collection '{settings.QDRANT_COLLECTION}' deleted.")
 
-        # Recreate collection — dimension resolved at runtime after embedding model probe
+        # Create collection with TWO named vector fields so Gemini-embedded and
+        # locally-embedded chunks can live side by side in one collection:
+        #   "gemini" → 3072-dim   |   "local" → 768-dim
         if not qdrant_client.collection_exists(settings.QDRANT_COLLECTION):
-            dim = get_embedding_dim()
             qdrant_client.create_collection(
                 collection_name=settings.QDRANT_COLLECTION,
-                vectors_config=models.VectorParams(
-                    size=dim,
-                    distance=models.Distance.COSINE,
-                ),
+                vectors_config={
+                    name: models.VectorParams(
+                        size=dim,
+                        distance=models.Distance.COSINE,
+                    )
+                    for name, dim in VECTOR_DIMS.items()
+                },
             )
+            dims = ", ".join(f"{n}={d}" for n, d in VECTOR_DIMS.items())
             logfire.info(
                 f"Created collection '{settings.QDRANT_COLLECTION}' "
-                f"({dim}-dim, Cosine)."
+                f"with named vectors ({dims}, Cosine)."
             )
+
+        if os.path.isfile(base_dir):
+            source_type = explicit_source_type or "test"
+            filename = os.path.basename(base_dir)
+            logfire.info(f"Processing single file '{filename}' as source '{source_type}'.")
+            process_file(base_dir, filename, source_type)
+            return
 
         # Route to sub-folders or treat the whole dir as one source
         subdirs = [
@@ -181,3 +202,7 @@ if __name__ == "__main__":
 
     run_universal_ingestion(target_dir, explicit_source_type=explicit_type, wipe=wipe_requested)
     logfire.info("Ingestion job completed.")
+    try:
+        qdrant_client.close()
+    except Exception:
+        pass

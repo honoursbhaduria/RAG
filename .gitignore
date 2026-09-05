@@ -30,6 +30,7 @@ wheels/
 # Local Vector Store
 index.faiss
 metadata.pkl
+qdrant_db/
 
 # Data
 
