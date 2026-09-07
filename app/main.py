@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.agents.graph import rag_agent
 from app.guardrails import initialize_rails, guard
+from app.services.code_service import generate_code_assistance
 
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -111,6 +112,20 @@ class QueryResponse(BaseModel):
     thought_process: List[str] = Field(default=[], description="Step-by-step reasoning and execution plan")
     status: Optional[str] = Field(None, description="Execution status of the pipeline")
     sources: List[str] = Field(default=[], description="Retrieved and reranked context chunks")
+
+
+class CodeAssistRequest(BaseModel):
+    prompt: str = Field(..., description="Coding question, debugging request, or optimization goal", example="Write a binary search algorithm")
+    code: Optional[str] = Field(None, description="Optional existing code snippet to debug or refactor")
+    language: Optional[str] = Field("python", description="Language: python or javascript")
+    engine: Optional[str] = Field("groq", description="LLM Engine: groq or gemini")
+
+
+class CodeAssistResponse(BaseModel):
+    answer: str = Field(..., description="Explanation and full response")
+    code: Optional[str] = Field(None, description="Extracted runnable code block")
+    language: str = Field("python", description="Detected language")
+    engine: str = Field("groq", description="Engine used")
     
     
 @app.get("/", tags=["System"])
@@ -215,3 +230,28 @@ def query(request: QueryRequest):
             "status": "error",
             "sources": []
         }
+
+
+@app.post(
+    "/code/assist",
+    response_model=CodeAssistResponse,
+    tags=["Code Studio"],
+    summary="AI Code Copilot (Groq & Gemini)",
+    description="Generates, explains, and debugs code using Groq or Gemini with automatic runnable code extraction."
+)
+def code_assist(request: CodeAssistRequest):
+    """
+    Executes specialized coding copilot generation using Groq or Gemini.
+    """
+    answer, code, lang, engine_used = generate_code_assistance(
+        prompt=request.prompt,
+        code_context=request.code,
+        language=request.language or "python",
+        engine=request.engine or "groq"
+    )
+    return {
+        "answer": answer,
+        "code": code,
+        "language": lang,
+        "engine": engine_used
+    }

@@ -58,6 +58,36 @@ export function App() {
     }
   });
 
+  // Interactive Code Studio State
+  const [studioTab, setStudioTab] = useState<'studio' | 'graph' | 'api'>('studio');
+  const [codeLanguage, setCodeLanguage] = useState<'python' | 'javascript'>('python');
+  const [codeContent, setCodeContent] = useState<string>(`# Interactive Python Sandbox (Powered by Pyodide)
+import math
+
+def calculate_primes(limit):
+    primes = []
+    for num in range(2, limit + 1):
+        if all(num % p != 0 for p in primes if p * p <= num):
+            primes.append(num)
+    return primes
+
+result = calculate_primes(50)
+print(f"Computed {len(result)} primes up to 50:")
+print(result)
+`);
+  const [terminalOutput, setTerminalOutput] = useState<string>('Ready. Click "▶ Run Code" to execute in your browser.');
+  const [terminalStatus, setTerminalStatus] = useState<string>('Ready');
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [copilotEngine, setCopilotEngine] = useState<'groq' | 'gemini'>('groq');
+  const [copilotPrompt, setCopilotPrompt] = useState('');
+  const [isCopilotLoading, setIsCopilotLoading] = useState(false);
+  const [copilotMessages, setCopilotMessages] = useState<Array<{ role: 'user' | 'assistant', text: string, code?: string }>>([
+    {
+      role: 'assistant',
+      text: 'Hello! I am your AI Coding Copilot powered by Groq & Gemini. Ask me to write algorithms, debug snippets, or generate scripts, and run them right here!'
+    }
+  ]);
+
   // Sync current session messages on mount or session switch
   useEffect(() => {
     const existing = sessions.find((s) => s.id === sessionId);
@@ -181,6 +211,147 @@ export function App() {
     setSettings(newSettings);
     localStorage.setItem('claude_rag_custom_settings', JSON.stringify(newSettings));
     setActiveModal(null);
+  };
+
+  const handleLanguageChange = (newLang: 'python' | 'javascript') => {
+    setCodeLanguage(newLang);
+    if (newLang === 'javascript') {
+      setCodeContent(`// Interactive JavaScript Sandbox
+function quickSort(arr) {
+  if (arr.length <= 1) return arr;
+  const pivot = arr[arr.length - 1];
+  const left = arr.filter((x, i) => x < pivot && i < arr.length - 1);
+  const right = arr.filter((x, i) => x >= pivot && i < arr.length - 1);
+  return [...quickSort(left), pivot, ...quickSort(right)];
+}
+
+const numbers = [64, 34, 25, 12, 22, 11, 90];
+console.log("Original Array:", numbers);
+console.log("Sorted Array:  ", quickSort(numbers));
+`);
+    } else {
+      setCodeContent(`# Interactive Python Sandbox (Powered by Pyodide)
+import math
+
+def calculate_primes(limit):
+    primes = []
+    for num in range(2, limit + 1):
+        if all(num % p != 0 for p in primes if p * p <= num):
+            primes.append(num)
+    return primes
+
+result = calculate_primes(50)
+print(f"Computed {len(result)} primes up to 50:")
+print(result)
+`);
+    }
+  };
+
+  const runCode = async () => {
+    setIsExecuting(true);
+    setTerminalStatus('Running...');
+    const startTime = performance.now();
+
+    try {
+      if (codeLanguage === 'javascript') {
+        const logs: string[] = [];
+        const customConsole = {
+          log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ')),
+          error: (...args: any[]) => logs.push('[ERROR] ' + args.join(' ')),
+          warn: (...args: any[]) => logs.push('[WARN] ' + args.join(' ')),
+          info: (...args: any[]) => logs.push('[INFO] ' + args.join(' ')),
+        };
+        const runFn = new Function('console', codeContent);
+        const ret = runFn(customConsole);
+        if (ret !== undefined) {
+          logs.push(`=> ${typeof ret === 'object' ? JSON.stringify(ret, null, 2) : ret}`);
+        }
+        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
+        setTerminalOutput(logs.length ? logs.join('\n') : '(Code executed successfully with no print output)');
+        setTerminalStatus(`Success (${duration}s)`);
+      } else {
+        // Python execution in-browser via Pyodide WebAssembly
+        setTerminalOutput('Initializing Pyodide WebAssembly runtime (first load takes ~2-3s)...');
+
+        if (!(window as any).loadPyodide) {
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load Pyodide WebAssembly engine.'));
+            document.head.appendChild(script);
+          });
+        }
+
+        let pyodide = (window as any).__pyodideInstance;
+        if (!pyodide) {
+          pyodide = await (window as any).loadPyodide();
+          (window as any).__pyodideInstance = pyodide;
+        }
+
+        let pyStdout = '';
+        pyodide.setStdout({ batched: (str: string) => { pyStdout += str + '\n'; } });
+        pyodide.setStderr({ batched: (str: string) => { pyStdout += '[stderr] ' + str + '\n'; } });
+
+        await pyodide.runPythonAsync(codeContent);
+        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
+        setTerminalOutput(pyStdout.trim() || '(Python executed with no print output)');
+        setTerminalStatus(`Success (${duration}s)`);
+      }
+    } catch (err: any) {
+      const duration = ((performance.now() - startTime) / 1000).toFixed(3);
+      setTerminalOutput(`[Execution Error]:\n${err.message || err}`);
+      setTerminalStatus(`Error (${duration}s)`);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const askCopilot = async (promptText: string) => {
+    if (!promptText.trim() || isCopilotLoading) return;
+
+    const userEntry = { role: 'user' as const, text: promptText };
+    setCopilotMessages(prev => [...prev, userEntry]);
+    setCopilotPrompt('');
+    setIsCopilotLoading(true);
+
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const res = await fetch(`${backendUrl}/code/assist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: promptText,
+          code: codeContent,
+          language: codeLanguage,
+          engine: copilotEngine
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
+      }
+
+      const data = await res.json();
+      setCopilotMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: data.answer,
+          code: data.code || undefined
+        }
+      ]);
+    } catch (err: any) {
+      setCopilotMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: `Error connecting to Coding Copilot: ${err.message || err}`
+        }
+      ]);
+    } finally {
+      setIsCopilotLoading(false);
+    }
   };
 
   // Sample or extracted artifacts
@@ -538,56 +709,193 @@ class QueryResponse(BaseModel):
         </div>
       )}
 
-      {/* ── CODE & GRAPH MODAL ─────────────────────────────────── */}
+      {/* ── CODE STUDIO & GRAPH MODAL ─────────────────────────── */}
       {activeModal === 'code' && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content code-studio-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">💻 Workflow Graph & Pipeline Code</h3>
+              <h3 className="modal-title">💻 AI Code Studio & In-Browser Runner</h3>
               <button className="btn-close-modal" onClick={() => setActiveModal(null)}>✕</button>
             </div>
-            <div className="modal-body">
-              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.86rem', color: '#aaaaaa' }}>
-                  Live LangGraph State Machine Graph rendered directly from backend:
-                </span>
-                <a 
-                  href="http://localhost:8000/api/docs" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  style={{ color: '#da7756', fontSize: '0.82rem', textDecoration: 'underline' }}
+            
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* Studio Navigation Tabs */}
+              <div className="studio-tabs">
+                <button 
+                  className={`studio-tab-btn ${studioTab === 'studio' ? 'active' : ''}`}
+                  onClick={() => setStudioTab('studio')}
                 >
-                  Open Interactive Swagger Docs (/api/docs) ↗
-                </a>
+                  ⚡ Interactive Studio & Runner
+                </button>
+                <button 
+                  className={`studio-tab-btn ${studioTab === 'graph' ? 'active' : ''}`}
+                  onClick={() => setStudioTab('graph')}
+                >
+                  📊 Workflow State Machine Graph
+                </button>
+                <button 
+                  className={`studio-tab-btn ${studioTab === 'api' ? 'active' : ''}`}
+                  onClick={() => setStudioTab('api')}
+                >
+                  📖 OpenAPI Docs (/api/docs)
+                </button>
               </div>
 
-              <div style={{
-                textAlign: 'center',
-                padding: 16,
-                background: 'rgba(255,255,255,0.02)',
-                borderRadius: 10,
-                border: '1px solid rgba(255,255,255,0.08)',
-                marginBottom: 16
-              }}>
-                <img 
-                  src="http://localhost:8000/graph" 
-                  alt="LangGraph Architecture Flow" 
-                  style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 6 }} 
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              </div>
+              {/* TAB 1: AI Code Studio & Runner */}
+              {studioTab === 'studio' && (
+                <div className="code-studio-layout">
+                  {/* Left: AI Coding Copilot (Groq & Gemini) */}
+                  <div className="code-copilot-pane">
+                    <div className="copilot-header">
+                      <strong style={{ fontSize: '0.85rem', color: '#fff' }}>🤖 AI Coding Copilot</strong>
+                      <select 
+                        className="copilot-model-select"
+                        value={copilotEngine}
+                        onChange={(e) => setCopilotEngine(e.target.value as 'groq' | 'gemini')}
+                      >
+                        <option value="groq">⚡ Groq (Fast)</option>
+                        <option value="gemini">🧠 Gemini 2.5 (Deep Reasoning)</option>
+                      </select>
+                    </div>
 
-              <div className="modal-card">
-                <div className="modal-card-title">LangGraph Agent Nodes</div>
-                <div className="modal-card-text">
-                  • <strong>Guardrails:</strong> NeMo Colang safety filter (greeting, off-topic, jailbreak detection)<br />
-                  • <strong>Planner Node:</strong> Evaluates conversational vs technical intent<br />
-                  • <strong>Retriever Node:</strong> Multi-vector search across Qdrant cluster + FlashRank reranker<br />
-                  • <strong>Responder Node:</strong> Groq LLM synthesis with Portkey gateway fallback
+                    <div className="copilot-chat-history">
+                      {copilotMessages.map((msg, idx) => (
+                        <div key={idx} className={`copilot-msg ${msg.role}`}>
+                          <div style={{ fontWeight: 600, fontSize: '0.72rem', marginBottom: 4, color: msg.role === 'user' ? '#f5a07e' : '#10b981' }}>
+                            {msg.role === 'user' ? 'You' : `Copilot (${copilotEngine.toUpperCase()})`}
+                          </div>
+                          <div className="markdown-body" style={{ fontSize: '0.8rem' }}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {msg.text}
+                            </ReactMarkdown>
+                          </div>
+                          {msg.code && (
+                            <button 
+                              type="button"
+                              className="btn-send-to-editor"
+                              onClick={() => setCodeContent(msg.code || '')}
+                            >
+                              📥 Insert Code into Editor
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {isCopilotLoading && (
+                        <div className="copilot-msg assistant" style={{ color: '#aaa', fontStyle: 'italic' }}>
+                          Copilot is analyzing and generating solution...
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Copilot input bar */}
+                    <form 
+                      className="copilot-input-row"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        askCopilot(copilotPrompt);
+                      }}
+                    >
+                      <input 
+                        type="text" 
+                        className="copilot-input"
+                        placeholder="Ask to write, debug, or optimize code..."
+                        value={copilotPrompt}
+                        onChange={(e) => setCopilotPrompt(e.target.value)}
+                        disabled={isCopilotLoading}
+                      />
+                      <button 
+                        type="submit" 
+                        className="copilot-btn-submit"
+                        disabled={isCopilotLoading || !copilotPrompt.trim()}
+                      >
+                        Send
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Right: Code Editor & In-Browser Runner */}
+                  <div className="code-runner-pane">
+                    <div className="runner-toolbar">
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <select 
+                          className="copilot-model-select"
+                          value={codeLanguage}
+                          onChange={(e) => handleLanguageChange(e.target.value as 'python' | 'javascript')}
+                        >
+                          <option value="python">🐍 Python 3 (Pyodide WASM)</option>
+                          <option value="javascript">⚡ JavaScript (V8 Engine)</option>
+                        </select>
+
+                        <span style={{ fontSize: '0.74rem', color: '#777' }}>
+                          Runs 100% locally in browser sandbox
+                        </span>
+                      </div>
+
+                      <button 
+                        type="button"
+                        className="btn-run-code"
+                        onClick={runCode}
+                        disabled={isExecuting}
+                      >
+                        {isExecuting ? '⏳ Running...' : '▶ Run Code'}
+                      </button>
+                    </div>
+
+                    {/* Editor Textarea */}
+                    <textarea 
+                      className="code-editor-box"
+                      value={codeContent}
+                      onChange={(e) => setCodeContent(e.target.value)}
+                      spellCheck={false}
+                      placeholder="// Type code here..."
+                    />
+
+                    {/* Integrated Terminal */}
+                    <div className="terminal-box">
+                      <div className="terminal-header">
+                        <span>Console Output</span>
+                        <span>Status: <strong style={{ color: terminalStatus.includes('Error') ? '#ff5555' : '#00ff88' }}>{terminalStatus}</strong></span>
+                      </div>
+                      <div className={`terminal-screen ${terminalStatus.includes('Error') ? 'error' : ''}`}>
+                        {terminalOutput}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 2: Architecture Graph */}
+              {studioTab === 'graph' && (
+                <div style={{ textAlign: 'center', padding: 20 }}>
+                  <p style={{ fontSize: '0.86rem', color: '#aaa', marginBottom: 14 }}>
+                    Live Mermaid state machine generated dynamically by LangGraph backend:
+                  </p>
+                  <img 
+                    src="http://localhost:8000/graph" 
+                    alt="LangGraph Architecture Flow" 
+                    style={{ maxWidth: '100%', maxHeight: 380, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }} 
+                  />
+                </div>
+              )}
+
+              {/* TAB 3: API Docs */}
+              {studioTab === 'api' && (
+                <div style={{ textAlign: 'center', padding: 40 }}>
+                  <h4 style={{ color: '#fff', marginBottom: 10 }}>FastAPI Interactive OpenAPI Documentation</h4>
+                  <p style={{ color: '#aaa', fontSize: '0.88rem', marginBottom: 20 }}>
+                    Access the live Swagger UI to inspect request schemas, execute endpoints, and view cURL commands.
+                  </p>
+                  <a 
+                    href="http://localhost:8000/api/docs" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="btn-primary"
+                    style={{ textDecoration: 'none', display: 'inline-block' }}
+                  >
+                    Open /api/docs in New Tab ↗
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
