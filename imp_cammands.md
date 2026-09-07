@@ -56,8 +56,8 @@ curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"q": "What is SRIOV networking?", "thread_id": "session_1"}'
 
-# Interactive OpenAPI / Swagger documentation
-# Open in browser: http://localhost:8000/docs
+# Interactive OpenAPI / Swagger documentation (test with cURL inside docs)
+# Open in browser: http://localhost:8000/api/docs
 ```
 
 ---

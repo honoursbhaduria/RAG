@@ -16,15 +16,33 @@ else:
 # Now safe to import app modules - logfire is already active
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from app.agents.graph import rag_agent
 from app.guardrails import initialize_rails, guard
 
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import Optional, List
 
 
-# Initialize FastAPI
-app = FastAPI(title="Enterprise Agentic RAG API")
+# Initialize FastAPI with /api/docs
+app = FastAPI(
+    title="Enterprise Agentic RAG API",
+    description="""
+## Enterprise Agentic RAG System API Documentation
+
+Welcome to the interactive API documentation. You can test endpoints directly using the **Try it out** button or copy the generated **cURL** command below.
+
+### Available Endpoints:
+- **`POST /query`**: Primary endpoint for querying the knowledge base with guardrails, multi-vector search, reranking, and synthesis.
+- **`GET /health`**: Health check and status endpoint.
+- **`GET /graph`**: Visual workflow graph in PNG format.
+- **`GET /api/docs`**: This interactive Swagger documentation.
+    """,
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,20 +57,57 @@ app.add_middleware(
 def startup_event():
     initialize_rails()
 
+
+@app.get("/docs", include_in_schema=False)
+def redirect_to_api_docs():
+    """Redirects default /docs to /api/docs."""
+    return RedirectResponse(url="/api/docs")
+
+
 class QueryRequest(BaseModel):
-    q: str
-    thread_id: Optional[str] = "default_user"
+    q: str = Field(
+        ...,
+        description="The question or technical query for the enterprise knowledge base.",
+        example="What is SRIOV and how is it used in networking?"
+    )
+    thread_id: Optional[str] = Field(
+        default="default_user",
+        description="Session or thread ID for conversational memory retention across turns.",
+        example="session_user_01"
+    )
+
+
+class QueryResponse(BaseModel):
+    question: str = Field(..., description="Original user question")
+    answer: Optional[str] = Field(None, description="Synthesized answer from LLM or Guardrails")
+    thought_process: List[str] = Field(default=[], description="Step-by-step reasoning and execution plan")
+    status: Optional[str] = Field(None, description="Execution status of the pipeline")
+    sources: List[str] = Field(default=[], description="Retrieved and reranked context chunks")
     
     
-@app.get("/")
+@app.get("/", tags=["System"])
 def home():
-    return {"message": "Enterprise LangGraph RAG API is live."}
+    """Service status and link to interactive API docs."""
+    return {
+        "message": "Enterprise LangGraph RAG API is live.",
+        "docs": "/api/docs"
+    }
 
 
-@app.get("/graph")
+@app.get("/health", tags=["System"])
+def health():
+    """Health check endpoint for Kubernetes, Docker, and monitoring."""
+    return {
+        "status": "healthy",
+        "service": "Enterprise Agentic RAG API",
+        "docs": "/api/docs"
+    }
+
+
+@app.get("/graph", tags=["Agent Workflow"])
 def get_graph_image():
     """
-    Returns the Mermaid image of the agent's workflow.
+    Returns the Mermaid image of the agent's workflow graph.
     """
     try:
         png_bytes = rag_agent.get_graph().draw_mermaid_png()
@@ -61,7 +116,22 @@ def get_graph_image():
         return {"error": f"Could not generate graph image: {e}"}
     
     
-@app.post("/query")
+@app.post(
+    "/query",
+    response_model=QueryResponse,
+    tags=["Agentic RAG"],
+    summary="Execute Enterprise RAG Query",
+    description="""
+Executes the full LangGraph RAG flow with memory, NeMo Guardrails, multi-vector Qdrant retrieval, and FlashRank cross-encoder reranking.
+
+**Example cURL:**
+```bash
+curl -X POST "http://localhost:8000/query" \\
+  -H "Content-Type: application/json" \\
+  -d '{"q": "What is SRIOV and how is it used in networking?", "thread_id": "session_user_01"}'
+```
+"""
+)
 def query(request: QueryRequest):
     """
     Executes the LangGraph RAG flow with memory using a POST request.
