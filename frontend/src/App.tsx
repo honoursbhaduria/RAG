@@ -913,7 +913,33 @@ export function App() {
         pyodide.setStdout({ batched: (str: string) => { pyStdout += str + '\n'; } });
         pyodide.setStderr({ batched: (str: string) => { pyStdout += '[stderr] ' + str + '\n'; } });
 
+        // Set up standard environment variables (__file__, __name__) and virtual filesystem directory
+        pyodide.runPython(`
+import sys, os
+os.makedirs('/home/pyodide', exist_ok=True)
+try:
+    os.chdir('/home/pyodide')
+except Exception:
+    pass
+__file__ = '/home/pyodide/main.py'
+__name__ = '__main__'
+`);
+
         await pyodide.runPythonAsync(codeContent);
+
+        // Check if script generated any HTML files in the virtual filesystem
+        try {
+          const files: string[] = pyodide.FS.readdir('/home/pyodide');
+          const htmlFile = files.find((f: string) => f.endsWith('.html'));
+          if (htmlFile) {
+            const htmlData = pyodide.FS.readFile(`/home/pyodide/${htmlFile}`, { encoding: 'utf8' });
+            setPreviewHtml(htmlData);
+            pyStdout += `\n[HTML Output Generated: "${htmlFile}" — Click "Live Preview" tab to view rendered page]`;
+          }
+        } catch {
+          // Virtual FS inspection optional
+        }
+
         const duration = ((performance.now() - startTime) / 1000).toFixed(3);
         setTerminalOutput(pyStdout.trim() || '(Python executed with no print output)');
         setTerminalStatus(`Success (${duration}s)`);
