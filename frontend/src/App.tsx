@@ -460,7 +460,7 @@ class QueryResponse(BaseModel):
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <Cpu size={16} color="#3b82f6" />
+            <Cpu size={16} />
             <span>Enterprise RAG</span>
           </div>
           <button className="btn-toggle-sidebar" onClick={toggleSidebar} title="Collapse Sidebar">
@@ -561,11 +561,6 @@ class QueryResponse(BaseModel):
               <span className="active-label">{getViewTitle()}</span>
             </div>
           </div>
-
-          <div className="status-badge">
-            <span className="status-dot"></span>
-            <span>Qdrant Connected</span>
-          </div>
         </header>
 
         {/* ── VIEW 1: CHAT ── */}
@@ -584,28 +579,28 @@ class QueryResponse(BaseModel):
                       className="suggestion-card"
                       onClick={() => sendQuery("Explain the technical architecture and pipeline of this Enterprise RAG system.")}
                     >
-                      <Layers size={16} color="#3b82f6" />
+                      <Layers size={16} />
                       <span>Technical Architecture & Pipeline</span>
                     </button>
                     <button
                       className="suggestion-card"
                       onClick={() => sendQuery("What input and output guardrails are configured via NeMo Guardrails?")}
                     >
-                      <ShieldCheck size={16} color="#10b981" />
+                      <ShieldCheck size={16} />
                       <span>NeMo Guardrails & Safety Checks</span>
                     </button>
                     <button
                       className="suggestion-card"
                       onClick={() => sendQuery("How does vector search with Qdrant and FlashRank reranking work in this project?")}
                     >
-                      <Database size={16} color="#f59e0b" />
+                      <Database size={16} />
                       <span>Qdrant Vector Search & Reranking</span>
                     </button>
                     <button
                       className="suggestion-card"
                       onClick={() => sendQuery("Summarize the RAGAS evaluation pipeline and available evaluation metrics.")}
                     >
-                      <FileText size={16} color="#a855f7" />
+                      <FileText size={16} />
                       <span>Evaluation Metrics & Suite</span>
                     </button>
                   </div>
@@ -624,7 +619,7 @@ class QueryResponse(BaseModel):
                         >
                           {copiedMessageIndex === index ? (
                             <>
-                              <Check size={12} color="#10b981" />
+                              <Check size={12} />
                               <span>Copied</span>
                             </>
                           ) : (
@@ -1008,7 +1003,7 @@ class QueryResponse(BaseModel):
                   >
                     {copiedArtifact ? (
                       <>
-                        <Check size={12} color="#10b981" />
+                        <Check size={12} />
                         <span>Copied</span>
                       </>
                     ) : (

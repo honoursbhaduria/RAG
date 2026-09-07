@@ -30,7 +30,7 @@ const Loader: React.FC = () => {
         />
         <path
           d="M14 8C14 4.68629 11.3137 2 8 2"
-          stroke="#3b82f6"
+          stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
         />

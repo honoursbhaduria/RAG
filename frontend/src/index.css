@@ -299,25 +299,6 @@ body {
   font-weight: 600;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 0.74rem;
-  color: var(--text-secondary);
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--accent-success);
-}
-
 /* ── Embedded Workspace Views ── */
 .workspace-view {
   flex: 1;
@@ -349,12 +330,16 @@ body {
   color: var(--text-muted);
 }
 
-/* ── Chat Container ── */
+/* ── Chat Container (with subtle WhatsApp doodle texture) ── */
 .chat-container {
   flex: 1;
   overflow-y: auto;
   padding: 20px 48px 120px 48px;
   width: 100%;
+  background-color: var(--bg-primary);
+  background-image: url('/chat-doodle-bg.svg');
+  background-repeat: repeat;
+  background-size: 360px 360px;
 }
 
 /* Hero Section */
