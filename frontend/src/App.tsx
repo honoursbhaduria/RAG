@@ -24,8 +24,210 @@ import {
   Cpu,
   Layers,
   CheckCircle2,
-  ShieldCheck
+  ShieldCheck,
+  Search,
+  BookOpen,
+  Bookmark,
+  Folder,
+  X
 } from 'lucide-react';
+
+export interface LearningEntry {
+  id: string;
+  title: string;
+  language: string;
+  conceptSummary: string;
+  code: string;
+  timestamp: number;
+}
+
+export interface CodingProject {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: number;
+  learnings: LearningEntry[];
+}
+
+export const POPULAR_LANGUAGES = [
+  'python',
+  'javascript',
+  'typescript',
+  'go',
+  'rust',
+  'cpp',
+  'java',
+  'csharp',
+  'sql',
+  'bash',
+  'ruby',
+  'kotlin',
+  'swift',
+  'php'
+];
+
+export const LANGUAGE_TEMPLATES: Record<string, string> = {
+  python: `# Python Sandbox (Powered by Pyodide WebAssembly)
+def calculate_primes(limit):
+    primes = []
+    for num in range(2, limit + 1):
+        if all(num % p != 0 for p in primes if p * p <= num):
+            primes.append(num)
+    return primes
+
+result = calculate_primes(50)
+print(f"Computed {len(result)} primes up to 50:")
+print(result)
+`,
+  javascript: `// JavaScript Sandbox Runtime
+function quickSort(arr) {
+  if (arr.length <= 1) return arr;
+  const pivot = arr[arr.length - 1];
+  const left = arr.filter((x, i) => x < pivot && i < arr.length - 1);
+  const right = arr.filter((x, i) => x >= pivot && i < arr.length - 1);
+  return [...quickSort(left), pivot, ...quickSort(right)];
+}
+
+const numbers = [64, 34, 25, 12, 22, 11, 90];
+console.log("Original Array:", numbers);
+console.log("Sorted Array:  ", quickSort(numbers));
+`,
+  typescript: `// TypeScript Core Types & Generics
+interface ServiceResponse<T> {
+  code: number;
+  data: T;
+  timestamp: number;
+}
+
+function createResponse<T>(data: T): ServiceResponse<T> {
+  return {
+    code: 200,
+    data,
+    timestamp: Date.now()
+  };
+}
+
+const payload = createResponse({ service: "Enterprise RAG", status: "Healthy" });
+console.log(payload);
+`,
+  go: `// Go Concurrency & Channel Worker Pool
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func worker(id int, jobs <-chan int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for j := range jobs {
+		fmt.Printf("Worker %d executed job %d\\n", id, j)
+	}
+}
+
+func main() {
+	jobs := make(chan int, 10)
+	var wg sync.WaitGroup
+
+	for w := 1; w <= 3; w++ {
+		wg.Add(1)
+		go worker(w, jobs, &wg)
+	}
+
+	for j := 1; j <= 6; j++ {
+		jobs <- j
+	}
+	close(jobs)
+	wg.Wait()
+}
+`,
+  rust: `// Rust Ownership & Pattern Matching
+enum JobStatus {
+    Queued(u32),
+    Running(String),
+    Completed,
+}
+
+fn inspect_job(status: JobStatus) {
+    match status {
+        JobStatus::Queued(id) => println!("Job {} queued in memory pool", id),
+        JobStatus::Running(worker) => println!("Job executed by worker {}", worker),
+        JobStatus::Completed => println!("Job successfully processed"),
+    }
+}
+
+fn main() {
+    inspect_job(JobStatus::Queued(42));
+    inspect_job(JobStatus::Running(String::from("worker-01")));
+}
+`,
+  cpp: `// Modern C++ Algorithms & Lambdas
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> numbers = {42, 17, 89, 3, 26};
+    std::sort(numbers.begin(), numbers.end(), [](int a, int b) {
+        return a < b;
+    });
+
+    std::cout << "Sorted array: ";
+    for (int n : numbers) std::cout << n << " ";
+    std::cout << std::endl;
+    return 0;
+}
+`,
+  java: `// Java Streams & Lambdas
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class Main {
+    public static void main(String[] args) {
+        List<String> services = Arrays.asList("Kubernetes", "Qdrant", "FlashRank", "Groq");
+        List<String> filtered = services.stream()
+            .filter(s -> s.length() > 4)
+            .map(String::toUpperCase)
+            .collect(Collectors.toList());
+        System.out.println("Filtered services: " + filtered);
+    }
+}
+`,
+  sql: `-- SQL Window Functions & Analytics
+WITH RankedQueries AS (
+    SELECT 
+        user_id,
+        query_text,
+        execution_ms,
+        DENSE_RANK() OVER (PARTITION BY user_id ORDER BY execution_ms ASC) as rank
+    FROM query_logs
+)
+SELECT user_id, query_text, execution_ms
+FROM RankedQueries
+WHERE rank <= 3;
+`,
+  bash: `#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Initializing health check..."
+if curl -s http://localhost:8000/health | grep -q "healthy"; then
+    echo "Backend service is operational."
+fi
+`
+};
+
+export const LANGUAGE_TOPICS: Record<string, string[]> = {
+  python: ['AsyncIO Event Loop', 'Decorators & Closures', 'Dataclasses & Pydantic', 'Generator Pipelines', 'Type Hints & Mypy'],
+  javascript: ['Event Loop & Microtasks', 'Async/Await & Promises', 'Closures & Scope', 'Prototypes & Classes', 'Proxy & Reflect'],
+  typescript: ['Generics & Constraints', 'Discriminated Unions', 'Utility Types', 'Type Narrowing', 'Mapped Types'],
+  go: ['Goroutines & Channels', 'Worker Pool Pattern', 'Interfaces & Structs', 'Context & Timeouts', 'Error Handling Idioms'],
+  rust: ['Ownership & Borrowing', 'Traits & Generics', 'Pattern Matching & Enums', 'Lifetimes & References', 'Result & Option Handling'],
+  cpp: ['Smart Pointers & RAII', 'Move Semantics & Rvalues', 'Templates & Metaprogramming', 'STL Algorithms & Lambdas', 'Concurrency & Threads'],
+  java: ['Stream API & Lambdas', 'CompletableFuture & Async', 'Spring Dependency Injection', 'Generics & Wildcards', 'JVM Memory Model'],
+  sql: ['Window Functions', 'Common Table Expressions (CTE)', 'Indexing & Explain Plans', 'ACID Transactions', 'Partitioning Strategies'],
+  bash: ['Safe Scripting (set -euo)', 'Subshells & Redirections', 'Arrays & Parameter Expansion', 'Traps & Signal Handling', 'Process Substitution']
+};
 
 interface Message {
   role: 'user' | 'assistant';
@@ -86,22 +288,9 @@ export function App() {
   });
 
   // Interactive Code Studio State
-  const [studioTab, setStudioTab] = useState<'studio' | 'graph' | 'api'>('studio');
-  const [codeLanguage, setCodeLanguage] = useState<'python' | 'javascript'>('python');
-  const [codeContent, setCodeContent] = useState<string>(`# Python Sandbox (Powered by Pyodide WebAssembly)
-import math
-
-def calculate_primes(limit):
-    primes = []
-    for num in range(2, limit + 1):
-        if all(num % p != 0 for p in primes if p * p <= num):
-            primes.append(num)
-    return primes
-
-result = calculate_primes(50)
-print(f"Computed {len(result)} primes up to 50:")
-print(result)
-`);
+  const [studioTab, setStudioTab] = useState<'studio' | 'api'>('studio');
+  const [codeLanguage, setCodeLanguage] = useState<string>('python');
+  const [codeContent, setCodeContent] = useState<string>(LANGUAGE_TEMPLATES.python);
   const [terminalOutput, setTerminalOutput] = useState<string>('Ready. Click Run Code to execute in your browser runtime.');
   const [terminalStatus, setTerminalStatus] = useState<string>('Ready');
   const [isExecuting, setIsExecuting] = useState(false);
@@ -111,9 +300,71 @@ print(result)
   const [copilotMessages, setCopilotMessages] = useState<Array<{ role: 'user' | 'assistant', text: string, code?: string }>>([
     {
       role: 'assistant',
-      text: 'AI Coding Copilot initialized with Groq and Gemini engines. You can request algorithmic solutions, code refactoring, or bug fixes, and execute the extracted code directly.'
+      text: 'AI Coding Copilot initialized with Groq and Gemini engines. Select a project and language, choose a concept to learn, or ask custom questions. You can save your learning directly into the active project!'
     }
   ]);
+
+  // User Coding Projects State
+  const [projects, setProjects] = useState<CodingProject[]>(() => {
+    try {
+      const saved = localStorage.getItem('claude_rag_user_projects');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load user projects', e);
+    }
+    return [
+      {
+        id: 'proj_algo',
+        name: 'Algorithms & Concurrency',
+        description: 'Core computer science algorithms, async patterns, and runtime complexity analysis.',
+        createdAt: Date.now() - 86400000 * 2,
+        learnings: [
+          {
+            id: 'learn_1',
+            title: 'QuickSort In-Place Partitioning',
+            language: 'python',
+            conceptSummary: 'Divide-and-conquer sorting algorithm using Hoare partitioning with average O(n log n) runtime.',
+            code: `def quicksort(arr):\n    if len(arr) <= 1:\n        return arr\n    pivot = arr[len(arr) // 2]\n    left = [x for x in arr if x < pivot]\n    middle = [x for x in arr if x == pivot]\n    right = [x for x in arr if x > pivot]\n    return quicksort(left) + middle + quicksort(right)\n\nprint("Sorted:", quicksort([23, 1, 10, 5, 2]))`,
+            timestamp: Date.now() - 86400000 * 2
+          },
+          {
+            id: 'learn_2',
+            title: 'Async Event Loop & Microtasks',
+            language: 'javascript',
+            conceptSummary: 'Non-blocking I/O event loop execution model with microtasks and macrotasks queues.',
+            code: `async function fetchMockData() {\n  return new Promise((resolve) => {\n    setTimeout(() => resolve({ status: 200, data: "Resolved async payload" }), 200);\n  });\n}\n\nfetchMockData().then(console.log);`,
+            timestamp: Date.now() - 86400000
+          }
+        ]
+      },
+      {
+        id: 'proj_sys',
+        name: 'Systems & Cloud Infrastructure',
+        description: 'Distributed systems, concurrency primitives, and container networking.',
+        createdAt: Date.now() - 86400000,
+        learnings: [
+          {
+            id: 'learn_3',
+            title: 'Go Channels Worker Pool',
+            language: 'go',
+            conceptSummary: 'Worker pool in Go using buffered channels and sync.WaitGroup for safe concurrent execution.',
+            code: `package main\n\nimport (\n\t"fmt"\n\t"sync"\n)\n\nfunc worker(id int, jobs <-chan int, wg *sync.WaitGroup) {\n\tdefer wg.Done()\n\tfor j := range jobs {\n\t\tfmt.Printf("worker %d finished job %d\\n", id, j)\n\t}\n}`,
+            timestamp: Date.now() - 86400000
+          }
+        ]
+      }
+    ];
+  });
+
+  const [activeProjectId, setActiveProjectId] = useState<string>(() => {
+    return localStorage.getItem('claude_rag_active_project_id') || 'proj_algo';
+  });
+
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [languageSearchQuery, setLanguageSearchQuery] = useState('');
+  const [savedLearningAlert, setSavedLearningAlert] = useState<string | null>(null);
 
   // Sync current session messages on mount or session switch
   useEffect(() => {
@@ -255,37 +506,99 @@ print(result)
     setTimeout(() => setSavedNotice(false), 3000);
   };
 
-  const handleLanguageChange = (newLang: 'python' | 'javascript') => {
-    setCodeLanguage(newLang);
-    if (newLang === 'javascript') {
-      setCodeContent(`// JavaScript Sandbox Runtime
-function quickSort(arr) {
-  if (arr.length <= 1) return arr;
-  const pivot = arr[arr.length - 1];
-  const left = arr.filter((x, i) => x < pivot && i < arr.length - 1);
-  const right = arr.filter((x, i) => x >= pivot && i < arr.length - 1);
-  return [...quickSort(left), pivot, ...quickSort(right)];
-}
+  const saveProjectsToStorage = (updated: CodingProject[]) => {
+    setProjects(updated);
+    try {
+      localStorage.setItem('claude_rag_user_projects', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to save projects to localStorage', e);
+    }
+  };
 
-const numbers = [64, 34, 25, 12, 22, 11, 90];
-console.log("Original Array:", numbers);
-console.log("Sorted Array:  ", quickSort(numbers));
-`);
+  const createProject = (name: string, description: string) => {
+    if (!name.trim()) return;
+    const newProj: CodingProject = {
+      id: 'proj_' + Math.random().toString(36).substring(2, 9),
+      name: name.trim(),
+      description: description.trim() || 'Custom learning track',
+      createdAt: Date.now(),
+      learnings: []
+    };
+    const updated = [newProj, ...projects];
+    saveProjectsToStorage(updated);
+    setActiveProjectId(newProj.id);
+    localStorage.setItem('claude_rag_active_project_id', newProj.id);
+    setIsCreatingProject(false);
+    setNewProjectName('');
+    setNewProjectDesc('');
+    setSavedLearningAlert(`Created project "${newProj.name}"`);
+    setTimeout(() => setSavedLearningAlert(null), 3000);
+  };
+
+  const deleteProject = (projectId: string) => {
+    const updated = projects.filter(p => p.id !== projectId);
+    saveProjectsToStorage(updated);
+    if (activeProjectId === projectId && updated.length > 0) {
+      setActiveProjectId(updated[0].id);
+      localStorage.setItem('claude_rag_active_project_id', updated[0].id);
+    }
+  };
+
+  const saveLearningToProject = (title: string, lang: string, explanation: string, codeToSave: string) => {
+    const currentProj = projects.find(p => p.id === activeProjectId) || projects[0];
+    if (!currentProj) return;
+
+    const newEntry: LearningEntry = {
+      id: 'learn_' + Date.now(),
+      title: title.trim() || `${lang.toUpperCase()} Concept Note`,
+      language: lang,
+      conceptSummary: explanation.slice(0, 240),
+      code: codeToSave,
+      timestamp: Date.now()
+    };
+
+    const updated = projects.map(p => {
+      if (p.id === currentProj.id) {
+        return {
+          ...p,
+          learnings: [newEntry, ...p.learnings]
+        };
+      }
+      return p;
+    });
+
+    saveProjectsToStorage(updated);
+    setSavedLearningAlert(`Saved learning to "${currentProj.name}"`);
+    setTimeout(() => setSavedLearningAlert(null), 3000);
+  };
+
+  const deleteLearningFromProject = (projectId: string, learningId: string) => {
+    const updated = projects.map(p => {
+      if (p.id === projectId) {
+        return {
+          ...p,
+          learnings: p.learnings.filter(l => l.id !== learningId)
+        };
+      }
+      return p;
+    });
+    saveProjectsToStorage(updated);
+  };
+
+  const loadLearningIntoStudio = (entry: LearningEntry, projId: string) => {
+    setActiveProjectId(projId);
+    localStorage.setItem('claude_rag_active_project_id', projId);
+    handleLanguageChange(entry.language, entry.code);
+    setActiveView('code');
+  };
+
+  const handleLanguageChange = (newLang: string, customCode?: string) => {
+    const lang = newLang.toLowerCase();
+    setCodeLanguage(lang);
+    if (customCode !== undefined) {
+      setCodeContent(customCode);
     } else {
-      setCodeContent(`# Python Sandbox (Powered by Pyodide WebAssembly)
-import math
-
-def calculate_primes(limit):
-    primes = []
-    for num in range(2, limit + 1):
-        if all(num % p != 0 for p in primes if p * p <= num):
-            primes.append(num)
-    return primes
-
-result = calculate_primes(50)
-print(f"Computed {len(result)} primes up to 50:")
-print(result)
-`);
+      setCodeContent(LANGUAGE_TEMPLATES[lang] || `// ${lang.toUpperCase()} Code Sandbox\n// Write or test ${lang} code here\n`);
     }
   };
 
@@ -311,7 +624,7 @@ print(result)
         const duration = ((performance.now() - startTime) / 1000).toFixed(3);
         setTerminalOutput(logs.length ? logs.join('\n') : '(Code executed successfully with no print output)');
         setTerminalStatus(`Success (${duration}s)`);
-      } else {
+      } else if (codeLanguage === 'python') {
         // Python execution in-browser via Pyodide WebAssembly
         setTerminalOutput('Initializing Pyodide WebAssembly runtime...');
 
@@ -339,6 +652,10 @@ print(result)
         const duration = ((performance.now() - startTime) / 1000).toFixed(3);
         setTerminalOutput(pyStdout.trim() || '(Python executed with no print output)');
         setTerminalStatus(`Success (${duration}s)`);
+      } else {
+        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
+        setTerminalOutput(`Local browser sandbox directly executes Python (Pyodide WASM) and JavaScript.\nFor ${codeLanguage.toUpperCase()}, the AI Copilot provides live syntax explanation, code refactoring, and test cases.\nYou can click "Save Learning" to persist this ${codeLanguage.toUpperCase()} code into your active project.`);
+        setTerminalStatus(`Saved (${duration}s)`);
       }
     } catch (err: any) {
       const duration = ((performance.now() - startTime) / 1000).toFixed(3);
@@ -718,12 +1035,167 @@ class QueryResponse(BaseModel):
           <div className="workspace-view">
             <div className="view-header">
               <div className="view-title-group">
-                <h2>AI Code Studio & Runner</h2>
-                <p>Interactive code generation, live testing, and runtime sandbox execution.</p>
+                <h2>AI Code Studio & Learning Lab</h2>
+                <p>Search any programming language, learn core concepts, execute sandbox code, and persist your progress project-wise.</p>
               </div>
             </div>
 
-            {/* Studio Navigation Tabs */}
+            {/* Project Selection & Inline Creator Bar */}
+            <div className="code-project-bar">
+              <div className="code-project-left">
+                <Folder size={14} style={{ color: 'var(--text-secondary)' }} />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Active Project:</span>
+                <select 
+                  className="code-project-select"
+                  value={activeProjectId}
+                  onChange={(e) => {
+                    setActiveProjectId(e.target.value);
+                    localStorage.setItem('claude_rag_active_project_id', e.target.value);
+                  }}
+                >
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.learnings.length} learnings)
+                    </option>
+                  ))}
+                </select>
+
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  style={{ padding: '4px 8px', fontSize: '0.76rem' }}
+                  onClick={() => setIsCreatingProject(prev => !prev)}
+                >
+                  <Plus size={12} />
+                  <span>{isCreatingProject ? 'Cancel' : 'New Project'}</span>
+                </button>
+              </div>
+
+              {/* Language Search & Picker */}
+              <div className="language-search-bar">
+                <Search size={13} style={{ color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" 
+                  placeholder="Search language..."
+                  value={languageSearchQuery}
+                  onChange={(e) => setLanguageSearchQuery(e.target.value)}
+                />
+                {languageSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setLanguageSearchQuery('')}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Inline Project Creator (Zero Popups) */}
+            {isCreatingProject && (
+              <div className="inline-creator">
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Create New Learning Project
+                </div>
+                <div className="inline-creator-row">
+                  <input 
+                    type="text" 
+                    placeholder="Project Name (e.g., Concurrency & Systems, Fullstack Rust)"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Description (Optional)"
+                    value={newProjectDesc}
+                    onChange={(e) => setNewProjectDesc(e.target.value)}
+                  />
+                  <button 
+                    type="button" 
+                    className="btn-primary" 
+                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                    onClick={() => createProject(newProjectName, newProjectDesc)}
+                    disabled={!newProjectName.trim()}
+                  >
+                    Save Project
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Language Selection Filter / Suggestions */}
+            {languageSearchQuery.trim() && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Matching Languages:</span>
+                {POPULAR_LANGUAGES
+                  .filter(l => l.toLowerCase().includes(languageSearchQuery.toLowerCase()))
+                  .map(lang => (
+                    <button
+                      key={lang}
+                      type="button"
+                      className="badge-tag"
+                      style={{ 
+                        cursor: 'pointer',
+                        borderColor: codeLanguage === lang ? 'var(--border-focus)' : 'var(--border)',
+                        color: codeLanguage === lang ? 'var(--text-primary)' : 'var(--text-secondary)'
+                      }}
+                      onClick={() => {
+                        handleLanguageChange(lang);
+                        setLanguageSearchQuery('');
+                      }}
+                    >
+                      {lang.toUpperCase()}
+                    </button>
+                  ))}
+                {!POPULAR_LANGUAGES.includes(languageSearchQuery.toLowerCase()) && (
+                  <button
+                    type="button"
+                    className="badge-tag"
+                    style={{ cursor: 'pointer', borderColor: 'var(--border-focus)' }}
+                    onClick={() => {
+                      handleLanguageChange(languageSearchQuery.trim().toLowerCase());
+                      setLanguageSearchQuery('');
+                    }}
+                  >
+                    Use "{languageSearchQuery}"
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Concept Quick-Learn Chips Bar */}
+            <div className="quick-learn-bar">
+              <span className="quick-learn-label">
+                Learn {codeLanguage.toUpperCase()}:
+              </span>
+              {(LANGUAGE_TOPICS[codeLanguage] || ['Syntax Fundamentals', 'Data Structures', 'Functions & Scope', 'Error Handling', 'Best Practices']).map((topic) => (
+                <button
+                  key={topic}
+                  type="button"
+                  className="concept-chip"
+                  onClick={() => {
+                    const prompt = `Explain the concept of '${topic}' in ${codeLanguage.toUpperCase()} with a complete, clean, runnable code example. Detail how it works, typical idioms, and key performance takeaways.`;
+                    askCopilot(prompt);
+                  }}
+                >
+                  <BookOpen size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                  {topic}
+                </button>
+              ))}
+            </div>
+
+            {/* Notification alert banner */}
+            {savedLearningAlert && (
+              <div style={{ marginBottom: 12 }}>
+                <span className="alert-toast">
+                  <Check size={13} style={{ color: '#34d399' }} />
+                  <span>{savedLearningAlert}</span>
+                </span>
+              </div>
+            )}
+
+            {/* Studio Navigation Tabs - State Machine Graph REMOVED */}
             <div className="studio-tabs">
               <button 
                 className={`studio-tab-btn ${studioTab === 'studio' ? 'active' : ''}`}
@@ -731,13 +1203,6 @@ class QueryResponse(BaseModel):
               >
                 <Terminal size={14} />
                 <span>Interactive Studio</span>
-              </button>
-              <button 
-                className={`studio-tab-btn ${studioTab === 'graph' ? 'active' : ''}`}
-                onClick={() => setStudioTab('graph')}
-              >
-                <Layers size={14} />
-                <span>State Machine Graph</span>
               </button>
               <button 
                 className={`studio-tab-btn ${studioTab === 'api' ? 'active' : ''}`}
@@ -779,20 +1244,34 @@ class QueryResponse(BaseModel):
                           </ReactMarkdown>
                         </div>
                         {msg.code && (
-                          <button 
-                            type="button"
-                            className="btn-send-to-editor"
-                            onClick={() => setCodeContent(msg.code || '')}
-                          >
-                            <ArrowDownToLine size={12} />
-                            <span>Insert Code into Editor</span>
-                          </button>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                            <button 
+                              type="button"
+                              className="btn-send-to-editor"
+                              onClick={() => setCodeContent(msg.code || '')}
+                            >
+                              <ArrowDownToLine size={12} />
+                              <span>Insert into Editor</span>
+                            </button>
+                            <button 
+                              type="button"
+                              className="btn-send-to-editor"
+                              style={{ borderColor: 'var(--border-focus)' }}
+                              onClick={() => {
+                                const title = `${codeLanguage.toUpperCase()} Snippet: ${msg.text.slice(0, 35).replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Concept'}`;
+                                saveLearningToProject(title, codeLanguage, msg.text, msg.code || '');
+                              }}
+                            >
+                              <Bookmark size={12} />
+                              <span>Save to {projects.find(p => p.id === activeProjectId)?.name || 'Project'}</span>
+                            </button>
+                          </div>
                         )}
                       </div>
                     ))}
                     {isCopilotLoading && (
                       <div className="copilot-msg assistant" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        Copilot is generating implementation...
+                        Copilot is generating explanation and code...
                       </div>
                     )}
                   </div>
@@ -807,7 +1286,7 @@ class QueryResponse(BaseModel):
                     <input 
                       type="text" 
                       className="copilot-input"
-                      placeholder="Ask to write, debug, or optimize code..."
+                      placeholder="Ask to write, debug, explain or optimize code..."
                       value={copilotPrompt}
                       onChange={(e) => setCopilotPrompt(e.target.value)}
                       disabled={isCopilotLoading}
@@ -825,19 +1304,35 @@ class QueryResponse(BaseModel):
                 {/* Right: Code Editor & In-Browser Runner */}
                 <div className="code-runner-pane">
                   <div className="runner-toolbar">
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                       <select 
                         className="copilot-model-select"
                         value={codeLanguage}
-                        onChange={(e) => handleLanguageChange(e.target.value as 'python' | 'javascript')}
+                        onChange={(e) => handleLanguageChange(e.target.value)}
                       >
-                        <option value="python">Python (Pyodide WASM)</option>
-                        <option value="javascript">JavaScript (V8 Engine)</option>
+                        {POPULAR_LANGUAGES.map(lang => (
+                          <option key={lang} value={lang}>
+                            {lang.toUpperCase()} {lang === 'python' ? '(Pyodide WASM)' : lang === 'javascript' ? '(V8 Engine)' : '(Copilot Sandbox)'}
+                          </option>
+                        ))}
+                        {!POPULAR_LANGUAGES.includes(codeLanguage) && (
+                          <option value={codeLanguage}>{codeLanguage.toUpperCase()}</option>
+                        )}
                       </select>
 
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                        Client-side sandboxed execution
-                      </span>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: '0.76rem' }}
+                        onClick={() => {
+                          const title = `${codeLanguage.toUpperCase()} Implementation`;
+                          saveLearningToProject(title, codeLanguage, `Saved from interactive editor for ${codeLanguage}`, codeContent);
+                        }}
+                        title="Save this code snippet to your active project"
+                      >
+                        <Bookmark size={12} />
+                        <span>Save to Project</span>
+                      </button>
                     </div>
 
                     <button 
@@ -872,23 +1367,7 @@ class QueryResponse(BaseModel):
               </div>
             )}
 
-            {/* Tab 2: State Machine Graph */}
-            {studioTab === 'graph' && (
-              <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-                  LangGraph workflow state diagram generated dynamically from backend topology:
-                </p>
-                <div style={{ display: 'inline-block', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', backgroundColor: 'var(--bg-sidebar)' }}>
-                  <img 
-                    src="http://localhost:8000/graph" 
-                    alt="LangGraph Architecture Flow" 
-                    style={{ maxWidth: '100%', maxHeight: 420, display: 'block' }} 
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Tab 3: API Reference */}
+            {/* Tab 2: API Reference */}
             {studioTab === 'api' && (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <h3 style={{ color: 'var(--text-primary)', marginBottom: 10, fontSize: '1.1rem' }}>
@@ -917,47 +1396,229 @@ class QueryResponse(BaseModel):
           <div className="workspace-view">
             <div className="view-header">
               <div className="view-title-group">
-                <h2>Enterprise Knowledge Projects</h2>
-                <p>Vector collections, document indexing status, and cluster health.</p>
+                <h2>Projects & Saved Learnings</h2>
+                <p>Project-wise programming languages, mastered concepts, and runnable code archives.</p>
               </div>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setIsCreatingProject(prev => !prev)}
+              >
+                <Plus size={14} />
+                <span>New Project</span>
+              </button>
             </div>
 
-            <div className="workspace-grid-2">
-              <div className="workspace-card">
-                <div className="workspace-card-title">Active Knowledge Base</div>
-                <div className="workspace-card-text">
-                  <strong>Enterprise Systems & Networking</strong><br />
-                  Documentation covering Kubernetes v1.8, Intel DPDK, SR-IOV high performance networking, and memory architectures.
+            {/* Inline Project Creator (Zero Popups) */}
+            {isCreatingProject && (
+              <div className="inline-creator" style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Create New Learning Project
                 </div>
-                <div style={{ marginTop: 12 }}>
-                  <span className="badge-tag">Qdrant Cloud</span>
-                  <span className="badge-tag">Dual Vectors</span>
-                  <span className="badge-tag">FlashRank Reranking</span>
+                <div className="inline-creator-row">
+                  <input 
+                    type="text" 
+                    placeholder="Project Name (e.g., Distributed Systems, Rust Microservices)"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Description / Learning Objective"
+                    value={newProjectDesc}
+                    onChange={(e) => setNewProjectDesc(e.target.value)}
+                  />
+                  <button 
+                    type="button" 
+                    className="btn-primary" 
+                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                    onClick={() => createProject(newProjectName, newProjectDesc)}
+                    disabled={!newProjectName.trim()}
+                  >
+                    Save Project
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-secondary" 
+                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                    onClick={() => setIsCreatingProject(false)}
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
+            )}
 
-              <div className="workspace-card">
-                <div className="workspace-card-title">Vector Engine Details</div>
-                <div className="workspace-card-text">
-                  <strong>Cluster:</strong> SA-East-1 AWS<br />
-                  <strong>Collection:</strong> <code>enterprise_rag</code><br />
-                  <strong>Vectors:</strong> <code>gemini</code> (3072-d), <code>local</code> (768-d)<br />
-                  <strong>Status:</strong> Active & Synchronized
-                </div>
+            {/* Saved Notification Banner */}
+            {savedLearningAlert && (
+              <div style={{ marginBottom: 16 }}>
+                <span className="alert-toast">
+                  <Check size={13} style={{ color: '#34d399' }} />
+                  <span>{savedLearningAlert}</span>
+                </span>
               </div>
+            )}
+
+            {/* Project-Wise Cards Hierarchy */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {projects.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                  <FolderTree size={32} style={{ margin: '0 auto 12px auto', display: 'block', opacity: 0.5 }} />
+                  <p>No projects created yet. Click "New Project" to start tracking your learning!</p>
+                </div>
+              ) : (
+                projects.map((project) => {
+                  const uniqueLanguages = Array.from(new Set(project.learnings.map(l => l.language.toLowerCase())));
+                  return (
+                    <div key={project.id} className="project-wise-card">
+                      <div className="project-card-top">
+                        <div>
+                          <div className="project-card-heading">
+                            <Folder size={16} />
+                            <span>{project.name}</span>
+                            <span className="badge-tag" style={{ fontSize: '0.7rem' }}>
+                              {project.learnings.length} {project.learnings.length === 1 ? 'learning' : 'learnings'}
+                            </span>
+                          </div>
+                          <div className="project-card-desc">
+                            {project.description}
+                          </div>
+                          {uniqueLanguages.length > 0 && (
+                            <div className="project-languages-list">
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'center' }}>
+                                Languages:
+                              </span>
+                              {uniqueLanguages.map(lang => (
+                                <span key={lang} className="badge-tag">
+                                  {lang.toUpperCase()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '0.74rem' }}
+                            onClick={() => {
+                              setActiveProjectId(project.id);
+                              localStorage.setItem('claude_rag_active_project_id', project.id);
+                              setActiveView('code');
+                            }}
+                            title="Open in Code Studio"
+                          >
+                            <Terminal size={12} />
+                            <span>Studio</span>
+                          </button>
+                          {projects.length > 1 && (
+                            <button
+                              type="button"
+                              className="chat-action-btn"
+                              onClick={() => deleteProject(project.id)}
+                              title="Delete project"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Saved Learnings for this Project */}
+                      <div className="learnings-accordion">
+                        {project.learnings.length === 0 ? (
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '6px 0' }}>
+                            No learnings saved in this project yet. Open Code Studio, search any language or concept, and click "Save to Project".
+                          </div>
+                        ) : (
+                          project.learnings.map((entry) => {
+                            return (
+                              <div key={entry.id} className="learning-item">
+                                <div className="learning-item-header">
+                                  <div className="learning-item-title">
+                                    <BookOpen size={13} style={{ color: 'var(--text-muted)' }} />
+                                    <span>{entry.title}</span>
+                                    <span className="badge-tag" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                                      {entry.language.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                    {new Date(entry.timestamp).toLocaleDateString()}
+                                  </span>
+                                </div>
+
+                                {entry.conceptSummary && (
+                                  <div className="learning-item-summary">
+                                    {entry.conceptSummary}
+                                  </div>
+                                )}
+
+                                {entry.code && (
+                                  <div>
+                                    <pre className="learning-item-code">
+                                      <code>{entry.code}</code>
+                                    </pre>
+                                  </div>
+                                )}
+
+                                <div className="learning-item-actions">
+                                  <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                                    onClick={() => copyToClipboard(entry.code)}
+                                  >
+                                    <Copy size={11} />
+                                    <span>Copy Code</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                                    onClick={() => loadLearningIntoStudio(entry, project.id)}
+                                  >
+                                    <Play size={11} />
+                                    <span>Run in Studio</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="chat-action-btn"
+                                    style={{ padding: '3px 6px' }}
+                                    onClick={() => deleteLearningFromProject(project.id, entry.id)}
+                                    title="Delete learning entry"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
-            <h3 style={{ fontSize: '0.92rem', color: 'var(--text-primary)', marginBottom: 12 }}>
-              Indexed Document Library
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <span className="badge-tag"><FileText size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Kubernetes Overview v1.8</span>
-              <span className="badge-tag"><FileText size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Intel DPDK Dataplane Guide</span>
-              <span className="badge-tag"><FileText size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />SR-IOV High Perf Networking</span>
-              <span className="badge-tag"><FileText size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />5-Level Paging Intel Spec</span>
-              <span className="badge-tag"><FileText size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Parallel Page Cache Systems</span>
-              <span className="badge-tag"><FileText size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Memory Consistency Models</span>
-              <span className="badge-tag"><FileText size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Lock-Free Hash Tables</span>
+            {/* Enterprise Knowledge Repositories */}
+            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Enterprise RAG Vector Repositories
+                </span>
+                <span className="badge-tag">Qdrant Cloud Synced</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Kubernetes Overview v1.8</span>
+                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Intel DPDK Dataplane Guide</span>
+                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />SR-IOV High Perf Networking</span>
+                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />5-Level Paging Intel Spec</span>
+                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Parallel Page Cache Systems</span>
+                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Memory Consistency Models</span>
+                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Lock-Free Hash Tables</span>
+              </div>
             </div>
           </div>
         )}
