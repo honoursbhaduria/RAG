@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Loader from './Loader';
@@ -29,7 +29,8 @@ import {
   BookOpen,
   Bookmark,
   Folder,
-  X
+  X,
+  Paperclip
 } from 'lucide-react';
 
 export interface LearningEntry {
@@ -232,8 +233,10 @@ export const LANGUAGE_TOPICS: Record<string, string[]> = {
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  code?: string;
   thoughtProcess?: string[];
   sources?: string[];
+  skill?: string;
 }
 
 interface ChatSession {
@@ -365,6 +368,10 @@ export function App() {
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [languageSearchQuery, setLanguageSearchQuery] = useState('');
   const [savedLearningAlert, setSavedLearningAlert] = useState<string | null>(null);
+  const [activeSkill, setActiveSkill] = useState<'rag' | 'code' | 'guardrails'>('rag');
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync current session messages on mount or session switch
   useEffect(() => {
@@ -423,6 +430,27 @@ export function App() {
     }
   };
 
+  const updateSessions = (targetSessionId: string, finalMessages: Message[], titleSeed?: string) => {
+    const existingIdx = sessions.findIndex((s) => s.id === targetSessionId);
+    let updatedSessions: ChatSession[];
+    if (existingIdx >= 0) {
+      updatedSessions = [...sessions];
+      updatedSessions[existingIdx] = {
+        ...updatedSessions[existingIdx],
+        messages: finalMessages,
+        timestamp: Date.now()
+      };
+    } else {
+      const seed = titleSeed || (finalMessages.find(m => m.role === 'user')?.content || 'New Chat');
+      const title = seed.length > 34 ? seed.slice(0, 34) + '...' : seed;
+      updatedSessions = [
+        { id: targetSessionId, title, messages: finalMessages, timestamp: Date.now() },
+        ...sessions
+      ];
+    }
+    saveSessionsToStorage(updatedSessions);
+  };
+
   const sendQuery = async (queryText: string) => {
     if (!queryText.trim() || isLoading) return;
 
@@ -433,8 +461,50 @@ export function App() {
     setInputPrompt('');
     setIsLoading(true);
 
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      // Skill Route 1: Code & Language Tutor Skill
+      if (activeSkill === 'code') {
+        const response = await fetch(`${backendUrl}/code/assist`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: queryText,
+            code: codeContent,
+            language: codeLanguage,
+            engine: copilotEngine
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+
+        const data = await response.json();
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: data.answer || 'No code response received.',
+          code: data.code || undefined,
+          thoughtProcess: [
+            `Skill: Code & Language Tutor`,
+            `Engine: ${data.engine?.toUpperCase() || 'GROQ'}`,
+            `Target Language: ${(data.language || codeLanguage).toUpperCase()}`
+          ],
+          skill: 'code'
+        };
+
+        const finalMessages = [...newMessages, assistantMessage];
+        setMessages(finalMessages);
+        updateSessions(sessionId, finalMessages, queryText);
+        return;
+      }
+
+      // Skill Route 2 & 3: Enterprise RAG and Security & Guardrails
+      const effectiveSystemPrompt = activeSkill === 'guardrails'
+        ? "You are a Security & Guardrails Auditor. Test, analyze, and report on prompt safety, jailbreak defenses, and enterprise policy enforcement."
+        : settings.systemPrompt;
+
       const response = await fetch(`${backendUrl}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -442,7 +512,7 @@ export function App() {
           q: queryText, 
           thread_id: sessionId,
           persona: settings.persona,
-          system_prompt: settings.systemPrompt,
+          system_prompt: effectiveSystemPrompt,
           temperature: settings.temperature,
           top_k: settings.topK
         })
@@ -457,40 +527,86 @@ export function App() {
         role: 'assistant',
         content: data.answer || 'No response received from agent.',
         thoughtProcess: data.thought_process || [],
-        sources: data.sources || []
+        sources: data.sources || [],
+        skill: activeSkill
       };
 
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages);
-
-      // Update or create session entry
-      const existingIdx = sessions.findIndex((s) => s.id === sessionId);
-      const title = queryText.length > 34 ? queryText.slice(0, 34) + '...' : queryText;
-      
-      let updatedSessions: ChatSession[];
-      if (existingIdx >= 0) {
-        updatedSessions = [...sessions];
-        updatedSessions[existingIdx] = {
-          ...updatedSessions[existingIdx],
-          messages: finalMessages,
-          timestamp: Date.now()
-        };
-      } else {
-        updatedSessions = [
-          { id: sessionId, title, messages: finalMessages, timestamp: Date.now() },
-          ...sessions
-        ];
-      }
-      saveSessionsToStorage(updatedSessions);
+      updateSessions(sessionId, finalMessages, queryText);
 
     } catch (err: any) {
       const errorMessage: Message = {
         role: 'assistant',
-        content: `Unable to connect to backend server (${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}). Error: ${err.message || err}`
+        content: `Unable to connect to backend server (${backendUrl}). Error: ${err.message || err}`
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingFile(true);
+    setUploadStatusMessage(`Validating "${file.name}" through NeMo Guardrails & RAG pipeline...`);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const res = await fetch(`${backendUrl}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.safe && data.success) {
+        const confirmMsg: Message = {
+          role: 'assistant',
+          content: `Document **${data.filename}** passed NeMo Guardrails verification and has been indexed into the Enterprise RAG vector store (${data.chunks_count} chunks, ${data.points_indexed} points).\n\nYou can now ask questions about the contents of this document.`,
+          thoughtProcess: [
+            `File Validation: ${data.filename}`,
+            `NeMo Guardrails: ${data.guardrail_status || 'Verified Safe'}`,
+            `RAG Ingestion: Chunked & Embedded with dual vectors`,
+            `Vector Store: ${data.points_indexed} points indexed in Qdrant`
+          ],
+          sources: [`File Source: ${data.filename}`]
+        };
+        const updated = [...messages, confirmMsg];
+        setMessages(updated);
+        updateSessions(sessionId, updated, `Upload: ${data.filename}`);
+        setSavedLearningAlert(`File "${data.filename}" safely indexed into RAG`);
+        setTimeout(() => setSavedLearningAlert(null), 4000);
+      } else {
+        const rejectMsg: Message = {
+          role: 'assistant',
+          content: `**Upload Rejected by Security Guardrails**\n\nFile **${data.filename}** could not be ingested into RAG.\n\n**Reason:** ${data.reason || 'Guardrail policy violation or disallowed prompt injection detected.'}\n\n*This document was blocked and not stored or indexed into the vector database.*`,
+          thoughtProcess: [
+            `File Scan: ${data.filename}`,
+            `Security Gate: Prompt injection or policy violation detected`,
+            `Action: File rejected, RAG ingestion aborted`
+          ]
+        };
+        const updated = [...messages, rejectMsg];
+        setMessages(updated);
+        updateSessions(sessionId, updated, `Blocked: ${data.filename}`);
+        setSavedLearningAlert(`Upload blocked: Guardrail policy violation`);
+        setTimeout(() => setSavedLearningAlert(null), 4000);
+      }
+    } catch (err: any) {
+      console.error('File upload failed', err);
+      setSavedLearningAlert(`Upload failed: ${err.message || err}`);
+      setTimeout(() => setSavedLearningAlert(null), 4000);
+    } finally {
+      setIsUploadingFile(false);
+      setUploadStatusMessage(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -887,6 +1003,80 @@ class QueryResponse(BaseModel):
         {/* ── VIEW 1: CHAT ── */}
         {activeView === 'chat' && (
           <>
+            {/* Active Skills Bar */}
+            <div className="chat-skills-header">
+              <span className="chat-skills-label">Active Skill:</span>
+              <button
+                type="button"
+                className={`chat-skill-btn ${activeSkill === 'rag' ? 'active' : ''}`}
+                onClick={() => setActiveSkill('rag')}
+              >
+                <Database size={13} />
+                <span>Enterprise RAG</span>
+              </button>
+              <button
+                type="button"
+                className={`chat-skill-btn ${activeSkill === 'code' ? 'active' : ''}`}
+                onClick={() => setActiveSkill('code')}
+              >
+                <Code2 size={13} />
+                <span>Code & Language Tutor</span>
+              </button>
+              <button
+                type="button"
+                className={`chat-skill-btn ${activeSkill === 'guardrails' ? 'active' : ''}`}
+                onClick={() => setActiveSkill('guardrails')}
+              >
+                <ShieldCheck size={13} />
+                <span>Security & Guardrails</span>
+              </button>
+            </div>
+
+            {/* Sub-bar when Code Skill is active: Language switcher + Quick concept chips */}
+            {activeSkill === 'code' && (
+              <div className="chat-skill-subbar">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 500 }}>Language:</span>
+                  <select
+                    className="copilot-model-select"
+                    style={{ padding: '3px 8px', fontSize: '0.74rem' }}
+                    value={codeLanguage}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                  >
+                    {POPULAR_LANGUAGES.map(lang => (
+                      <option key={lang} value={lang}>{lang.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Quick Topics:</span>
+                  {(LANGUAGE_TOPICS[codeLanguage] || ['Syntax', 'Functions', 'Async', 'Data Structures']).map((topic) => (
+                    <button
+                      key={topic}
+                      type="button"
+                      className="concept-chip"
+                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                      onClick={() => {
+                        sendQuery(`Teach me '${topic}' in ${codeLanguage.toUpperCase()} with a complete, clean, runnable code example.`);
+                      }}
+                    >
+                      <BookOpen size={10} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
+                      {topic}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Uploading / Guardrails Progress Banner */}
+            {isUploadingFile && (
+              <div className="uploading-banner">
+                <Loader />
+                <span>{uploadStatusMessage || 'Validating document through Guardrails and indexing to RAG...'}</span>
+              </div>
+            )}
+
             <div className="chat-container">
               {messages.length === 0 ? (
                 <div className="hero-container">
@@ -979,6 +1169,35 @@ class QueryResponse(BaseModel):
                       )}
                     </div>
 
+                    {msg.code && (
+                      <div className="chat-code-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                          onClick={() => {
+                            handleLanguageChange(codeLanguage, msg.code || '');
+                            setActiveView('code');
+                          }}
+                        >
+                          <Play size={11} />
+                          <span>Run in Studio</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                          onClick={() => {
+                            const title = `${codeLanguage.toUpperCase()}: ${msg.content.slice(0, 30).replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Concept'}`;
+                            saveLearningToProject(title, codeLanguage, msg.content, msg.code || '');
+                          }}
+                        >
+                          <Bookmark size={11} />
+                          <span>Save to {projects.find(p => p.id === activeProjectId)?.name || 'Project'}</span>
+                        </button>
+                      </div>
+                    )}
+
                     {msg.sources && msg.sources.length > 0 && (
                       <details className="sources-accordion">
                         <summary className="sources-summary">
@@ -1010,17 +1229,39 @@ class QueryResponse(BaseModel):
             <form className="input-container" onSubmit={handleSubmit}>
               <div className="input-wrapper">
                 <input
+                  type="file"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleFileUpload}
+                  accept=".txt,.md,.pdf,.py,.json,.csv,.docx,.html,.htm,.sh,.sql,.yaml,.yml"
+                />
+                <button
+                  type="button"
+                  className="file-upload-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading || isUploadingFile}
+                  title="Upload document to RAG pipeline (validated through Guardrails first)"
+                >
+                  <Paperclip size={16} />
+                </button>
+                <input
                   type="text"
                   className="input-box"
-                  placeholder="Ask a question about your enterprise documentation..."
+                  placeholder={
+                    activeSkill === 'code'
+                      ? `Ask to teach a concept, write algorithms, or debug in ${codeLanguage.toUpperCase()}...`
+                      : activeSkill === 'guardrails'
+                      ? "Test prompt injection, jailbreak defenses, or security rules..."
+                      : "Ask a question about your enterprise documentation or uploaded files..."
+                  }
                   value={inputPrompt}
                   onChange={(e) => setInputPrompt(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isLoading || isUploadingFile}
                 />
                 <button
                   type="submit"
                   className="input-btn-send"
-                  disabled={isLoading || !inputPrompt.trim()}
+                  disabled={isLoading || isUploadingFile || !inputPrompt.trim()}
                   title="Send query"
                 >
                   <Send size={15} />

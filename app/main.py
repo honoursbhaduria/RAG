@@ -14,12 +14,13 @@ else:
     logfire.configure(send_to_logfire=False, inspect_arguments=False)
 
 # Now safe to import app modules - logfire is already active
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.agents.graph import rag_agent
 from app.guardrails import initialize_rails, guard
 from app.services.code_service import generate_code_assistance
+from app.services.document_service import process_and_ingest_uploaded_file
 
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -255,3 +256,32 @@ def code_assist(request: CodeAssistRequest):
         "language": lang,
         "engine": engine_used
     }
+
+
+class UploadFileResponse(BaseModel):
+    success: bool = Field(..., description="Whether file passed guardrails and was successfully indexed")
+    status: str = Field(..., description="Status: indexed, blocked, empty, or error")
+    safe: bool = Field(..., description="Whether document passed security guardrails")
+    filename: str = Field(..., description="Name of the processed file")
+    chunks_count: Optional[int] = Field(None, description="Number of text chunks extracted")
+    points_indexed: Optional[int] = Field(None, description="Number of vector points upserted to Qdrant")
+    guardrail_status: Optional[str] = Field(None, description="Status from NeMo Guardrails")
+    message: Optional[str] = Field(None, description="Detailed status message")
+    reason: Optional[str] = Field(None, description="Rejection reason if blocked")
+
+
+@app.post(
+    "/upload",
+    response_model=UploadFileResponse,
+    tags=["Ingestion & Guardrails"],
+    summary="Upload Document with Guardrails Validation & RAG Ingestion",
+    description="Validates uploaded documents against NeMo Guardrails and injection attacks, chunks content, embeds using dual vectors, and indexes into Qdrant."
+)
+async def upload_document(file: UploadFile = File(...)):
+    """
+    Upload a document (PDF, TXT, MD, Python, JSON, HTML, etc.).
+    The file first passes through safety guardrails. If safe, it is ingested into the RAG vector store.
+    """
+    content = await file.read()
+    result = process_and_ingest_uploaded_file(content, file.filename)
+    return result
