@@ -72,16 +72,17 @@ def extract_cache_status(response) -> str:
     return "MISS"
 
 
-def generate_completion(prompt: str, feature: str = "rag"):
+def generate_completion(prompt: str, feature: str = "rag", temperature: float = 0.1):
     """
     Generates a completion using Portkey gateway if PORTKEY_API_KEY is configured.
     Otherwise falls back directly to Groq API.
     Returns (content, cache_status).
     """
+    temp = max(0.0, min(1.0, float(temperature)))
     if settings.PORTKEY_API_KEY and settings.PORTKEY_API_KEY.strip():
         response = portkey_client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.1
+            temperature=temp
         )
         content = response.choices[0].message.content
         cache_status = extract_cache_status(response)
@@ -92,7 +93,7 @@ def generate_completion(prompt: str, feature: str = "rag"):
     response = groq_client.chat.completions.create(
         model=settings.GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.1
+        temperature=temp
     )
     content = response.choices[0].message.content
     return content, "MISS"

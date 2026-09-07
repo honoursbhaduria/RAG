@@ -17,10 +17,15 @@ def generate_node(state: AgentState):
 
     user_msg = state["messages"][-1]["content"] if state["messages"] else ""
 
+    persona = state.get("persona") or "Senior Technical Architect"
+    system_instruction = state.get("system_prompt") or ""
+    temp = float(state.get("temperature", 0.1))
+
     if query == "CONVERSATIONAL":
-        logfire.info("Generating conversational response using memory.")
+        logfire.info(f"Generating conversational response ({persona}).")
         prompt = f"""
-        You are a friendly and helpful Enterprise AI Assistant.
+        You are an expert {persona}.
+        {system_instruction}
         Answer the user's latest message using the CONVERSATION HISTORY below.
 
         CONVERSATION HISTORY:
@@ -30,7 +35,7 @@ def generate_node(state: AgentState):
         "{user_msg}"
         """
     else:
-        logfire.info("Generating technical RAG response.")
+        logfire.info(f"Generating technical RAG response ({persona}).")
         max_context_chars = 25000
         full_context = ""
 
@@ -42,7 +47,8 @@ def generate_node(state: AgentState):
                 break
 
         prompt = f"""
-        You are a Senior Technical Architect.
+        You are a {persona}.
+        {system_instruction}
         Answer the question using the TECHNICAL CONTEXT provided.
 
         TECHNICAL CONTEXT:
@@ -57,7 +63,7 @@ def generate_node(state: AgentState):
 
     with logfire.span("✍️ LLM Synthesis"):
         try:
-            content, cache_status = generate_completion(prompt)
+            content, cache_status = generate_completion(prompt, temperature=temp)
             is_cache_hit = cache_status == "HIT"
 
             if is_cache_hit:

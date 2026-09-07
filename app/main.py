@@ -83,6 +83,26 @@ class QueryRequest(BaseModel):
         description="Session or thread ID for conversational memory retention across turns.",
         example="session_user_01"
     )
+    persona: Optional[str] = Field(
+        default=None,
+        description="Persona mode for the synthesis engine.",
+        example="Enterprise Architect"
+    )
+    system_prompt: Optional[str] = Field(
+        default=None,
+        description="Custom system instruction addendum.",
+        example="Focus on low-latency kernel and hardware bypass details."
+    )
+    temperature: Optional[float] = Field(
+        default=0.1,
+        description="LLM temperature (0.0 to 1.0).",
+        example=0.1
+    )
+    top_k: Optional[int] = Field(
+        default=5,
+        description="Number of context chunks to rerank and keep.",
+        example=5
+    )
 
 
 class QueryResponse(BaseModel):
@@ -152,7 +172,11 @@ def query(request: QueryRequest):
         "current_query": q,
         "documents": [],
         "plan": ["Start"],
-        "status": "Initializing Graph..."
+        "status": "Initializing Graph...",
+        "persona": request.persona,
+        "system_prompt": request.system_prompt,
+        "temperature": request.temperature if request.temperature is not None else 0.1,
+        "top_k": request.top_k if request.top_k is not None else 5,
     }
     
     # Configuration for Memory (Thread ID)

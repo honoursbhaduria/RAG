@@ -116,7 +116,14 @@ export function App() {
       const response = await fetch(`${backendUrl}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q: queryText, thread_id: sessionId })
+        body: JSON.stringify({ 
+          q: queryText, 
+          thread_id: sessionId,
+          persona: settings.persona,
+          system_prompt: settings.systemPrompt,
+          temperature: settings.temperature,
+          top_k: settings.topK
+        })
       });
 
       if (!response.ok) {
