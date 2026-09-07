@@ -556,9 +556,13 @@ class QueryResponse(BaseModel):
               </button>
             )}
             <div className="nav-breadcrumb">
-              <span>Workspace</span>
-              <span>/</span>
-              <span className="active-label">{getViewTitle()}</span>
+              <span className={activeView === 'chat' ? 'active-label' : ''}>Workspace</span>
+              {activeView !== 'chat' && (
+                <>
+                  <span>/</span>
+                  <span className="active-label">{getViewTitle()}</span>
+                </>
+              )}
             </div>
           </div>
         </header>
