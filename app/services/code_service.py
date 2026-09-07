@@ -56,7 +56,7 @@ def generate_code_assistance(
         gemini_key = os.getenv("GEMINI_API_KEY")
         if gemini_key:
             try:
-                with logfire.span("🧠 Gemini Code Generation"):
+                with logfire.span("Gemini Code Generation"):
                     from google import genai
                     client = genai.Client(api_key=gemini_key)
                     response = client.models.generate_content(
@@ -70,7 +70,7 @@ def generate_code_assistance(
                 logfire.warning(f"Gemini code generation failed: {e}. Falling back to Groq.")
 
     # Groq (Default or Fallback)
-    with logfire.span("⚡ Groq Code Generation"):
+    with logfire.span("Groq Code Generation"):
         raw_text, _ = generate_completion(full_prompt, temperature=0.2)
         extracted_code, detected_lang = _extract_code_block(raw_text, default_lang=lang)
         return raw_text, extracted_code, detected_lang, "groq"

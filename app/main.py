@@ -62,7 +62,7 @@ def startup_event():
         _get_local()
         from app.services.retrieval.ranking_service import rerank_documents
         rerank_documents("warmup", ["warmup query context"], top_n=1)
-        logfire.info("⚡ Models warmed up: embedding and reranking ready.")
+        logfire.info("Models warmed up: embedding and reranking ready.")
     except Exception as e:
         logfire.warning(f"Startup warmup skipped: {e}")
 
@@ -201,7 +201,7 @@ def query(request: QueryRequest):
         # Gate 1: NeMo Guardrails — blocks off-topic, jailbreaks, and handles dialog
         rail_fired, rail_response = guard(q)
         if rail_fired:
-            logfire.info(f"🛡️ Request blocked by guardrails | thread={thread_id}")
+            logfire.info(f"Request blocked by guardrails | thread={thread_id}")
             return {
                 "question": q,
                 "answer": rail_response,
@@ -222,7 +222,7 @@ def query(request: QueryRequest):
             "sources": final_output.get("documents", [])
         }
     except Exception as e:
-        logfire.error(f"❌ Backend Execution Failed: {e}")
+        logfire.error(f"Backend Execution Failed: {e}")
         return {
             "question": q,
             "answer": "I apologize, but I encountered an internal error while processing your request. Please try again later.",

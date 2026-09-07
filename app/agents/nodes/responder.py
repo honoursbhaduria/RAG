@@ -61,17 +61,17 @@ def generate_node(state: AgentState):
         "{user_msg}"
         """
 
-    with logfire.span("✍️ LLM Synthesis"):
+    with logfire.span("LLM Synthesis"):
         try:
             content, cache_status = generate_completion(prompt, temperature=temp)
             is_cache_hit = cache_status == "HIT"
 
             if is_cache_hit:
-                logfire.info("⚡ Gateway Cache Hit — response served from Portkey cache.")
-                plan_update = state["plan"] + ["Cache: Hit ⚡"]
+                logfire.info("Gateway Cache Hit — response served from Portkey cache.")
+                plan_update = state["plan"] + ["Cache: Hit (Portkey)"]
                 status = "Cache hit — instant response."
             else:
-                logfire.info("✅ Response synthesised via LLM.")
+                logfire.info("Response synthesised via LLM.")
                 plan_update = state["plan"]
                 status = "Response generated."
 
