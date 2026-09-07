@@ -605,58 +605,174 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 14px 48px 18px 48px;
-  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 30%);
+  padding: 12px 48px 20px 48px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 40%);
   display: flex;
   justify-content: center;
+  z-index: 20;
 }
 
 .input-wrapper {
   position: relative;
   width: 100%;
-  max-width: 820px;
-}
-
-.input-box {
-  width: 100%;
+  max-width: 840px;
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 42px 12px 14px;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color 0.15s ease;
+  border-radius: 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
 }
 
-.input-box:focus {
+.input-wrapper:focus-within {
   border-color: var(--border-focus);
 }
 
-.input-btn-send {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+.attached-file-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  margin: 10px 12px 0 12px;
+  background-color: var(--bg-surface-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  width: fit-content;
+  max-width: calc(100% - 24px);
+}
+
+.attached-file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+  font-weight: 500;
+}
+
+.attached-file-size {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.attached-file-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: color 0.15s ease;
+}
+
+.attached-file-remove:hover {
+  color: var(--text-primary);
+}
+
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  padding: 8px 10px 8px 12px;
+  gap: 8px;
+}
+
+.chat-attach-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 4px;
+  padding: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+  margin-bottom: 2px;
 }
 
-.input-btn-send:hover {
+.chat-attach-btn:hover:not(:disabled) {
   color: var(--text-primary);
+  background-color: var(--bg-surface-hover);
 }
 
-.input-btn-send:disabled {
+.chat-attach-btn:disabled {
+  color: var(--text-muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  resize: none;
+  min-height: 24px;
+  max-height: 160px;
+  padding: 6px 4px;
+  font-family: inherit;
+}
+
+.chat-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.chat-submit-btn {
+  background: var(--accent);
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.chat-submit-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.chat-submit-btn:disabled {
+  background: transparent;
   color: var(--text-muted);
   cursor: not-allowed;
+}
+
+.input-footer-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 14px 6px 14px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.message-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin-bottom: 8px;
+  background-color: var(--bg-surface-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
 }
 
 /* ── Embedded Code Studio ── */

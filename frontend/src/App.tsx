@@ -344,6 +344,7 @@ ${css}
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  attachedFile?: string;
   code?: string;
   thoughtProcess?: string[];
   sources?: string[];
@@ -484,7 +485,15 @@ export function App() {
   const [activeSkill, setActiveSkill] = useState<'rag' | 'code' | 'guardrails'>('rag');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (!inputPrompt && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [inputPrompt]);
 
   // Sync current session messages on mount or session switch
   useEffect(() => {
@@ -561,26 +570,126 @@ export function App() {
     saveSessionsToStorage(updatedSessions);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAttachedFile(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachedFile = () => {
+    setAttachedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendQuery(inputPrompt);
+    }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputPrompt(e.target.value);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+    }
+  };
+
   const sendQuery = async (queryText: string) => {
-    if (!queryText.trim() || isLoading) return;
+    const trimmedText = queryText.trim();
+    const currentFile = attachedFile;
+
+    if ((!trimmedText && !currentFile) || isLoading || isUploadingFile) return;
 
     setActiveView('chat');
-    const userMessage: Message = { role: 'user', content: queryText };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInputPrompt('');
     setIsLoading(true);
+    setInputPrompt('');
+    setAttachedFile(null);
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+    let fileUploadedName: string | undefined = undefined;
+
+    // Step 1: Ingest attached file through Guardrails & RAG pipeline first if provided
+    if (currentFile) {
+      setIsUploadingFile(true);
+      setUploadStatusMessage(`Validating "${currentFile.name}" through NeMo Guardrails & indexing into RAG...`);
+      try {
+        const formData = new FormData();
+        formData.append('file', currentFile);
+
+        const uploadRes = await fetch(`${backendUrl}/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const uploadData = await uploadRes.json();
+
+        if (!uploadData.safe || !uploadData.success) {
+          const rejectMsg: Message = {
+            role: 'assistant',
+            content: `**Upload Blocked by Security Guardrails**\n\nFile **${uploadData.filename || currentFile.name}** was rejected and not ingested into the vector database.\n\n**Reason:** ${uploadData.reason || 'Disallowed prompt injection or safety policy violation detected.'}\n\n*NeMo Guardrails prevented untrusted content from entering the RAG knowledge store.*`,
+            thoughtProcess: [
+              `File Ingestion Gate: ${uploadData.filename || currentFile.name}`,
+              `Security Validation: Blocked by NeMo Guardrails`,
+              `Ingestion Status: Aborted`
+            ]
+          };
+          const updated = [...messages, rejectMsg];
+          setMessages(updated);
+          updateSessions(sessionId, updated, `Blocked: ${currentFile.name}`);
+          setSavedLearningAlert(`Upload blocked: Guardrails security policy`);
+          setTimeout(() => setSavedLearningAlert(null), 4000);
+          setIsUploadingFile(false);
+          setUploadStatusMessage(null);
+          setIsLoading(false);
+          return;
+        }
+
+        fileUploadedName = uploadData.filename || currentFile.name;
+      } catch (uploadErr: any) {
+        const errorMsg: Message = {
+          role: 'assistant',
+          content: `Failed to upload and validate file **${currentFile.name}**: ${uploadErr.message || uploadErr}`
+        };
+        const updated = [...messages, errorMsg];
+        setMessages(updated);
+        setIsUploadingFile(false);
+        setUploadStatusMessage(null);
+        setIsLoading(false);
+        return;
+      } finally {
+        setIsUploadingFile(false);
+        setUploadStatusMessage(null);
+      }
+    }
+
+    // Step 2: Formulate effective prompt with file context
+    const effectiveQuery = trimmedText || (fileUploadedName 
+      ? `Please analyze, summarize, and highlight key concepts from the uploaded document: ${fileUploadedName}` 
+      : '');
+
+    const userMessage: Message = { 
+      role: 'user', 
+      content: effectiveQuery,
+      attachedFile: fileUploadedName 
+    };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
 
     try {
-      // Skill Route 1: Code & Language Tutor Skill
-      if (activeSkill === 'code') {
+      // Skill Route 1: Code & Language Tutor Skill (only when active and no file was attached)
+      if (activeSkill === 'code' && !fileUploadedName) {
         const response = await fetch(`${backendUrl}/code/assist`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompt: queryText,
+            prompt: effectiveQuery,
             code: codeContent,
             language: codeLanguage,
             engine: copilotEngine
@@ -606,7 +715,7 @@ export function App() {
 
         const finalMessages = [...newMessages, assistantMessage];
         setMessages(finalMessages);
-        updateSessions(sessionId, finalMessages, queryText);
+        updateSessions(sessionId, finalMessages, effectiveQuery);
         return;
       }
 
@@ -619,12 +728,13 @@ export function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          q: queryText, 
+          q: effectiveQuery, 
           thread_id: sessionId,
           persona: settings.persona,
           system_prompt: effectiveSystemPrompt,
           temperature: settings.temperature,
-          top_k: settings.topK
+          top_k: settings.topK,
+          filename: fileUploadedName
         })
       });
 
@@ -643,7 +753,7 @@ export function App() {
 
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages);
-      updateSessions(sessionId, finalMessages, queryText);
+      updateSessions(sessionId, finalMessages, effectiveQuery);
 
     } catch (err: any) {
       const errorMessage: Message = {
@@ -653,70 +763,6 @@ export function App() {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingFile(true);
-    setUploadStatusMessage(`Validating "${file.name}" through NeMo Guardrails & RAG pipeline...`);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backendUrl}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (data.safe && data.success) {
-        const confirmMsg: Message = {
-          role: 'assistant',
-          content: `Document **${data.filename}** passed NeMo Guardrails verification and has been indexed into the Enterprise RAG vector store (${data.chunks_count} chunks, ${data.points_indexed} points).\n\nYou can now ask questions about the contents of this document.`,
-          thoughtProcess: [
-            `File Validation: ${data.filename}`,
-            `NeMo Guardrails: ${data.guardrail_status || 'Verified Safe'}`,
-            `RAG Ingestion: Chunked & Embedded with dual vectors`,
-            `Vector Store: ${data.points_indexed} points indexed in Qdrant`
-          ],
-          sources: [`File Source: ${data.filename}`]
-        };
-        const updated = [...messages, confirmMsg];
-        setMessages(updated);
-        updateSessions(sessionId, updated, `Upload: ${data.filename}`);
-        setSavedLearningAlert(`File "${data.filename}" safely indexed into RAG`);
-        setTimeout(() => setSavedLearningAlert(null), 4000);
-      } else {
-        const rejectMsg: Message = {
-          role: 'assistant',
-          content: `**Upload Rejected by Security Guardrails**\n\nFile **${data.filename}** could not be ingested into RAG.\n\n**Reason:** ${data.reason || 'Guardrail policy violation or disallowed prompt injection detected.'}\n\n*This document was blocked and not stored or indexed into the vector database.*`,
-          thoughtProcess: [
-            `File Scan: ${data.filename}`,
-            `Security Gate: Prompt injection or policy violation detected`,
-            `Action: File rejected, RAG ingestion aborted`
-          ]
-        };
-        const updated = [...messages, rejectMsg];
-        setMessages(updated);
-        updateSessions(sessionId, updated, `Blocked: ${data.filename}`);
-        setSavedLearningAlert(`Upload blocked: Guardrail policy violation`);
-        setTimeout(() => setSavedLearningAlert(null), 4000);
-      }
-    } catch (err: any) {
-      console.error('File upload failed', err);
-      setSavedLearningAlert(`Upload failed: ${err.message || err}`);
-      setTimeout(() => setSavedLearningAlert(null), 4000);
-    } finally {
-      setIsUploadingFile(false);
-      setUploadStatusMessage(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -1258,6 +1304,12 @@ __name__ = '__main__'
                       </details>
                     )}
 
+                    {msg.attachedFile && (
+                      <div className="message-attachment-chip">
+                        <Paperclip size={12} />
+                        <span>Attached file: {msg.attachedFile}</span>
+                      </div>
+                    )}
                     <div className="message-text markdown-body">
                       {msg.role === 'user' ? (
                         <p>{msg.content}</p>
@@ -1331,40 +1383,76 @@ __name__ = '__main__'
                   type="file"
                   ref={fileInputRef}
                   style={{ display: 'none' }}
-                  onChange={handleFileUpload}
+                  onChange={handleFileSelect}
                   accept=".txt,.md,.pdf,.py,.json,.csv,.docx,.html,.htm,.sh,.sql,.yaml,.yml"
                 />
-                <button
-                  type="button"
-                  className="file-upload-btn"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isLoading || isUploadingFile}
-                  title="Upload document to RAG pipeline (validated through Guardrails first)"
-                >
-                  <Paperclip size={16} />
-                </button>
-                <input
-                  type="text"
-                  className="input-box"
-                  placeholder={
-                    activeSkill === 'code'
-                      ? `Ask to teach a concept, write algorithms, or debug in ${codeLanguage.toUpperCase()}...`
-                      : activeSkill === 'guardrails'
-                      ? "Test prompt injection, jailbreak defenses, or security rules..."
-                      : "Ask a question about your enterprise documentation or uploaded files..."
-                  }
-                  value={inputPrompt}
-                  onChange={(e) => setInputPrompt(e.target.value)}
-                  disabled={isLoading || isUploadingFile}
-                />
-                <button
-                  type="submit"
-                  className="input-btn-send"
-                  disabled={isLoading || isUploadingFile || !inputPrompt.trim()}
-                  title="Send query"
-                >
-                  <Send size={15} />
-                </button>
+
+                {attachedFile && (
+                  <div className="attached-file-badge">
+                    <FileText size={14} />
+                    <span className="attached-file-name" title={attachedFile.name}>
+                      {attachedFile.name}
+                    </span>
+                    <span className="attached-file-size">
+                      ({attachedFile.size < 1024 * 1024 
+                        ? `${(attachedFile.size / 1024).toFixed(1)} KB` 
+                        : `${(attachedFile.size / (1024 * 1024)).toFixed(1)} MB`})
+                    </span>
+                    <button
+                      type="button"
+                      className="attached-file-remove"
+                      onClick={removeAttachedFile}
+                      title="Remove attached file"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="input-row">
+                  <button
+                    type="button"
+                    className="chat-attach-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading || isUploadingFile}
+                    title="Attach file (validated through NeMo Guardrails before indexing)"
+                  >
+                    <Paperclip size={16} />
+                  </button>
+
+                  <textarea
+                    ref={textareaRef}
+                    rows={1}
+                    className="chat-textarea"
+                    placeholder={
+                      attachedFile
+                        ? `Ask a specific question about "${attachedFile.name}" or press Enter to summarize...`
+                        : activeSkill === 'code'
+                        ? `Ask to teach a concept, write algorithms, or debug in ${codeLanguage.toUpperCase()}...`
+                        : activeSkill === 'guardrails'
+                        ? "Test prompt injection, jailbreak defenses, or security rules..."
+                        : "Ask a question about your enterprise documentation or attach a file..."
+                    }
+                    value={inputPrompt}
+                    onChange={handleTextareaChange}
+                    onKeyDown={handleKeyDown}
+                    disabled={isLoading || isUploadingFile}
+                  />
+
+                  <button
+                    type="submit"
+                    className="chat-submit-btn"
+                    disabled={isLoading || isUploadingFile || (!inputPrompt.trim() && !attachedFile)}
+                    title="Send message"
+                  >
+                    <Send size={15} />
+                  </button>
+                </div>
+
+                <div className="input-footer-hint">
+                  <span>Press <strong>Enter</strong> to send &bull; <strong>Shift + Enter</strong> for new line</span>
+                  <span>NeMo Guardrails &bull; Dual-Vector Qdrant &bull; FlashRank</span>
+                </div>
               </div>
             </form>
           </>
@@ -1704,14 +1792,21 @@ __name__ = '__main__'
                     style={codeLanguage === 'html' || codeLanguage === 'css' ? { background: '#2563eb', borderColor: '#1d4ed8' } : undefined}
                   >
                     {codeLanguage === 'html' || codeLanguage === 'css' ? <Eye size={13} /> : <Play size={13} />}
-                    <span>{isExecuting ? 'Processing...' : codeLanguage === 'html' ? 'Render HTML' : codeLanguage === 'css' ? 'Render CSS' : 'Run Code'}</span>
+                    <span>{isExecuting ? 'Processing...' : codeLanguage === 'html' ? 'Live Preview' : codeLanguage === 'css' ? 'Live Preview' : 'Run Code'}</span>
                   </button>
                 </div>
 
                 <textarea 
                   className="code-editor-box"
                   value={codeContent}
-                  onChange={(e) => setCodeContent(e.target.value)}
+                  onChange={(e) => {
+                    setCodeContent(e.target.value);
+                    if (codeLanguage === 'html') {
+                      setPreviewHtml(e.target.value);
+                    } else if (codeLanguage === 'css') {
+                      setPreviewHtml(createCssPreview(e.target.value));
+                    }
+                  }}
                   spellCheck={false}
                   placeholder="// Type code here..."
                 />
@@ -1719,17 +1814,19 @@ __name__ = '__main__'
                 <div className="terminal-box">
                   <div className="terminal-header">
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {codeLanguage !== 'html' && (
+                        <button
+                          type="button"
+                          className={`terminal-tab-btn ${outputTab === 'terminal' ? 'active' : ''}`}
+                          onClick={() => setOutputTab('terminal')}
+                        >
+                          <Terminal size={12} />
+                          <span>Console</span>
+                        </button>
+                      )}
                       <button
                         type="button"
-                        className={`terminal-tab-btn ${outputTab === 'terminal' ? 'active' : ''}`}
-                        onClick={() => setOutputTab('terminal')}
-                      >
-                        <Terminal size={12} />
-                        <span>Console</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`terminal-tab-btn ${outputTab === 'preview' ? 'active' : ''}`}
+                        className={`terminal-tab-btn ${outputTab === 'preview' || codeLanguage === 'html' ? 'active' : ''}`}
                         onClick={() => setOutputTab('preview')}
                       >
                         <Eye size={12} />
@@ -1738,7 +1835,7 @@ __name__ = '__main__'
                     </div>
                     <span>Status: <strong style={{ color: terminalStatus.includes('Error') ? '#f87171' : '#34d399' }}>{terminalStatus}</strong></span>
                   </div>
-                  {outputTab === 'preview' ? (
+                  {outputTab === 'preview' || codeLanguage === 'html' ? (
                     previewHtml ? (
                       <iframe 
                         title="Live Code Preview"
@@ -1748,7 +1845,7 @@ __name__ = '__main__'
                       />
                     ) : (
                       <div style={{ padding: 24, color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center' }}>
-                        No preview rendered yet. Click "{codeLanguage === 'html' ? 'Render HTML' : codeLanguage === 'css' ? 'Render CSS' : 'Render Preview'}" to view rendered DOM.
+                        No preview rendered yet. Click "Live Preview" to view rendered DOM.
                       </div>
                     )
                   ) : (

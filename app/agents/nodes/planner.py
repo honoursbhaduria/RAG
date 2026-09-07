@@ -28,8 +28,8 @@ def planner_node(state: AgentState):
     "{user_message}"
     
     Task:
-    1. If the latest message is a greeting (hi, hello) or a question that can be answered using ONLY the conversation history above (e.g., "what is my name"), respond with 'CONVERSATIONAL'.
-    2. If it is a technical question about Kubernetes, Intel, or Networking that requires fresh documentation, output a refined search query.
+    1. If the latest message is a simple greeting (e.g. "hi", "hello") with no technical, code, or document questions, respond with 'CONVERSATIONAL'.
+    2. If it is a technical question, code request, architecture query, or question about any uploaded document or file, output a refined search query.
     
     Output ONLY 'CONVERSATIONAL' or the search query.
     """

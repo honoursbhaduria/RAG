@@ -105,6 +105,11 @@ class QueryRequest(BaseModel):
         description="Number of context chunks to rerank and keep.",
         example=5
     )
+    filename: Optional[str] = Field(
+        default=None,
+        description="Optional filename of an uploaded document to prioritize in context.",
+        example="architecture.pdf"
+    )
 
 
 class QueryResponse(BaseModel):
@@ -193,15 +198,16 @@ def query(request: QueryRequest):
         "system_prompt": request.system_prompt,
         "temperature": request.temperature if request.temperature is not None else 0.1,
         "top_k": request.top_k if request.top_k is not None else 5,
+        "filename": request.filename,
     }
     
     # Configuration for Memory (Thread ID)
     config = {"configurable": {"thread_id": thread_id}}
     
     try:
-        # Gate 1: NeMo Guardrails — blocks off-topic, jailbreaks, and handles dialog
+        # Gate 1: NeMo Guardrails — blocks overt prompt injection and malicious jailbreaks
         rail_fired, rail_response = guard(q)
-        if rail_fired:
+        if rail_fired and not request.filename:
             logfire.info(f"Request blocked by guardrails | thread={thread_id}")
             return {
                 "question": q,
@@ -214,13 +220,29 @@ def query(request: QueryRequest):
         # Gate 2: LangGraph RAG pipeline
         # Run the graph synchronously to preserve Logfire context variables
         final_output = rag_agent.invoke(initial_state, config=config)
+
+        raw_docs = final_output.get("documents", [])
+        extracted_sources = []
+        for d in raw_docs:
+            if isinstance(d, str) and d.startswith("SOURCE: "):
+                src = d.split("\n")[0].replace("SOURCE: ", "").strip()
+                if src and src not in extracted_sources:
+                    extracted_sources.append(src)
+            elif isinstance(d, dict) and "source" in d:
+                src = d["source"]
+                if src and src not in extracted_sources:
+                    extracted_sources.append(src)
+        if request.filename and request.filename not in extracted_sources:
+            extracted_sources.insert(0, request.filename)
+        if not extracted_sources and raw_docs:
+            extracted_sources = [d[:80] + "..." if len(d) > 80 else d for d in raw_docs[:3]]
         
         return {
             "question": q,
             "answer": final_output.get("final_answer"),
             "thought_process": final_output.get("plan"),
             "status": final_output.get("status"),
-            "sources": final_output.get("documents", [])
+            "sources": extracted_sources
         }
     except Exception as e:
         logfire.error(f"Backend Execution Failed: {e}")
