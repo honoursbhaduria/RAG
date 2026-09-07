@@ -27,7 +27,8 @@ import {
   Bookmark,
   Folder,
   X,
-  Paperclip
+  Paperclip,
+  Eye
 } from 'lucide-react';
 
 export interface LearningEntry {
@@ -48,9 +49,11 @@ export interface CodingProject {
 }
 
 export const POPULAR_LANGUAGES = [
-  'python',
+  'html',
+  'css',
   'javascript',
   'typescript',
+  'python',
   'go',
   'rust',
   'cpp',
@@ -212,8 +215,131 @@ echo "Initializing health check..."
 if curl -s http://localhost:8000/health | grep -q "healthy"; then
     echo "Backend service is operational."
 fi
+`,
+  html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 24px;
+      margin: 0;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 440px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    h2 { margin-top: 0; color: #38bdf8; font-size: 1.25rem; }
+    p { color: #94a3b8; font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px; }
+    .btn {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn:hover { background: #0369a1; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>HTML5 & CSS3 Live Preview</h2>
+    <p>HTML and CSS are interpreted markup & styling languages. They render live in the browser engine without needing compilation.</p>
+    <button class="btn" onclick="alert('Interactive DOM event fired!')">Test DOM Event</button>
+  </div>
+</body>
+</html>
+`,
+  css: `/* CSS3 Stylesheet Live Preview */
+:root {
+  --primary-accent: #38bdf8;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+}
+
+body {
+  margin: 0;
+  padding: 30px;
+  background-color: #0f172a;
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+.preview-container {
+  background: var(--bg-card);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 24px;
+  width: 360px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.preview-badge {
+  display: inline-block;
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--primary-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  margin-bottom: 12px;
+}
+
+.preview-btn {
+  background: var(--primary-accent);
+  color: #0f172a;
+  font-weight: 600;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.preview-btn:hover {
+  transform: translateY(-2px);
+}
 `
 };
+
+export function createCssPreview(css: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+${css}
+  </style>
+</head>
+<body>
+  <div class="preview-container">
+    <span class="preview-badge">CSS3 Live Preview</span>
+    <h3 style="margin: 0 0 8px 0; font-size: 1.15rem;">Live Styled Component</h3>
+    <p style="color: var(--text-muted, #94a3b8); font-size: 0.9rem; line-height: 1.45; margin-bottom: 16px;">
+      HTML and CSS are interpreted markup & style rules rendered in real-time by the browser layout engine.
+    </p>
+    <button class="preview-btn">Interactive Button</button>
+  </div>
+</body>
+</html>`;
+}
+
 
 interface Message {
   role: 'user' | 'assistant';
@@ -277,6 +403,8 @@ export function App() {
   const [codeContent, setCodeContent] = useState<string>(LANGUAGE_TEMPLATES.python);
   const [terminalOutput, setTerminalOutput] = useState<string>('Ready. Click Run Code to execute in your browser runtime.');
   const [terminalStatus, setTerminalStatus] = useState<string>('Ready');
+  const [outputTab, setOutputTab] = useState<'terminal' | 'preview'>('terminal');
+  const [previewHtml, setPreviewHtml] = useState<string>('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [copilotEngine, setCopilotEngine] = useState<'groq' | 'gemini'>('groq');
   const [copilotPrompt, setCopilotPrompt] = useState('');
@@ -682,20 +810,48 @@ export function App() {
   const handleLanguageChange = (newLang: string, customCode?: string) => {
     const lang = newLang.toLowerCase();
     setCodeLanguage(lang);
-    if (customCode !== undefined) {
-      setCodeContent(customCode);
+    const code = customCode !== undefined 
+      ? customCode 
+      : (LANGUAGE_TEMPLATES[lang] || `// ${lang.toUpperCase()} Code Sandbox\n// Write or test ${lang} code here\n`);
+    setCodeContent(code);
+
+    if (lang === 'html') {
+      setPreviewHtml(code);
+      setOutputTab('preview');
+      setTerminalOutput('HTML5 document loaded. Click "Render HTML" or view Live Preview.');
+      setTerminalStatus('Ready');
+    } else if (lang === 'css') {
+      setPreviewHtml(createCssPreview(code));
+      setOutputTab('preview');
+      setTerminalOutput('CSS3 stylesheet loaded. Click "Render CSS" or view Live Preview.');
+      setTerminalStatus('Ready');
     } else {
-      setCodeContent(LANGUAGE_TEMPLATES[lang] || `// ${lang.toUpperCase()} Code Sandbox\n// Write or test ${lang} code here\n`);
+      setOutputTab('terminal');
+      setTerminalOutput(`Ready. Click Run Code to execute in your ${lang === 'python' ? 'Pyodide WASM' : lang === 'javascript' ? 'browser runtime' : 'sandbox'}.`);
+      setTerminalStatus('Ready');
     }
   };
 
   const runCode = async () => {
     setIsExecuting(true);
-    setTerminalStatus('Running...');
+    setTerminalStatus(codeLanguage === 'html' || codeLanguage === 'css' ? 'Rendering...' : 'Running...');
     const startTime = performance.now();
 
     try {
-      if (codeLanguage === 'javascript') {
+      if (codeLanguage === 'html') {
+        setPreviewHtml(codeContent);
+        setOutputTab('preview');
+        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
+        setTerminalOutput('HTML5 document rendered live in the Preview window below.');
+        setTerminalStatus(`Rendered (${duration}s)`);
+      } else if (codeLanguage === 'css') {
+        setPreviewHtml(createCssPreview(codeContent));
+        setOutputTab('preview');
+        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
+        setTerminalOutput('CSS3 styles applied live in the Preview window below.');
+        setTerminalStatus(`Rendered (${duration}s)`);
+      } else if (codeLanguage === 'javascript') {
+        setOutputTab('terminal');
         const logs: string[] = [];
         const customConsole = {
           log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ')),
@@ -711,8 +867,30 @@ export function App() {
         const duration = ((performance.now() - startTime) / 1000).toFixed(3);
         setTerminalOutput(logs.length ? logs.join('\n') : '(Code executed successfully with no print output)');
         setTerminalStatus(`Success (${duration}s)`);
+      } else if (codeLanguage === 'typescript') {
+        setOutputTab('terminal');
+        const logs: string[] = [];
+        const customConsole = {
+          log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ')),
+          error: (...args: any[]) => logs.push('[ERROR] ' + args.join(' ')),
+          warn: (...args: any[]) => logs.push('[WARN] ' + args.join(' ')),
+          info: (...args: any[]) => logs.push('[INFO] ' + args.join(' ')),
+        };
+        const stripped = codeContent
+          .replace(/interface\s+\w+(\s*<[^>]+>)?\s*\{[\s\S]*?\}/g, '')
+          .replace(/type\s+\w+(\s*<[^>]+>)?\s*=[\s\S]*?;/g, '')
+          .replace(/:\s*[A-Z]\w*(<[^>]+>)?(\[\])?/g, '')
+          .replace(/<[A-Z]\w*>/g, '');
+        const runFn = new Function('console', stripped);
+        const ret = runFn(customConsole);
+        if (ret !== undefined) {
+          logs.push(`=> ${typeof ret === 'object' ? JSON.stringify(ret, null, 2) : ret}`);
+        }
+        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
+        setTerminalOutput(logs.length ? logs.join('\n') : '(TypeScript executed successfully with no print output)');
+        setTerminalStatus(`Success (${duration}s)`);
       } else if (codeLanguage === 'python') {
-        // Python execution in-browser via Pyodide WebAssembly
+        setOutputTab('terminal');
         setTerminalOutput('Initializing Pyodide WebAssembly runtime...');
 
         if (!(window as any).loadPyodide) {
@@ -740,8 +918,9 @@ export function App() {
         setTerminalOutput(pyStdout.trim() || '(Python executed with no print output)');
         setTerminalStatus(`Success (${duration}s)`);
       } else {
+        setOutputTab('terminal');
         const duration = ((performance.now() - startTime) / 1000).toFixed(3);
-        setTerminalOutput(`Local browser sandbox directly executes Python (Pyodide WASM) and JavaScript.\nFor ${codeLanguage.toUpperCase()}, the AI Copilot provides live syntax explanation, code refactoring, and test cases.\nYou can click "Save Learning" to persist this ${codeLanguage.toUpperCase()} code into your active project.`);
+        setTerminalOutput(`Local browser sandbox directly executes Python (Pyodide WASM), JavaScript, and renders HTML/CSS.\nFor ${codeLanguage.toUpperCase()}, the AI Copilot provides live syntax explanation, code refactoring, and test cases.\nYou can click "Save to Project" to persist this ${codeLanguage.toUpperCase()} code into your active project.`);
         setTerminalStatus(`Saved (${duration}s)`);
       }
     } catch (err: any) {
@@ -1408,7 +1587,14 @@ export function App() {
                     >
                       {POPULAR_LANGUAGES.map(lang => (
                         <option key={lang} value={lang}>
-                          {lang.toUpperCase()} {lang === 'python' ? '(Pyodide WASM)' : lang === 'javascript' ? '(V8 Engine)' : '(Copilot Sandbox)'}
+                          {lang.toUpperCase()} {
+                            lang === 'html' ? '(Live DOM Preview)' :
+                            lang === 'css' ? '(Live Stylesheet Preview)' :
+                            lang === 'python' ? '(Pyodide WASM)' :
+                            lang === 'javascript' ? '(V8 Engine)' :
+                            lang === 'typescript' ? '(Transpiled JS)' :
+                            '(AI Sandbox)'
+                          }
                         </option>
                       ))}
                       {!POPULAR_LANGUAGES.includes(codeLanguage) && (
@@ -1436,9 +1622,10 @@ export function App() {
                     className="btn-run-code"
                     onClick={runCode}
                     disabled={isExecuting}
+                    style={codeLanguage === 'html' || codeLanguage === 'css' ? { background: '#2563eb', borderColor: '#1d4ed8' } : undefined}
                   >
-                    <Play size={13} />
-                    <span>{isExecuting ? 'Running...' : 'Run Code'}</span>
+                    {codeLanguage === 'html' || codeLanguage === 'css' ? <Eye size={13} /> : <Play size={13} />}
+                    <span>{isExecuting ? 'Processing...' : codeLanguage === 'html' ? 'Render HTML' : codeLanguage === 'css' ? 'Render CSS' : 'Run Code'}</span>
                   </button>
                 </div>
 
@@ -1452,12 +1639,44 @@ export function App() {
 
                 <div className="terminal-box">
                   <div className="terminal-header">
-                    <span>Console Output</span>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className={`terminal-tab-btn ${outputTab === 'terminal' ? 'active' : ''}`}
+                        onClick={() => setOutputTab('terminal')}
+                      >
+                        <Terminal size={12} />
+                        <span>Console</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`terminal-tab-btn ${outputTab === 'preview' ? 'active' : ''}`}
+                        onClick={() => setOutputTab('preview')}
+                      >
+                        <Eye size={12} />
+                        <span>Live Preview</span>
+                      </button>
+                    </div>
                     <span>Status: <strong style={{ color: terminalStatus.includes('Error') ? '#f87171' : '#34d399' }}>{terminalStatus}</strong></span>
                   </div>
-                  <div className={`terminal-screen ${terminalStatus.includes('Error') ? 'error' : ''}`}>
-                    {terminalOutput}
-                  </div>
+                  {outputTab === 'preview' ? (
+                    previewHtml ? (
+                      <iframe 
+                        title="Live Code Preview"
+                        className="live-preview-frame"
+                        sandbox="allow-scripts allow-modals"
+                        srcDoc={previewHtml}
+                      />
+                    ) : (
+                      <div style={{ padding: 24, color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center' }}>
+                        No preview rendered yet. Click "{codeLanguage === 'html' ? 'Render HTML' : codeLanguage === 'css' ? 'Render CSS' : 'Render Preview'}" to view rendered DOM.
+                      </div>
+                    )
+                  ) : (
+                    <div className={`terminal-screen ${terminalStatus.includes('Error') ? 'error' : ''}`}>
+                      {terminalOutput}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
