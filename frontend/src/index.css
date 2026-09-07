@@ -1362,4 +1362,87 @@ body {
   flex-wrap: wrap;
 }
 
+/* ── Minimal Code Studio Project Boxes & Dropdown Projects View ── */
+.code-projects-mini-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0 12px 0;
+}
+
+.mini-project-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.mini-project-box:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-focus);
+}
+
+.mini-project-box.active {
+  border-color: var(--border-focus);
+  background-color: var(--bg-surface);
+}
+
+.mini-project-name {
+  font-weight: 500;
+}
+
+.mini-project-count {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.project-minimal-item {
+  background-color: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.project-minimal-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  user-select: none;
+  list-style: none;
+  transition: background 0.15s ease;
+}
+
+.project-minimal-summary::-webkit-details-marker {
+  display: none;
+}
+
+.project-minimal-summary:hover {
+  background-color: var(--bg-surface);
+}
+
+.project-minimal-details {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-primary);
+}
+
+
 

@@ -33,6 +33,7 @@ metadata.pkl
 qdrant_db/
 
 # Data
+processed_data/user_upload/
 
 
 # IDEs

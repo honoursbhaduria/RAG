@@ -8,7 +8,6 @@ import {
   Code2,
   FolderTree,
   FileText,
-  Sliders,
   PanelLeftClose,
   PanelLeft,
   Trash2,
@@ -17,13 +16,11 @@ import {
   Check,
   Send,
   ChevronRight,
-  ExternalLink,
   Terminal,
   ArrowDownToLine,
   Database,
   Cpu,
   Layers,
-  CheckCircle2,
   ShieldCheck,
   Search,
   BookOpen,
@@ -218,18 +215,6 @@ fi
 `
 };
 
-export const LANGUAGE_TOPICS: Record<string, string[]> = {
-  python: ['AsyncIO Event Loop', 'Decorators & Closures', 'Dataclasses & Pydantic', 'Generator Pipelines', 'Type Hints & Mypy'],
-  javascript: ['Event Loop & Microtasks', 'Async/Await & Promises', 'Closures & Scope', 'Prototypes & Classes', 'Proxy & Reflect'],
-  typescript: ['Generics & Constraints', 'Discriminated Unions', 'Utility Types', 'Type Narrowing', 'Mapped Types'],
-  go: ['Goroutines & Channels', 'Worker Pool Pattern', 'Interfaces & Structs', 'Context & Timeouts', 'Error Handling Idioms'],
-  rust: ['Ownership & Borrowing', 'Traits & Generics', 'Pattern Matching & Enums', 'Lifetimes & References', 'Result & Option Handling'],
-  cpp: ['Smart Pointers & RAII', 'Move Semantics & Rvalues', 'Templates & Metaprogramming', 'STL Algorithms & Lambdas', 'Concurrency & Threads'],
-  java: ['Stream API & Lambdas', 'CompletableFuture & Async', 'Spring Dependency Injection', 'Generics & Wildcards', 'JVM Memory Model'],
-  sql: ['Window Functions', 'Common Table Expressions (CTE)', 'Indexing & Explain Plans', 'ACID Transactions', 'Partitioning Strategies'],
-  bash: ['Safe Scripting (set -euo)', 'Subshells & Redirections', 'Arrays & Parameter Expansion', 'Traps & Signal Handling', 'Process Substitution']
-};
-
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -264,14 +249,11 @@ export function App() {
   const [inputPrompt, setInputPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeView, setActiveView] = useState<'chat' | 'projects' | 'artifacts' | 'code' | 'customize'>('chat');
-  const [selectedArtifactIndex, setSelectedArtifactIndex] = useState(0);
+  const [activeView, setActiveView] = useState<'chat' | 'projects' | 'code'>('chat');
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
-  const [copiedArtifact, setCopiedArtifact] = useState(false);
-  const [savedNotice, setSavedNotice] = useState(false);
 
   // User Customization Settings
-  const [settings, setSettings] = useState(() => {
+  const [settings] = useState(() => {
     try {
       const saved = localStorage.getItem('claude_rag_custom_settings');
       return saved ? JSON.parse(saved) : {
@@ -291,7 +273,6 @@ export function App() {
   });
 
   // Interactive Code Studio State
-  const [studioTab, setStudioTab] = useState<'studio' | 'api'>('studio');
   const [codeLanguage, setCodeLanguage] = useState<string>('python');
   const [codeContent, setCodeContent] = useState<string>(LANGUAGE_TEMPLATES.python);
   const [terminalOutput, setTerminalOutput] = useState<string>('Ready. Click Run Code to execute in your browser runtime.');
@@ -424,9 +405,6 @@ export function App() {
     if (index !== undefined) {
       setCopiedMessageIndex(index);
       setTimeout(() => setCopiedMessageIndex(null), 2000);
-    } else {
-      setCopiedArtifact(true);
-      setTimeout(() => setCopiedArtifact(false), 2000);
     }
   };
 
@@ -613,13 +591,6 @@ export function App() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendQuery(inputPrompt);
-  };
-
-  const saveCustomSettings = (newSettings: typeof settings) => {
-    setSettings(newSettings);
-    localStorage.setItem('claude_rag_custom_settings', JSON.stringify(newSettings));
-    setSavedNotice(true);
-    setTimeout(() => setSavedNotice(false), 3000);
   };
 
   const saveProjectsToStorage = (updated: CodingProject[]) => {
@@ -829,61 +800,12 @@ export function App() {
     }
   };
 
-  // Static enterprise architecture specifications
-  const artifactsList = [
-    {
-      title: "Kubernetes Microservices Architecture",
-      type: "Architecture Specification",
-      content: `+-----------------------------------------------------------+
-|                     Kubernetes Control Plane              |
-|  API Server | Scheduler | Controller Manager | etcd       |
-+---------------------------+-------------------------------+
-                            |
-+---------------------------v-------------------------------+
-|                     Worker Nodes (Cluster)                |
-|  kubelet | kube-proxy | CNI (Calico)                      |
-|  RAG Service Set | Qdrant Vector Store | Ingress Gateway  |
-+-----------------------------------------------------------+`
-    },
-    {
-      title: "FastAPI Query Endpoint Schema",
-      type: "API Specification",
-      content: `class QueryRequest(BaseModel):
-    q: str = Field(..., description="Query for knowledge base")
-    thread_id: Optional[str] = Field("default_user", description="Memory session ID")
-    persona: Optional[str] = Field("Enterprise Architect", description="Persona profile")
-    system_prompt: Optional[str] = Field(None, description="Custom instructions")
-    temperature: Optional[float] = Field(0.1, description="LLM sampling temperature")
-    top_k: Optional[int] = Field(5, description="Number of reranked chunks")
-
-class QueryResponse(BaseModel):
-    question: str
-    answer: Optional[str]
-    thought_process: List[str]
-    status: Optional[str]
-    sources: List[str]`
-    },
-    {
-      title: "Dual Named Vectors Collection Configuration",
-      type: "Qdrant Vector Configuration",
-      content: `qdrant_client.create_collection(
-    collection_name="enterprise_rag",
-    vectors_config={
-        "gemini": VectorParams(size=3072, distance=Distance.COSINE),
-        "local": VectorParams(size=768, distance=Distance.COSINE)
-    }
-)`
-    }
-  ];
-
   const getViewTitle = () => {
     switch (activeView) {
       case 'chat': return 'Knowledge Assistant';
-      case 'projects': return 'Enterprise Projects';
-      case 'artifacts': return 'Architecture Artifacts';
-      case 'code': return 'AI Code Studio';
-      case 'customize': return 'Agent Configuration';
-      default: return 'Enterprise Assistant';
+      case 'projects': return 'Projects';
+      case 'code': return 'Code Studio';
+      default: return 'Workspace';
     }
   };
 
@@ -928,20 +850,6 @@ class QueryResponse(BaseModel):
           >
             <FolderTree size={15} />
             <span>Projects</span>
-          </div>
-          <div 
-            className={`nav-item ${activeView === 'artifacts' ? 'active' : ''}`} 
-            onClick={() => setActiveView('artifacts')}
-          >
-            <FileText size={15} />
-            <span>Artifacts</span>
-          </div>
-          <div 
-            className={`nav-item ${activeView === 'customize' ? 'active' : ''}`} 
-            onClick={() => setActiveView('customize')}
-          >
-            <Sliders size={15} />
-            <span>Customize</span>
           </div>
         </div>
 
@@ -1032,7 +940,7 @@ class QueryResponse(BaseModel):
               </button>
             </div>
 
-            {/* Sub-bar when Code Skill is active: Language switcher + Quick concept chips */}
+            {/* Sub-bar when Code Skill is active: Language switcher */}
             {activeSkill === 'code' && (
               <div className="chat-skill-subbar">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1047,24 +955,6 @@ class QueryResponse(BaseModel):
                       <option key={lang} value={lang}>{lang.toUpperCase()}</option>
                     ))}
                   </select>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Quick Topics:</span>
-                  {(LANGUAGE_TOPICS[codeLanguage] || ['Syntax', 'Functions', 'Async', 'Data Structures']).map((topic) => (
-                    <button
-                      key={topic}
-                      type="button"
-                      className="concept-chip"
-                      style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                      onClick={() => {
-                        sendQuery(`Teach me '${topic}' in ${codeLanguage.toUpperCase()} with a complete, clean, runnable code example.`);
-                      }}
-                    >
-                      <BookOpen size={10} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
-                      {topic}
-                    </button>
-                  ))}
                 </div>
               </div>
             )}
@@ -1276,73 +1166,29 @@ class QueryResponse(BaseModel):
           <div className="workspace-view">
             <div className="view-header">
               <div className="view-title-group">
-                <h2>AI Code Studio & Learning Lab</h2>
-                <p>Search any programming language, learn core concepts, execute sandbox code, and persist your progress project-wise.</p>
+                <h2>Code Studio</h2>
+                <p>Search any programming language, write and test code, and save to your projects.</p>
               </div>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                onClick={() => setIsCreatingProject(prev => !prev)}
+              >
+                <Plus size={13} />
+                <span>{isCreatingProject ? 'Cancel' : 'Create Project'}</span>
+              </button>
             </div>
 
-            {/* Project Selection & Inline Creator Bar */}
-            <div className="code-project-bar">
-              <div className="code-project-left">
-                <Folder size={14} style={{ color: 'var(--text-secondary)' }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Active Project:</span>
-                <select 
-                  className="code-project-select"
-                  value={activeProjectId}
-                  onChange={(e) => {
-                    setActiveProjectId(e.target.value);
-                    localStorage.setItem('claude_rag_active_project_id', e.target.value);
-                  }}
-                >
-                  {projects.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.learnings.length} learnings)
-                    </option>
-                  ))}
-                </select>
-
-                <button 
-                  type="button" 
-                  className="btn-secondary" 
-                  style={{ padding: '4px 8px', fontSize: '0.76rem' }}
-                  onClick={() => setIsCreatingProject(prev => !prev)}
-                >
-                  <Plus size={12} />
-                  <span>{isCreatingProject ? 'Cancel' : 'New Project'}</span>
-                </button>
-              </div>
-
-              {/* Language Search & Picker */}
-              <div className="language-search-bar">
-                <Search size={13} style={{ color: 'var(--text-muted)' }} />
-                <input 
-                  type="text" 
-                  placeholder="Search language..."
-                  value={languageSearchQuery}
-                  onChange={(e) => setLanguageSearchQuery(e.target.value)}
-                />
-                {languageSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setLanguageSearchQuery('')}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Inline Project Creator (Zero Popups) */}
+            {/* Inline Project Creator */}
             {isCreatingProject && (
-              <div className="inline-creator">
+              <div className="inline-creator" style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Create New Learning Project
+                  Create New Project
                 </div>
                 <div className="inline-creator-row">
                   <input 
                     type="text" 
-                    placeholder="Project Name (e.g., Concurrency & Systems, Fullstack Rust)"
+                    placeholder="Project Name (e.g., Concurrency & Systems, Rust Microservices)"
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
                   />
@@ -1361,9 +1207,58 @@ class QueryResponse(BaseModel):
                   >
                     Save Project
                   </button>
+                  <button 
+                    type="button" 
+                    className="btn-secondary" 
+                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                    onClick={() => setIsCreatingProject(false)}
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}
+
+            {/* Small Boxes List of Created Projects (Redirects to Projects Section) */}
+            <div className="code-projects-mini-list">
+              {projects.map((proj) => (
+                <button
+                  key={proj.id}
+                  type="button"
+                  className={`mini-project-box ${activeProjectId === proj.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveProjectId(proj.id);
+                    localStorage.setItem('claude_rag_active_project_id', proj.id);
+                    setActiveView('projects');
+                  }}
+                  title="Click to view details in Projects section"
+                >
+                  <Folder size={12} style={{ color: 'var(--text-secondary)' }} />
+                  <span className="mini-project-name">{proj.name}</span>
+                  <span className="mini-project-count">{proj.learnings.length}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Language Search & Picker */}
+            <div className="language-search-bar" style={{ marginBottom: 12 }}>
+              <Search size={13} style={{ color: 'var(--text-muted)' }} />
+              <input 
+                type="text" 
+                placeholder="Search language (e.g. Python, Rust, Go, TypeScript, C++)..."
+                value={languageSearchQuery}
+                onChange={(e) => setLanguageSearchQuery(e.target.value)}
+              />
+              {languageSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setLanguageSearchQuery('')}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
 
             {/* Language Selection Filter / Suggestions */}
             {languageSearchQuery.trim() && (
@@ -1405,27 +1300,6 @@ class QueryResponse(BaseModel):
               </div>
             )}
 
-            {/* Concept Quick-Learn Chips Bar */}
-            <div className="quick-learn-bar">
-              <span className="quick-learn-label">
-                Learn {codeLanguage.toUpperCase()}:
-              </span>
-              {(LANGUAGE_TOPICS[codeLanguage] || ['Syntax Fundamentals', 'Data Structures', 'Functions & Scope', 'Error Handling', 'Best Practices']).map((topic) => (
-                <button
-                  key={topic}
-                  type="button"
-                  className="concept-chip"
-                  onClick={() => {
-                    const prompt = `Explain the concept of '${topic}' in ${codeLanguage.toUpperCase()} with a complete, clean, runnable code example. Detail how it works, typical idioms, and key performance takeaways.`;
-                    askCopilot(prompt);
-                  }}
-                >
-                  <BookOpen size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-                  {topic}
-                </button>
-              ))}
-            </div>
-
             {/* Notification alert banner */}
             {savedLearningAlert && (
               <div style={{ marginBottom: 12 }}>
@@ -1436,199 +1310,157 @@ class QueryResponse(BaseModel):
               </div>
             )}
 
-            {/* Studio Navigation Tabs - State Machine Graph REMOVED */}
-            <div className="studio-tabs">
-              <button 
-                className={`studio-tab-btn ${studioTab === 'studio' ? 'active' : ''}`}
-                onClick={() => setStudioTab('studio')}
-              >
-                <Terminal size={14} />
-                <span>Interactive Studio</span>
-              </button>
-              <button 
-                className={`studio-tab-btn ${studioTab === 'api' ? 'active' : ''}`}
-                onClick={() => setStudioTab('api')}
-              >
-                <ExternalLink size={14} />
-                <span>API Reference</span>
-              </button>
-            </div>
+            {/* Code Studio & Runner Layout */}
+            <div className="code-studio-layout">
+              {/* Left: AI Coding Copilot */}
+              <div className="code-copilot-pane">
+                <div className="copilot-header">
+                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Coding Copilot
+                  </span>
+                  <select 
+                    className="copilot-model-select"
+                    value={copilotEngine}
+                    onChange={(e) => setCopilotEngine(e.target.value as 'groq' | 'gemini')}
+                  >
+                    <option value="groq">Groq (Fast)</option>
+                    <option value="gemini">Gemini 2.5 (Flash)</option>
+                  </select>
+                </div>
 
-            {/* Tab 1: Code Studio & Runner */}
-            {studioTab === 'studio' && (
-              <div className="code-studio-layout">
-                {/* Left: AI Coding Copilot */}
-                <div className="code-copilot-pane">
-                  <div className="copilot-header">
-                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      Coding Copilot
-                    </span>
+                <div className="copilot-chat-history">
+                  {copilotMessages.map((msg, idx) => (
+                    <div key={idx} className={`copilot-msg ${msg.role}`}>
+                      <div style={{ fontWeight: 600, fontSize: '0.74rem', marginBottom: 4, color: msg.role === 'user' ? '#93c5fd' : '#34d399' }}>
+                        {msg.role === 'user' ? 'You' : `Copilot (${copilotEngine.toUpperCase()})`}
+                      </div>
+                      <div className="markdown-body" style={{ fontSize: '0.82rem' }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {msg.text}
+                        </ReactMarkdown>
+                      </div>
+                      {msg.code && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                          <button 
+                            type="button"
+                            className="btn-send-to-editor"
+                            onClick={() => setCodeContent(msg.code || '')}
+                          >
+                            <ArrowDownToLine size={12} />
+                            <span>Insert into Editor</span>
+                          </button>
+                          <button 
+                            type="button"
+                            className="btn-send-to-editor"
+                            style={{ borderColor: 'var(--border-focus)' }}
+                            onClick={() => {
+                              const title = `${codeLanguage.toUpperCase()} Snippet: ${msg.text.slice(0, 35).replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Concept'}`;
+                              saveLearningToProject(title, codeLanguage, msg.text, msg.code || '');
+                            }}
+                          >
+                            <Bookmark size={12} />
+                            <span>Save to {projects.find(p => p.id === activeProjectId)?.name || 'Project'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {isCopilotLoading && (
+                    <div className="copilot-msg assistant" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Copilot is generating explanation and code...
+                    </div>
+                  )}
+                </div>
+
+                <form 
+                  className="copilot-input-row"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    askCopilot(copilotPrompt);
+                  }}
+                >
+                  <input 
+                    type="text" 
+                    className="copilot-input"
+                    placeholder="Ask to write, debug, explain or optimize code..."
+                    value={copilotPrompt}
+                    onChange={(e) => setCopilotPrompt(e.target.value)}
+                    disabled={isCopilotLoading}
+                  />
+                  <button 
+                    type="submit" 
+                    className="copilot-btn-submit"
+                    disabled={isCopilotLoading || !copilotPrompt.trim()}
+                  >
+                    <Send size={13} />
+                  </button>
+                </form>
+              </div>
+
+              {/* Right: Code Editor & In-Browser Runner */}
+              <div className="code-runner-pane">
+                <div className="runner-toolbar">
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     <select 
                       className="copilot-model-select"
-                      value={copilotEngine}
-                      onChange={(e) => setCopilotEngine(e.target.value as 'groq' | 'gemini')}
+                      value={codeLanguage}
+                      onChange={(e) => handleLanguageChange(e.target.value)}
                     >
-                      <option value="groq">Groq (Fast)</option>
-                      <option value="gemini">Gemini 2.5 (Flash)</option>
+                      {POPULAR_LANGUAGES.map(lang => (
+                        <option key={lang} value={lang}>
+                          {lang.toUpperCase()} {lang === 'python' ? '(Pyodide WASM)' : lang === 'javascript' ? '(V8 Engine)' : '(Copilot Sandbox)'}
+                        </option>
+                      ))}
+                      {!POPULAR_LANGUAGES.includes(codeLanguage) && (
+                        <option value={codeLanguage}>{codeLanguage.toUpperCase()}</option>
+                      )}
                     </select>
-                  </div>
 
-                  <div className="copilot-chat-history">
-                    {copilotMessages.map((msg, idx) => (
-                      <div key={idx} className={`copilot-msg ${msg.role}`}>
-                        <div style={{ fontWeight: 600, fontSize: '0.74rem', marginBottom: 4, color: msg.role === 'user' ? '#93c5fd' : '#34d399' }}>
-                          {msg.role === 'user' ? 'You' : `Copilot (${copilotEngine.toUpperCase()})`}
-                        </div>
-                        <div className="markdown-body" style={{ fontSize: '0.82rem' }}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {msg.text}
-                          </ReactMarkdown>
-                        </div>
-                        {msg.code && (
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                            <button 
-                              type="button"
-                              className="btn-send-to-editor"
-                              onClick={() => setCodeContent(msg.code || '')}
-                            >
-                              <ArrowDownToLine size={12} />
-                              <span>Insert into Editor</span>
-                            </button>
-                            <button 
-                              type="button"
-                              className="btn-send-to-editor"
-                              style={{ borderColor: 'var(--border-focus)' }}
-                              onClick={() => {
-                                const title = `${codeLanguage.toUpperCase()} Snippet: ${msg.text.slice(0, 35).replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Concept'}`;
-                                saveLearningToProject(title, codeLanguage, msg.text, msg.code || '');
-                              }}
-                            >
-                              <Bookmark size={12} />
-                              <span>Save to {projects.find(p => p.id === activeProjectId)?.name || 'Project'}</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {isCopilotLoading && (
-                      <div className="copilot-msg assistant" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        Copilot is generating explanation and code...
-                      </div>
-                    )}
-                  </div>
-
-                  <form 
-                    className="copilot-input-row"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      askCopilot(copilotPrompt);
-                    }}
-                  >
-                    <input 
-                      type="text" 
-                      className="copilot-input"
-                      placeholder="Ask to write, debug, explain or optimize code..."
-                      value={copilotPrompt}
-                      onChange={(e) => setCopilotPrompt(e.target.value)}
-                      disabled={isCopilotLoading}
-                    />
-                    <button 
-                      type="submit" 
-                      className="copilot-btn-submit"
-                      disabled={isCopilotLoading || !copilotPrompt.trim()}
-                    >
-                      <Send size={13} />
-                    </button>
-                  </form>
-                </div>
-
-                {/* Right: Code Editor & In-Browser Runner */}
-                <div className="code-runner-pane">
-                  <div className="runner-toolbar">
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <select 
-                        className="copilot-model-select"
-                        value={codeLanguage}
-                        onChange={(e) => handleLanguageChange(e.target.value)}
-                      >
-                        {POPULAR_LANGUAGES.map(lang => (
-                          <option key={lang} value={lang}>
-                            {lang.toUpperCase()} {lang === 'python' ? '(Pyodide WASM)' : lang === 'javascript' ? '(V8 Engine)' : '(Copilot Sandbox)'}
-                          </option>
-                        ))}
-                        {!POPULAR_LANGUAGES.includes(codeLanguage) && (
-                          <option value={codeLanguage}>{codeLanguage.toUpperCase()}</option>
-                        )}
-                      </select>
-
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: '0.76rem' }}
-                        onClick={() => {
-                          const title = `${codeLanguage.toUpperCase()} Implementation`;
-                          saveLearningToProject(title, codeLanguage, `Saved from interactive editor for ${codeLanguage}`, codeContent);
-                        }}
-                        title="Save this code snippet to your active project"
-                      >
-                        <Bookmark size={12} />
-                        <span>Save to Project</span>
-                      </button>
-                    </div>
-
-                    <button 
+                    <button
                       type="button"
-                      className="btn-run-code"
-                      onClick={runCode}
-                      disabled={isExecuting}
+                      className="btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '0.76rem' }}
+                      onClick={() => {
+                        const title = `${codeLanguage.toUpperCase()} Implementation`;
+                        saveLearningToProject(title, codeLanguage, `Saved from interactive editor for ${codeLanguage}`, codeContent);
+                      }}
+                      title="Save this code snippet to your active project"
                     >
-                      <Play size={13} />
-                      <span>{isExecuting ? 'Running...' : 'Run Code'}</span>
+                      <Bookmark size={12} />
+                      <span>Save to Project</span>
                     </button>
                   </div>
 
-                  <textarea 
-                    className="code-editor-box"
-                    value={codeContent}
-                    onChange={(e) => setCodeContent(e.target.value)}
-                    spellCheck={false}
-                    placeholder="// Type code here..."
-                  />
+                  <button 
+                    type="button" 
+                    className="btn-run-code"
+                    onClick={runCode}
+                    disabled={isExecuting}
+                  >
+                    <Play size={13} />
+                    <span>{isExecuting ? 'Running...' : 'Run Code'}</span>
+                  </button>
+                </div>
 
-                  <div className="terminal-box">
-                    <div className="terminal-header">
-                      <span>Console Output</span>
-                      <span>Status: <strong style={{ color: terminalStatus.includes('Error') ? '#f87171' : '#34d399' }}>{terminalStatus}</strong></span>
-                    </div>
-                    <div className={`terminal-screen ${terminalStatus.includes('Error') ? 'error' : ''}`}>
-                      {terminalOutput}
-                    </div>
+                <textarea 
+                  className="code-editor-box"
+                  value={codeContent}
+                  onChange={(e) => setCodeContent(e.target.value)}
+                  spellCheck={false}
+                  placeholder="// Type code here..."
+                />
+
+                <div className="terminal-box">
+                  <div className="terminal-header">
+                    <span>Console Output</span>
+                    <span>Status: <strong style={{ color: terminalStatus.includes('Error') ? '#f87171' : '#34d399' }}>{terminalStatus}</strong></span>
+                  </div>
+                  <div className={`terminal-screen ${terminalStatus.includes('Error') ? 'error' : ''}`}>
+                    {terminalOutput}
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Tab 2: API Reference */}
-            {studioTab === 'api' && (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <h3 style={{ color: 'var(--text-primary)', marginBottom: 10, fontSize: '1.1rem' }}>
-                  FastAPI OpenAPI Documentation
-                </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginBottom: 20 }}>
-                  Interactive Swagger UI for querying endpoints, inspecting schemas, and generating cURL commands.
-                </p>
-                <a 
-                  href="http://localhost:8000/api/docs" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="btn-primary"
-                  style={{ textDecoration: 'none' }}
-                >
-                  <ExternalLink size={14} />
-                  <span>Open /api/docs in New Tab</span>
-                </a>
-              </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -1637,24 +1469,24 @@ class QueryResponse(BaseModel):
           <div className="workspace-view">
             <div className="view-header">
               <div className="view-title-group">
-                <h2>Projects & Saved Learnings</h2>
-                <p>Project-wise programming languages, mastered concepts, and runnable code archives.</p>
+                <h2>Projects</h2>
+                <p>Track created projects and inspect saved language concepts in detail.</p>
               </div>
               <button
                 type="button"
                 className="btn-primary"
                 onClick={() => setIsCreatingProject(prev => !prev)}
               >
-                <Plus size={14} />
-                <span>New Project</span>
+                <Plus size={13} />
+                <span>{isCreatingProject ? 'Cancel' : 'Create Project'}</span>
               </button>
             </div>
 
-            {/* Inline Project Creator (Zero Popups) */}
+            {/* Inline Project Creator */}
             {isCreatingProject && (
-              <div className="inline-creator" style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Create New Learning Project
+              <div className="inline-creator" style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Create New Project
                 </div>
                 <div className="inline-creator-row">
                   <input 
@@ -1665,7 +1497,7 @@ class QueryResponse(BaseModel):
                   />
                   <input 
                     type="text" 
-                    placeholder="Description / Learning Objective"
+                    placeholder="Description (Optional)"
                     value={newProjectDesc}
                     onChange={(e) => setNewProjectDesc(e.target.value)}
                   />
@@ -1692,7 +1524,7 @@ class QueryResponse(BaseModel):
 
             {/* Saved Notification Banner */}
             {savedLearningAlert && (
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 14 }}>
                 <span className="alert-toast">
                   <Check size={13} style={{ color: '#34d399' }} />
                   <span>{savedLearningAlert}</span>
@@ -1700,45 +1532,48 @@ class QueryResponse(BaseModel):
               </div>
             )}
 
-            {/* Project-Wise Cards Hierarchy */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Dropdown Minimal Projects List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {projects.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                  <FolderTree size={32} style={{ margin: '0 auto 12px auto', display: 'block', opacity: 0.5 }} />
-                  <p>No projects created yet. Click "New Project" to start tracking your learning!</p>
+                  <Folder size={32} style={{ margin: '0 auto 12px auto', display: 'block', opacity: 0.5 }} />
+                  <p>No projects created yet. Click "Create Project" to get started.</p>
                 </div>
               ) : (
                 projects.map((project) => {
                   const uniqueLanguages = Array.from(new Set(project.learnings.map(l => l.language.toLowerCase())));
                   return (
-                    <div key={project.id} className="project-wise-card">
-                      <div className="project-card-top">
-                        <div>
-                          <div className="project-card-heading">
-                            <Folder size={16} />
-                            <span>{project.name}</span>
-                            <span className="badge-tag" style={{ fontSize: '0.7rem' }}>
-                              {project.learnings.length} {project.learnings.length === 1 ? 'learning' : 'learnings'}
+                    <details 
+                      key={project.id} 
+                      className="project-minimal-item"
+                      open={activeProjectId === project.id}
+                    >
+                      <summary className="project-minimal-summary">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Folder size={14} style={{ color: 'var(--text-secondary)' }} />
+                          <span>{project.name}</span>
+                          <span className="badge-tag" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                            {project.learnings.length} {project.learnings.length === 1 ? 'learning' : 'learnings'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {uniqueLanguages.map(lang => (
+                            <span key={lang} className="badge-tag" style={{ fontSize: '0.68rem' }}>
+                              {lang.toUpperCase()}
                             </span>
-                          </div>
-                          <div className="project-card-desc">
+                          ))}
+                          <ChevronRight size={13} style={{ color: 'var(--text-muted)' }} />
+                        </div>
+                      </summary>
+
+                      <div className="project-minimal-details">
+                        {project.description && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
                             {project.description}
                           </div>
-                          {uniqueLanguages.length > 0 && (
-                            <div className="project-languages-list">
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'center' }}>
-                                Languages:
-                              </span>
-                              {uniqueLanguages.map(lang => (
-                                <span key={lang} className="badge-tag">
-                                  {lang.toUpperCase()}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        )}
 
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
                           <button
                             type="button"
                             className="btn-secondary"
@@ -1751,7 +1586,7 @@ class QueryResponse(BaseModel):
                             title="Open in Code Studio"
                           >
                             <Terminal size={12} />
-                            <span>Studio</span>
+                            <span>Open in Studio</span>
                           </button>
                           {projects.length > 1 && (
                             <button
@@ -1764,17 +1599,15 @@ class QueryResponse(BaseModel):
                             </button>
                           )}
                         </div>
-                      </div>
 
-                      {/* Saved Learnings for this Project */}
-                      <div className="learnings-accordion">
-                        {project.learnings.length === 0 ? (
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '6px 0' }}>
-                            No learnings saved in this project yet. Open Code Studio, search any language or concept, and click "Save to Project".
-                          </div>
-                        ) : (
-                          project.learnings.map((entry) => {
-                            return (
+                        {/* Saved Learnings */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {project.learnings.length === 0 ? (
+                            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 0' }}>
+                              No learnings saved yet. Open Code Studio, search any language or concept, and click "Save to Project".
+                            </div>
+                          ) : (
+                            project.learnings.map((entry) => (
                               <div key={entry.id} className="learning-item">
                                 <div className="learning-item-header">
                                   <div className="learning-item-title">
@@ -1833,190 +1666,14 @@ class QueryResponse(BaseModel):
                                   </button>
                                 </div>
                               </div>
-                            );
-                          })
-                        )}
+                            ))
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </details>
                   );
                 })
               )}
-            </div>
-
-            {/* Enterprise Knowledge Repositories */}
-            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Enterprise RAG Vector Repositories
-                </span>
-                <span className="badge-tag">Qdrant Cloud Synced</span>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Kubernetes Overview v1.8</span>
-                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Intel DPDK Dataplane Guide</span>
-                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />SR-IOV High Perf Networking</span>
-                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />5-Level Paging Intel Spec</span>
-                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Parallel Page Cache Systems</span>
-                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Memory Consistency Models</span>
-                <span className="badge-tag"><FileText size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Lock-Free Hash Tables</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── VIEW 4: ARTIFACTS ── */}
-        {activeView === 'artifacts' && (
-          <div className="workspace-view">
-            <div className="view-header">
-              <div className="view-title-group">
-                <h2>Architecture Artifacts & Specifications</h2>
-                <p>System diagrams, endpoint schemas, and infrastructure configurations.</p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 20, flex: 1 }}>
-              <div style={{ width: 260, borderRight: '1px solid var(--border)', paddingRight: 16 }}>
-                {artifactsList.map((art, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setSelectedArtifactIndex(idx)}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 6,
-                      marginBottom: 6,
-                      cursor: 'pointer',
-                      backgroundColor: selectedArtifactIndex === idx ? 'var(--bg-surface)' : 'transparent',
-                      border: selectedArtifactIndex === idx ? '1px solid var(--border)' : '1px solid transparent',
-                      color: selectedArtifactIndex === idx ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      fontSize: '0.84rem'
-                    }}
-                  >
-                    <strong style={{ display: 'block', fontSize: '0.82rem' }}>{art.title}</strong>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>{art.type}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <h3 style={{ color: 'var(--text-primary)', fontSize: '0.92rem' }}>
-                    {artifactsList[selectedArtifactIndex].title}
-                  </h3>
-                  <button 
-                    type="button"
-                    className="btn-copy" 
-                    onClick={() => copyToClipboard(artifactsList[selectedArtifactIndex].content)}
-                  >
-                    {copiedArtifact ? (
-                      <>
-                        <Check size={12} />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={12} />
-                        <span>Copy Spec</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <pre style={{
-                  backgroundColor: '#0d0d10',
-                  border: '1px solid var(--border)',
-                  borderRadius: 6,
-                  padding: 14,
-                  fontSize: '0.82rem',
-                  lineHeight: 1.45,
-                  overflowY: 'auto',
-                  flex: 1,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
-                }}>
-                  <code>{artifactsList[selectedArtifactIndex].content}</code>
-                </pre>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── VIEW 5: CUSTOMIZE ── */}
-        {activeView === 'customize' && (
-          <div className="workspace-view">
-            <div className="view-header">
-              <div className="view-title-group">
-                <h2>Agent Configuration</h2>
-                <p>Customize system persona instructions, LLM sampling temperature, and reranking thresholds.</p>
-              </div>
-              {savedNotice && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#34d399', fontSize: '0.82rem' }}>
-                  <CheckCircle2 size={15} />
-                  <span>Configuration saved</span>
-                </div>
-              )}
-            </div>
-
-            <div style={{ maxWidth: 640 }}>
-              <div className="form-group">
-                <label className="form-label">Persona Mode</label>
-                <select 
-                  className="form-select"
-                  value={settings.persona}
-                  onChange={(e) => setSettings({ ...settings, persona: e.target.value })}
-                >
-                  <option value="Enterprise Architect">Enterprise Architect (Comprehensive & In-Depth)</option>
-                  <option value="DevOps Engineer">DevOps Engineer (Practical & Infrastructure-Oriented)</option>
-                  <option value="Security Auditor">Security Auditor (Policy & Compliance Focused)</option>
-                  <option value="Concise Explainer">Concise Explainer (Short & Direct)</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">System Instruction Addendum</label>
-                <textarea 
-                  className="form-textarea"
-                  rows={4}
-                  value={settings.systemPrompt}
-                  onChange={(e) => setSettings({ ...settings, systemPrompt: e.target.value })}
-                />
-              </div>
-
-              <div className="workspace-grid-2">
-                <div className="form-group">
-                  <label className="form-label">LLM Temperature: {settings.temperature}</label>
-                  <input 
-                    type="range" 
-                    min="0.0" 
-                    max="1.0" 
-                    step="0.05"
-                    value={settings.temperature}
-                    className="form-range"
-                    onChange={(e) => setSettings({ ...settings, temperature: parseFloat(e.target.value) })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Qdrant Rerank Top-K: {settings.topK}</label>
-                  <input 
-                    type="range" 
-                    min="3" 
-                    max="15" 
-                    step="1"
-                    value={settings.topK}
-                    className="form-range"
-                    onChange={(e) => setSettings({ ...settings, topK: parseInt(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginTop: 16 }}>
-                <button 
-                  type="button"
-                  className="btn-primary" 
-                  onClick={() => saveCustomSettings(settings)}
-                >
-                  <Check size={14} />
-                  <span>Save Configuration</span>
-                </button>
-              </div>
             </div>
           </div>
         )}
