@@ -1070,8 +1070,7 @@ __name__ = '__main__'
       <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <Cpu size={16} />
-            <span>Enterprise RAG</span>
+            <span>RAG</span>
           </div>
           <button className="btn-toggle-sidebar" onClick={toggleSidebar} title="Collapse Sidebar">
             <PanelLeftClose size={16} />
@@ -1174,8 +1173,7 @@ __name__ = '__main__'
                 className={`chat-skill-btn ${activeSkill === 'rag' ? 'active' : ''}`}
                 onClick={() => setActiveSkill('rag')}
               >
-                <Database size={13} />
-                <span>Enterprise RAG</span>
+                <span>RAG</span>
               </button>
               <button
                 type="button"
