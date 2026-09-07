@@ -406,6 +406,10 @@ export function App() {
   const [outputTab, setOutputTab] = useState<'terminal' | 'preview'>('terminal');
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem('claude_rag_copilot_visible');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [copilotEngine, setCopilotEngine] = useState<'groq' | 'gemini'>('groq');
   const [copilotPrompt, setCopilotPrompt] = useState('');
   const [isCopilotLoading, setIsCopilotLoading] = useState(false);
@@ -1374,14 +1378,31 @@ __name__ = '__main__'
                 <h2>Code Studio</h2>
                 <p>Search any programming language, write and test code, and save to your projects.</p>
               </div>
-              <button 
-                type="button" 
-                className="btn-primary" 
-                onClick={() => setIsCreatingProject(prev => !prev)}
-              >
-                <Plus size={13} />
-                <span>{isCreatingProject ? 'Cancel' : 'Create Project'}</span>
-              </button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className={`btn-secondary ${isCopilotOpen ? 'active' : ''}`}
+                  onClick={() => {
+                    setIsCopilotOpen(prev => {
+                      const next = !prev;
+                      localStorage.setItem('claude_rag_copilot_visible', String(next));
+                      return next;
+                    });
+                  }}
+                  title={isCopilotOpen ? "Hide Coding Copilot to expand Editor & Preview" : "Show Coding Copilot"}
+                >
+                  <MessageSquare size={13} />
+                  <span>{isCopilotOpen ? "Hide Copilot" : "Coding Copilot"}</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-primary" 
+                  onClick={() => setIsCreatingProject(prev => !prev)}
+                >
+                  <Plus size={13} />
+                  <span>{isCreatingProject ? 'Cancel' : 'Create Project'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Inline Project Creator */}
@@ -1517,95 +1538,127 @@ __name__ = '__main__'
 
             {/* Code Studio & Runner Layout */}
             <div className="code-studio-layout">
-              {/* Left: AI Coding Copilot */}
-              <div className="code-copilot-pane">
-                <div className="copilot-header">
-                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    Coding Copilot
-                  </span>
-                  <select 
-                    className="copilot-model-select"
-                    value={copilotEngine}
-                    onChange={(e) => setCopilotEngine(e.target.value as 'groq' | 'gemini')}
-                  >
-                    <option value="groq">Groq (Fast)</option>
-                    <option value="gemini">Gemini 2.5 (Flash)</option>
-                  </select>
-                </div>
+              {/* Left: AI Coding Copilot (Toggleable) */}
+              {isCopilotOpen && (
+                <div className="code-copilot-pane">
+                  <div className="copilot-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Coding Copilot
+                      </span>
+                      <select 
+                        className="copilot-model-select"
+                        value={copilotEngine}
+                        onChange={(e) => setCopilotEngine(e.target.value as 'groq' | 'gemini')}
+                      >
+                        <option value="groq">Groq (Fast)</option>
+                        <option value="gemini">Gemini 2.5 (Flash)</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCopilotOpen(false);
+                        localStorage.setItem('claude_rag_copilot_visible', 'false');
+                      }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2 }}
+                      title="Hide Copilot to expand preview & editor"
+                    >
+                      <PanelLeftClose size={14} />
+                    </button>
+                  </div>
 
-                <div className="copilot-chat-history">
-                  {copilotMessages.map((msg, idx) => (
-                    <div key={idx} className={`copilot-msg ${msg.role}`}>
-                      <div style={{ fontWeight: 600, fontSize: '0.74rem', marginBottom: 4, color: msg.role === 'user' ? '#93c5fd' : '#34d399' }}>
-                        {msg.role === 'user' ? 'You' : `Copilot (${copilotEngine.toUpperCase()})`}
-                      </div>
-                      <div className="markdown-body" style={{ fontSize: '0.82rem' }}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {msg.text}
-                        </ReactMarkdown>
-                      </div>
-                      {msg.code && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                          <button 
-                            type="button"
-                            className="btn-send-to-editor"
-                            onClick={() => setCodeContent(msg.code || '')}
-                          >
-                            <ArrowDownToLine size={12} />
-                            <span>Insert into Editor</span>
-                          </button>
-                          <button 
-                            type="button"
-                            className="btn-send-to-editor"
-                            style={{ borderColor: 'var(--border-focus)' }}
-                            onClick={() => {
-                              const title = `${codeLanguage.toUpperCase()} Snippet: ${msg.text.slice(0, 35).replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Concept'}`;
-                              saveLearningToProject(title, codeLanguage, msg.text, msg.code || '');
-                            }}
-                          >
-                            <Bookmark size={12} />
-                            <span>Save to {projects.find(p => p.id === activeProjectId)?.name || 'Project'}</span>
-                          </button>
+                  <div className="copilot-chat-history">
+                    {copilotMessages.map((msg, idx) => (
+                      <div key={idx} className={`copilot-msg ${msg.role}`}>
+                        <div style={{ fontWeight: 600, fontSize: '0.74rem', marginBottom: 4, color: msg.role === 'user' ? '#93c5fd' : '#34d399' }}>
+                          {msg.role === 'user' ? 'You' : `Copilot (${copilotEngine.toUpperCase()})`}
                         </div>
-                      )}
-                    </div>
-                  ))}
-                  {isCopilotLoading && (
-                    <div className="copilot-msg assistant" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      Copilot is generating explanation and code...
-                    </div>
-                  )}
-                </div>
+                        <div className="markdown-body" style={{ fontSize: '0.82rem' }}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {msg.text}
+                          </ReactMarkdown>
+                        </div>
+                        {msg.code && (
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                            <button 
+                              type="button"
+                              className="btn-send-to-editor"
+                              onClick={() => setCodeContent(msg.code || '')}
+                            >
+                              <ArrowDownToLine size={12} />
+                              <span>Insert into Editor</span>
+                            </button>
+                            <button 
+                              type="button"
+                              className="btn-send-to-editor"
+                              style={{ borderColor: 'var(--border-focus)' }}
+                              onClick={() => {
+                                const title = `${codeLanguage.toUpperCase()} Snippet: ${msg.text.slice(0, 35).replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Concept'}`;
+                                saveLearningToProject(title, codeLanguage, msg.text, msg.code || '');
+                              }}
+                            >
+                              <Bookmark size={12} />
+                              <span>Save to {projects.find(p => p.id === activeProjectId)?.name || 'Project'}</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {isCopilotLoading && (
+                      <div className="copilot-msg assistant" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Copilot is generating explanation and code...
+                      </div>
+                    )}
+                  </div>
 
-                <form 
-                  className="copilot-input-row"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    askCopilot(copilotPrompt);
-                  }}
-                >
-                  <input 
-                    type="text" 
-                    className="copilot-input"
-                    placeholder="Ask to write, debug, explain or optimize code..."
-                    value={copilotPrompt}
-                    onChange={(e) => setCopilotPrompt(e.target.value)}
-                    disabled={isCopilotLoading}
-                  />
-                  <button 
-                    type="submit" 
-                    className="copilot-btn-submit"
-                    disabled={isCopilotLoading || !copilotPrompt.trim()}
+                  <form 
+                    className="copilot-input-row"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      askCopilot(copilotPrompt);
+                    }}
                   >
-                    <Send size={13} />
-                  </button>
-                </form>
-              </div>
+                    <input 
+                      type="text" 
+                      className="copilot-input"
+                      placeholder="Ask to write, debug, explain or optimize code..."
+                      value={copilotPrompt}
+                      onChange={(e) => setCopilotPrompt(e.target.value)}
+                      disabled={isCopilotLoading}
+                    />
+                    <button 
+                      type="submit" 
+                      className="copilot-btn-submit"
+                      disabled={isCopilotLoading || !copilotPrompt.trim()}
+                    >
+                      <Send size={13} />
+                    </button>
+                  </form>
+                </div>
+              )}
 
-              {/* Right: Code Editor & In-Browser Runner */}
+              {/* Right: Code Editor & In-Browser Runner (Expands to 100% when Copilot is hidden) */}
               <div className="code-runner-pane">
                 <div className="runner-toolbar">
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className={`btn-secondary ${isCopilotOpen ? 'active' : ''}`}
+                      style={{ padding: '4px 8px', fontSize: '0.76rem' }}
+                      onClick={() => {
+                        setIsCopilotOpen(prev => {
+                          const next = !prev;
+                          localStorage.setItem('claude_rag_copilot_visible', String(next));
+                          return next;
+                        });
+                      }}
+                      title={isCopilotOpen ? "Hide Coding Copilot to expand Editor & Preview" : "Show Coding Copilot"}
+                    >
+                      <MessageSquare size={12} />
+                      <span>{isCopilotOpen ? "Hide Copilot" : "Copilot"}</span>
+                    </button>
+
                     <select 
                       className="copilot-model-select"
                       value={codeLanguage}
