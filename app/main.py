@@ -56,6 +56,14 @@ app.add_middleware(
 @app.on_event("startup")
 def startup_event():
     initialize_rails()
+    try:
+        from app.services.retrieval.embedding import _get_local
+        _get_local()
+        from app.services.retrieval.ranking_service import rerank_documents
+        rerank_documents("warmup", ["warmup query context"], top_n=1)
+        logfire.info("⚡ Models warmed up: embedding and reranking ready.")
+    except Exception as e:
+        logfire.warning(f"Startup warmup skipped: {e}")
 
 
 @app.get("/docs", include_in_schema=False)

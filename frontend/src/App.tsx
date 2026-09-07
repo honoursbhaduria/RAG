@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import Loader from './Loader';
 
 interface Message {
@@ -177,30 +179,59 @@ export function App() {
             ) : (
               messages.map((msg, index) => (
                 <div key={index} className={`message-bubble ${msg.role}`}>
-                  <div className="message-role">{msg.role === 'user' ? 'You' : 'Claude'}</div>
+                  <div className="message-header">
+                    <span className="message-role">{msg.role === 'user' ? 'You' : 'Claude'}</span>
+                    {msg.role === 'assistant' && (
+                      <button 
+                        type="button"
+                        className="btn-copy" 
+                        onClick={() => navigator.clipboard.writeText(msg.content)}
+                        title="Copy answer"
+                      >
+                        Copy
+                      </button>
+                    )}
+                  </div>
                   
                   {msg.thoughtProcess && msg.thoughtProcess.length > 0 && (
-                    <div className="thought-box">
-                      <strong>Reasoning Steps:</strong>
-                      <ul style={{ paddingLeft: 18, marginTop: 4 }}>
-                        {msg.thoughtProcess.map((step, i) => (
-                          <li key={i}>{step}</li>
-                        ))}
-                      </ul>
-                    </div>
+                    <details className="thought-accordion">
+                      <summary className="thought-summary">
+                        <span>⚙️ Reasoning Steps ({msg.thoughtProcess.length})</span>
+                      </summary>
+                      <div className="thought-content">
+                        <ul>
+                          {msg.thoughtProcess.map((step, i) => (
+                            <li key={i}>{step}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </details>
                   )}
 
-                  <div className="message-text">{msg.content}</div>
+                  <div className="message-text markdown-body">
+                    {msg.role === 'user' ? (
+                      <p>{msg.content}</p>
+                    ) : (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    )}
+                  </div>
 
                   {msg.sources && msg.sources.length > 0 && (
-                    <div className="sources-box">
-                      <strong>Retrieved Context ({msg.sources.length} sources):</strong>
-                      {msg.sources.map((src, i) => (
-                        <div key={i} className="source-item">
-                          {src.slice(0, 180)}...
-                        </div>
-                      ))}
-                    </div>
+                    <details className="sources-accordion">
+                      <summary className="sources-summary">
+                        <span>📄 Retrieved Context Sources ({msg.sources.length} chunks)</span>
+                      </summary>
+                      <div className="sources-content">
+                        {msg.sources.map((src, i) => (
+                          <div key={i} className="source-item">
+                            <span className="source-badge">Chunk {i + 1}</span>
+                            <div className="source-text">{src.replace(/^CONTENT:\s*/, '')}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
                   )}
                 </div>
               ))
