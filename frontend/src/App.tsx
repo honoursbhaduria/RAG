@@ -19,7 +19,6 @@ import {
   Terminal,
   ArrowDownToLine,
   Database,
-  Cpu,
   Layers,
   ShieldCheck,
   Search,
