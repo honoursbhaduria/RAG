@@ -98,11 +98,17 @@ def parse_uploaded_file(file_bytes: bytes, filename: str) -> str:
             pass
 
 
-def ingest_document_to_rag(full_text: str, filename: str, source_type: str = "user_upload") -> dict:
+def ingest_document_to_rag(
+    full_text: str,
+    filename: str,
+    source_type: str = "user_upload",
+    session_id: str | None = None
+) -> dict:
     """
     Executes the RAG ingestion pipeline: chunking, dual vector embedding, and Qdrant indexing.
+    Tags vectors with session_id to enable session-scoped retrieval in active chats.
     """
-    with logfire.span("RAG Ingestion Pipeline", file=filename, source=source_type):
+    with logfire.span("RAG Ingestion Pipeline", file=filename, source=source_type, session_id=session_id):
         chunks = chunk_text(full_text)
         if not chunks:
             raise ValueError(f"Document '{filename}' yielded no text chunks after parsing.")
@@ -118,6 +124,7 @@ def ingest_document_to_rag(full_text: str, filename: str, source_type: str = "us
                     "text": chunk,
                     "source": filename,
                     "source_type": source_type,
+                    "session_id": session_id or "",
                     "embedder": vector_name,
                     "timestamp": time.time(),
                 },
@@ -133,6 +140,7 @@ def ingest_document_to_rag(full_text: str, filename: str, source_type: str = "us
         # Save metadata record locally
         processed_data = {
             "filename": filename,
+            "session_id": session_id,
             "source_type": source_type,
             "chunks": chunks,
             "indexed_points": len(points),
@@ -140,17 +148,25 @@ def ingest_document_to_rag(full_text: str, filename: str, source_type: str = "us
         }
         save_processed_locally(processed_data, source_type, filename)
 
+        # Generate a brief preview / summary of first chunk
+        preview = chunks[0][:300] + "..." if len(chunks[0]) > 300 else chunks[0]
+
         logfire.info(f"Successfully indexed {len(points)} chunks from '{filename}' into Qdrant.")
         return {
             "chunks_count": len(chunks),
-            "points_indexed": len(points)
+            "points_indexed": len(points),
+            "preview": preview,
         }
 
 
-def process_and_ingest_uploaded_file(file_bytes: bytes, filename: str) -> dict:
+def process_and_ingest_uploaded_file(
+    file_bytes: bytes,
+    filename: str,
+    session_id: str | None = None
+) -> dict:
     """
     End-to-end handler for uploaded files:
-    Extract text -> Run Guardrails -> Chunk & Embed -> Index in Qdrant.
+    Extract text -> Run Guardrails -> Chunk & Embed -> Index in Qdrant with session metadata.
     """
     text = parse_uploaded_file(file_bytes, filename)
     if not text or not text.strip():
@@ -159,6 +175,7 @@ def process_and_ingest_uploaded_file(file_bytes: bytes, filename: str) -> dict:
             "status": "empty",
             "safe": False,
             "filename": filename,
+            "session_id": session_id,
             "reason": "File is empty or no readable text could be extracted."
         }
 
@@ -170,19 +187,22 @@ def process_and_ingest_uploaded_file(file_bytes: bytes, filename: str) -> dict:
             "status": "blocked",
             "safe": False,
             "filename": filename,
+            "session_id": session_id,
             "reason": violation_reason
         }
 
     # Step 2: RAG Pipeline ingestion
     try:
-        res = ingest_document_to_rag(text, filename)
+        res = ingest_document_to_rag(text, filename, session_id=session_id)
         return {
             "success": True,
             "status": "indexed",
             "safe": True,
             "filename": filename,
+            "session_id": session_id,
             "chunks_count": res["chunks_count"],
             "points_indexed": res["points_indexed"],
+            "preview": res.get("preview", ""),
             "guardrail_status": "Verified Safe (NeMo Guardrails & Injection Scanners passed)",
             "message": f"File '{filename}' passed safety guardrails and is indexed into Enterprise RAG ({res['chunks_count']} chunks)."
         }
@@ -193,5 +213,6 @@ def process_and_ingest_uploaded_file(file_bytes: bytes, filename: str) -> dict:
             "status": "error",
             "safe": True,
             "filename": filename,
+            "session_id": session_id,
             "reason": f"Ingestion pipeline failed: {str(e)}"
         }

@@ -106,11 +106,12 @@ models:
 instructions:
   - type: general
     content: |
-      You are an Enterprise IT Assistant specialising in:
+      You are an Enterprise AI and Knowledge Assistant specialising in:
+      - Uploaded documents, user resumes, technical profiles, portfolios, and code
       - Kubernetes (deployment, scaling, operators, networking)
       - Intel hardware (CPUs, FPGAs, NICs, SRIOV)
-      - Enterprise networking (SDN, VLANs, BGP, routing)
-      Only answer questions about these topics. Be professional and concise.
+      - Enterprise networking and software engineering
+      Answer user queries about these topics, uploaded files, and technical concepts helpfully and accurately.
 """
 
 # Distinctive substrings from each 'define bot' block above.

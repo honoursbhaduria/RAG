@@ -46,19 +46,27 @@ def generate_node(state: AgentState):
                 logfire.warning("Context truncated to fit Groq TPM limits.")
                 break
 
-        prompt = f"""
-        You are a {persona}.
-        {system_instruction}
-        Answer the question using the TECHNICAL CONTEXT provided.
+        filename = state.get("filename")
+        doc_header = f"ACTIVE ATTACHED DOCUMENT: {filename}\n" if filename else ""
 
-        TECHNICAL CONTEXT:
-        {full_context}
+        prompt = f"""
+        You are an expert {persona}.
+        {system_instruction}
+
+        {doc_header}
+        CONTEXT & DOCUMENTATION:
+        {full_context if full_context.strip() else "(No specific internal document context found for this query)"}
 
         CONVERSATION HISTORY:
         {history_str}
 
         USER QUESTION:
         "{user_msg}"
+
+        INSTRUCTIONS:
+        1. If the user question pertains to their resume, internship, work experience, education, skills, projects, or uploaded document, extract and present the EXACT facts, names, dates, companies (e.g. internships, roles, technologies, institutions, CGPA) from the CONTEXT above. Do not claim you don't have access when the context is provided.
+        2. If the user asks to summarize or explain the uploaded document or resume, provide a well-structured summary covering education, experience, technical skills, and key projects.
+        3. If the user asks a question from outside the uploaded document or knowledge base (e.g. general technical concepts, math, coding, or facts not in the file), answer helpfully, accurately, and comprehensively using your broader knowledge base, clearly noting that the answer is based on general technical knowledge.
         """
 
     with logfire.span("LLM Synthesis"):

@@ -355,6 +355,7 @@ interface ChatSession {
   title: string;
   messages: Message[];
   timestamp: number;
+  activeDocument?: string;
 }
 
 export function App() {
@@ -548,7 +549,7 @@ export function App() {
     }
   };
 
-  const updateSessions = (targetSessionId: string, finalMessages: Message[], titleSeed?: string) => {
+  const updateSessions = (targetSessionId: string, finalMessages: Message[], titleSeed?: string, activeDoc?: string) => {
     const existingIdx = sessions.findIndex((s) => s.id === targetSessionId);
     let updatedSessions: ChatSession[];
     if (existingIdx >= 0) {
@@ -556,13 +557,14 @@ export function App() {
       updatedSessions[existingIdx] = {
         ...updatedSessions[existingIdx],
         messages: finalMessages,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        activeDocument: activeDoc || updatedSessions[existingIdx].activeDocument
       };
     } else {
       const seed = titleSeed || (finalMessages.find(m => m.role === 'user')?.content || 'New Chat');
       const title = seed.length > 34 ? seed.slice(0, 34) + '...' : seed;
       updatedSessions = [
-        { id: targetSessionId, title, messages: finalMessages, timestamp: Date.now() },
+        { id: targetSessionId, title, messages: finalMessages, timestamp: Date.now(), activeDocument: activeDoc },
         ...sessions
       ];
     }
@@ -621,6 +623,7 @@ export function App() {
       try {
         const formData = new FormData();
         formData.append('file', currentFile);
+        formData.append('session_id', sessionId);
 
         const uploadRes = await fetch(`${backendUrl}/upload`, {
           method: 'POST',
@@ -668,9 +671,12 @@ export function App() {
       }
     }
 
+    const currentSessionObj = sessions.find((s) => s.id === sessionId);
+    const sessionDocName = fileUploadedName || currentSessionObj?.activeDocument;
+
     // Step 2: Formulate effective prompt with file context
-    const effectiveQuery = trimmedText || (fileUploadedName 
-      ? `Please analyze, summarize, and highlight key concepts from the uploaded document: ${fileUploadedName}` 
+    const effectiveQuery = trimmedText || (sessionDocName 
+      ? `Please analyze, summarize, and highlight key concepts from the uploaded document: ${sessionDocName}` 
       : '');
 
     const userMessage: Message = { 
@@ -683,7 +689,7 @@ export function App() {
 
     try {
       // Skill Route 1: Code & Language Tutor Skill (only when active and no file was attached)
-      if (activeSkill === 'code' && !fileUploadedName) {
+      if (activeSkill === 'code' && !sessionDocName) {
         const response = await fetch(`${backendUrl}/code/assist`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -714,7 +720,7 @@ export function App() {
 
         const finalMessages = [...newMessages, assistantMessage];
         setMessages(finalMessages);
-        updateSessions(sessionId, finalMessages, effectiveQuery);
+        updateSessions(sessionId, finalMessages, effectiveQuery, sessionDocName);
         return;
       }
 
@@ -733,7 +739,7 @@ export function App() {
           system_prompt: effectiveSystemPrompt,
           temperature: settings.temperature,
           top_k: settings.topK,
-          filename: fileUploadedName
+          filename: sessionDocName
         })
       });
 
@@ -752,7 +758,7 @@ export function App() {
 
       const finalMessages = [...newMessages, assistantMessage];
       setMessages(finalMessages);
-      updateSessions(sessionId, finalMessages, effectiveQuery);
+      updateSessions(sessionId, finalMessages, effectiveQuery, sessionDocName);
 
     } catch (err: any) {
       const errorMessage: Message = {

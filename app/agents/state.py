@@ -15,3 +15,6 @@ class AgentState(TypedDict, total=False):
     system_prompt: str
     temperature: float
     top_k: int
+    filename: str
+    session_id: str
+    is_document_query: bool

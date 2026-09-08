@@ -45,7 +45,111 @@ def get_qdrant_client() -> QdrantClient:
 # Initialize Qdrant Client
 client = get_qdrant_client()
 
-def search_enterprise_knowledge(query: str, limit: int = 8):
+def ensure_payload_indexes():
+    """Ensures keyword payload indexes on source and session_id exist in Qdrant."""
+    for field in ("source", "session_id", "source_type"):
+        try:
+            client.create_payload_index(
+                collection_name=settings.QDRANT_COLLECTION,
+                field_name=field,
+                field_schema=models.PayloadSchemaType.KEYWORD
+            )
+        except Exception:
+            pass
+
+ensure_payload_indexes()
+
+def get_document_chunks(filename: str, session_id: str | None = None, limit: int = 15) -> list[dict]:
+    """
+    Directly retrieves sequential text chunks belonging to a specific uploaded document.
+    Crucial for document-level requests like 'summarize this document' or 'tell me about my resume'.
+    """
+    if not filename:
+        return []
+
+    try:
+        # Step 1: Try exact match with session_id if provided
+        must_conditions = [
+            models.FieldCondition(
+                key="source",
+                match=models.MatchValue(value=filename)
+            )
+        ]
+        if session_id:
+            must_conditions.append(
+                models.FieldCondition(
+                    key="session_id",
+                    match=models.MatchValue(value=session_id)
+                )
+            )
+
+        scroll_filter = models.Filter(must=must_conditions)
+        points, _ = client.scroll(
+            collection_name=settings.QDRANT_COLLECTION,
+            scroll_filter=scroll_filter,
+            limit=limit,
+            with_payload=True,
+            with_vectors=False
+        )
+
+        # Step 2: Fall back to filename only (without session_id) if 0 points found
+        if not points and session_id:
+            scroll_filter = models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="source",
+                        match=models.MatchValue(value=filename)
+                    )
+                ]
+            )
+            points, _ = client.scroll(
+                collection_name=settings.QDRANT_COLLECTION,
+                scroll_filter=scroll_filter,
+                limit=limit,
+                with_payload=True,
+                with_vectors=False
+            )
+
+        # Step 3: Case-insensitive / partial match fallback
+        if not points:
+            all_pts, _ = client.scroll(
+                collection_name=settings.QDRANT_COLLECTION,
+                limit=100,
+                with_payload=True,
+                with_vectors=False
+            )
+            fn_clean = filename.lower().strip()
+            points = [
+                p for p in all_pts
+                if p.payload and (
+                    fn_clean in str(p.payload.get("source", "")).lower() or
+                    str(p.payload.get("source", "")).lower() in fn_clean or
+                    ("resume" in fn_clean and "resume" in str(p.payload.get("source", "")).lower())
+                )
+            ][:limit]
+
+        results = []
+        for p in points:
+            payload = p.payload or {}
+            results.append({
+                "content": payload.get("text", ""),
+                "source": payload.get("source", filename),
+                "score": 1.0,
+                "embedder": payload.get("embedder", "direct_document"),
+            })
+        logfire.info(f"Direct lookup for '{filename}' returned {len(results)} chunks.")
+        return results
+    except Exception as e:
+        logfire.warning(f"get_document_chunks failed for '{filename}': {e}")
+        return []
+
+
+def search_enterprise_knowledge(
+    query: str,
+    limit: int = 8,
+    filter_source: str | None = None,
+    session_id: str | None = None
+):
     """
     Searches the enterprise knowledge base across BOTH named vector fields.
 
@@ -63,6 +167,18 @@ def search_enterprise_knowledge(query: str, limit: int = 8):
 
     merged: dict[str, dict] = {}
 
+    # Build optional filter if file is targeted
+    query_filter = None
+    if filter_source:
+        query_filter = models.Filter(
+            should=[
+                models.FieldCondition(
+                    key="source",
+                    match=models.MatchValue(value=filter_source)
+                )
+            ]
+        )
+
     for vector_name in (GEMINI_VECTOR, LOCAL_VECTOR):
         vector = query_vectors.get(vector_name)
         if vector is None:
@@ -72,14 +188,24 @@ def search_enterprise_knowledge(query: str, limit: int = 8):
             response = client.query_points(
                 collection_name=settings.QDRANT_COLLECTION,
                 query=vector,
+                query_filter=query_filter,
                 using=vector_name,          # target the matching named vector field
                 limit=limit,
                 with_payload=True,
             )
         except Exception as e:
-            # An empty/missing field or dim mismatch shouldn't kill the whole search.
-            logfire.warning(f"Qdrant search on '{vector_name}' vector failed: {e}")
-            continue
+            # Fall back without query filter if filter index is not yet built
+            try:
+                response = client.query_points(
+                    collection_name=settings.QDRANT_COLLECTION,
+                    query=vector,
+                    using=vector_name,
+                    limit=limit,
+                    with_payload=True,
+                )
+            except Exception as e2:
+                logfire.warning(f"Qdrant search on '{vector_name}' vector failed: {e2}")
+                continue
 
         for res in response.points:
             payload = res.payload or {}

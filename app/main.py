@@ -14,7 +14,7 @@ else:
     logfire.configure(send_to_logfire=False, inspect_arguments=False)
 
 # Now safe to import app modules - logfire is already active
-from fastapi import FastAPI, Response, UploadFile, File
+from fastapi import FastAPI, Response, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.agents.graph import rag_agent
@@ -165,6 +165,9 @@ def get_graph_image():
         return {"error": f"Could not generate graph image: {e}"}
     
     
+SESSION_ACTIVE_DOCS: dict[str, str] = {}
+
+
 @app.post(
     "/query",
     response_model=QueryResponse,
@@ -186,7 +189,22 @@ def query(request: QueryRequest):
     Executes the LangGraph RAG flow with memory using a POST request.
     """
     q = request.q
-    thread_id = request.thread_id
+    thread_id = request.thread_id or "default_user"
+
+    # Resolve active uploaded document (from request, current thread, or latest upload)
+    q_lower = q.lower()
+    doc_keywords = ["resume", "cv", "intern", "internship", "experience", "education", "profile", "document", "pdf", "file", "upload", "who am i", "my work", "about me"]
+    is_doc_query = any(k in q_lower for k in doc_keywords)
+
+    effective_filename = (
+        request.filename
+        or SESSION_ACTIVE_DOCS.get(thread_id)
+        or SESSION_ACTIVE_DOCS.get("default_user")
+        or (SESSION_ACTIVE_DOCS.get("_latest") if is_doc_query else None)
+    )
+
+    if effective_filename:
+        SESSION_ACTIVE_DOCS[thread_id] = effective_filename
 
     initial_state = {
         "messages": [{"role": "user", "content": q}],
@@ -198,7 +216,8 @@ def query(request: QueryRequest):
         "system_prompt": request.system_prompt,
         "temperature": request.temperature if request.temperature is not None else 0.1,
         "top_k": request.top_k if request.top_k is not None else 5,
-        "filename": request.filename,
+        "filename": effective_filename,
+        "session_id": thread_id,
     }
     
     # Configuration for Memory (Thread ID)
@@ -207,7 +226,7 @@ def query(request: QueryRequest):
     try:
         # Gate 1: NeMo Guardrails — blocks overt prompt injection and malicious jailbreaks
         rail_fired, rail_response = guard(q)
-        if rail_fired and not request.filename:
+        if rail_fired and not effective_filename and not is_doc_query:
             logfire.info(f"Request blocked by guardrails | thread={thread_id}")
             return {
                 "question": q,
@@ -232,8 +251,8 @@ def query(request: QueryRequest):
                 src = d["source"]
                 if src and src not in extracted_sources:
                     extracted_sources.append(src)
-        if request.filename and request.filename not in extracted_sources:
-            extracted_sources.insert(0, request.filename)
+        if effective_filename and effective_filename not in extracted_sources:
+            extracted_sources.insert(0, effective_filename)
         if not extracted_sources and raw_docs:
             extracted_sources = [d[:80] + "..." if len(d) > 80 else d for d in raw_docs[:3]]
         
@@ -285,8 +304,10 @@ class UploadFileResponse(BaseModel):
     status: str = Field(..., description="Status: indexed, blocked, empty, or error")
     safe: bool = Field(..., description="Whether document passed security guardrails")
     filename: str = Field(..., description="Name of the processed file")
+    session_id: Optional[str] = Field(None, description="Session or conversation ID associated with the uploaded file")
     chunks_count: Optional[int] = Field(None, description="Number of text chunks extracted")
     points_indexed: Optional[int] = Field(None, description="Number of vector points upserted to Qdrant")
+    preview: Optional[str] = Field(None, description="Document preview excerpt")
     guardrail_status: Optional[str] = Field(None, description="Status from NeMo Guardrails")
     message: Optional[str] = Field(None, description="Detailed status message")
     reason: Optional[str] = Field(None, description="Rejection reason if blocked")
@@ -299,11 +320,18 @@ class UploadFileResponse(BaseModel):
     summary="Upload Document with Guardrails Validation & RAG Ingestion",
     description="Validates uploaded documents against NeMo Guardrails and injection attacks, chunks content, embeds using dual vectors, and indexes into Qdrant."
 )
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(
+    file: UploadFile = File(...),
+    session_id: Optional[str] = Form(None)
+):
     """
     Upload a document (PDF, TXT, MD, Python, JSON, HTML, etc.).
-    The file first passes through safety guardrails. If safe, it is ingested into the RAG vector store.
+    The file first passes through safety guardrails. If safe, it is ingested into the RAG vector store with session metadata.
     """
     content = await file.read()
-    result = process_and_ingest_uploaded_file(content, file.filename)
+    result = process_and_ingest_uploaded_file(content, file.filename, session_id=session_id)
+    if result.get("success"):
+        key = session_id or "default_user"
+        SESSION_ACTIVE_DOCS[key] = file.filename
+        SESSION_ACTIVE_DOCS["_latest"] = file.filename
     return result

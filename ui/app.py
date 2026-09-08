@@ -280,6 +280,8 @@ with st.sidebar:
         logfire.warn(f"New Chat Session Started for session: {st.session_state.session_id}")
         st.session_state.messages = []
         st.session_state.session_id = str(uuid.uuid4())
+        st.session_state.active_filename = None
+        st.session_state.last_uploaded_name = None
         st.rerun()
 
     st.markdown(
@@ -291,10 +293,50 @@ with st.sidebar:
             <div class="nav-item">Customize</div>
         </div>
         
-        <div class="nav-section-title">Chats and tasks</div>
+        <div class="nav-section-title">Upload Document (RAG Context)</div>
         """,
         unsafe_allow_html=True
     )
+
+    # Document Uploader (PDF, TXT, MD, DOCX)
+    uploaded_file = st.file_uploader(
+        "Upload PDF or Document",
+        type=["pdf", "txt", "md", "docx"],
+        help="Upload a PDF to parse, embed into Qdrant, and chat with in this session.",
+        label_visibility="collapsed"
+    )
+    if uploaded_file is not None:
+        if st.session_state.get("last_uploaded_name") != uploaded_file.name:
+            with st.spinner(f"Parsing & Indexing {uploaded_file.name} into Qdrant..."):
+                try:
+                    base_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+                    files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type or "application/octet-stream")}
+                    data_form = {"session_id": st.session_state.session_id}
+                    resp = requests.post(f"{base_url}/upload", files=files, data=data_form, timeout=60)
+                    upload_res = resp.json()
+                    if upload_res.get("success"):
+                        st.session_state.active_filename = uploaded_file.name
+                        st.session_state.last_uploaded_name = uploaded_file.name
+                        st.session_state.doc_chunks_count = upload_res.get("chunks_count", 0)
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": f"📄 **Document Attached:** `{uploaded_file.name}`\n\n- **Status:** Parsed & Indexed into Qdrant ({upload_res.get('chunks_count', 0)} chunks)\n- **Guardrails:** {upload_res.get('guardrail_status', 'Verified Safe')}\n\nYou can now ask me any questions about this document, or ask questions from outside!"
+                        })
+                        st.success(f"Indexed {uploaded_file.name} ({upload_res.get('chunks_count')} chunks)")
+                        st.rerun()
+                    else:
+                        st.error(f"Upload blocked/failed: {upload_res.get('reason', 'Unknown error')}")
+                except Exception as e:
+                    st.error(f"Error connecting to backend: {e}")
+
+    if st.session_state.get("active_filename"):
+        st.info(f"📄 Active: **{st.session_state.active_filename}** ({st.session_state.get('doc_chunks_count', 0)} chunks)")
+        if st.button("Detach Document", use_container_width=True):
+            st.session_state.active_filename = None
+            st.session_state.last_uploaded_name = None
+            st.rerun()
+
+    st.markdown('<div class="nav-section-title">Chats and tasks</div>', unsafe_allow_html=True)
     
     # Active & Recent Threads
     current_title = "Current Conversation" if st.session_state.messages else "New Session"
@@ -359,6 +401,8 @@ if not st.session_state.messages:
 else:
     st.markdown("<h4 style='margin-bottom: 20px; font-weight: 400;'>Enterprise Agentic Assistant</h4>", unsafe_allow_html=True)
 
+if st.session_state.get("active_filename"):
+    st.info(f"📎 **Attached Document Context:** `{st.session_state.active_filename}` ({st.session_state.get('doc_chunks_count', 0)} chunks in Qdrant) — The assistant will answer with this document's context.")
 
 # Display chat history
 for message in st.session_state.messages:
@@ -384,7 +428,11 @@ if prompt := st.chat_input("How can I help you today?"):
                         # Get backend URL from env, or default to local if not set
                         base_url = os.getenv("BACKEND_URL", "http://localhost:8000")
                         url = f"{base_url}/query"
-                        payload = {"q": prompt, "thread_id": st.session_state.session_id}
+                        payload = {
+                            "q": prompt,
+                            "thread_id": st.session_state.session_id,
+                            "filename": st.session_state.get("active_filename")
+                        }
                         response = requests.post(url, json=payload, timeout=60)
                         data = response.json()
                     
