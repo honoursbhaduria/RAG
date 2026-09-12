@@ -17,12 +17,6 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Frontend Environment (Node.js)
-```bash
-cd frontend
-npm install
-```
-
 ### Environment Configuration
 ```bash
 # Copy example environment if .env doesn't exist
@@ -63,20 +57,6 @@ curl -X POST http://localhost:8000/query \
 ---
 
 ## 3. 🎨 Frontend Applications
-
-### Modern React + Vite Web App (Primary UI)
-```bash
-# Start Vite development server (Port 5173)
-cd frontend
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-```
-*Access in browser at:* `http://localhost:5173`
 
 ### Streamlit Chat Interface (Claude Theme)
 ```bash

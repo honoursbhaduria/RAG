@@ -1,2085 +1,566 @@
-import React, { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import Loader from './Loader';
+import { useState } from 'react';
+import TextFlippingBoardDemo from '@/components/text-flipping-board-demo';
+import KeyboardDemo from '@/components/keyboard-demo';
+import BrandTimeline from '@/components/brand-timeline';
+import RippleGrid from '@/components/ui/RippleGrid';
+import LogoLoop, { type LogoItem } from '@/components/ui/LogoLoop';
+import Loader from '@/components/ui/astronaut-loader';
+import DraggableCardDemo from '@/components/ui/draggable-card-demo-2';
 import {
-  Plus,
-  MessageSquare,
-  Code2,
-  FolderTree,
-  FileText,
-  PanelLeftClose,
-  PanelLeft,
-  Trash2,
-  Play,
-  Copy,
-  Check,
-  Send,
-  ChevronRight,
-  Terminal,
-  ArrowDownToLine,
-  Database,
-  Layers,
-  ShieldCheck,
-  Search,
-  BookOpen,
-  Bookmark,
-  Folder,
-  X,
-  Paperclip,
-  Eye
-} from 'lucide-react';
+  IconCompass,
+  IconCircleDotted,
+  IconBolt,
+  IconLeaf,
+  IconWorld,
+  IconSparkles,
+  IconTriangle,
+  IconCube,
+} from '@tabler/icons-react';
+import {
+  Navbar,
+  NavBody,
+  NavItems,
+  MobileNav,
+  NavbarLogo,
+  NavbarButton,
+  MobileNavHeader,
+  MobileNavToggle,
+  MobileNavMenu,
+} from '@/components/ui/resizable-navbar';
 
-export interface LearningEntry {
-  id: string;
-  title: string;
-  language: string;
-  conceptSummary: string;
-  code: string;
-  timestamp: number;
-}
+export default function App() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-export interface CodingProject {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: number;
-  learnings: LearningEntry[];
-}
+  const navItems = [
+    { name: "Product", link: "#product" },
+    { name: "Solutions", link: "#solutions" },
+    { name: "Security", link: "#security" },
+  ];
 
-export const POPULAR_LANGUAGES = [
-  'html',
-  'css',
-  'javascript',
-  'typescript',
-  'python',
-  'go',
-  'rust',
-  'cpp',
-  'java',
-  'csharp',
-  'sql',
-  'bash',
-  'ruby',
-  'kotlin',
-  'swift',
-  'php'
-];
-
-export const LANGUAGE_TEMPLATES: Record<string, string> = {
-  python: `# Python Sandbox (Powered by Pyodide WebAssembly)
-def calculate_primes(limit):
-    primes = []
-    for num in range(2, limit + 1):
-        if all(num % p != 0 for p in primes if p * p <= num):
-            primes.append(num)
-    return primes
-
-result = calculate_primes(50)
-print(f"Computed {len(result)} primes up to 50:")
-print(result)
-`,
-  javascript: `// JavaScript Sandbox Runtime
-function quickSort(arr) {
-  if (arr.length <= 1) return arr;
-  const pivot = arr[arr.length - 1];
-  const left = arr.filter((x, i) => x < pivot && i < arr.length - 1);
-  const right = arr.filter((x, i) => x >= pivot && i < arr.length - 1);
-  return [...quickSort(left), pivot, ...quickSort(right)];
-}
-
-const numbers = [64, 34, 25, 12, 22, 11, 90];
-console.log("Original Array:", numbers);
-console.log("Sorted Array:  ", quickSort(numbers));
-`,
-  typescript: `// TypeScript Core Types & Generics
-interface ServiceResponse<T> {
-  code: number;
-  data: T;
-  timestamp: number;
-}
-
-function createResponse<T>(data: T): ServiceResponse<T> {
-  return {
-    code: 200,
-    data,
-    timestamp: Date.now()
-  };
-}
-
-const payload = createResponse({ service: "Enterprise RAG", status: "Healthy" });
-console.log(payload);
-`,
-  go: `// Go Concurrency & Channel Worker Pool
-package main
-
-import (
-	"fmt"
-	"sync"
-)
-
-func worker(id int, jobs <-chan int, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for j := range jobs {
-		fmt.Printf("Worker %d executed job %d\\n", id, j)
-	}
-}
-
-func main() {
-	jobs := make(chan int, 10)
-	var wg sync.WaitGroup
-
-	for w := 1; w <= 3; w++ {
-		wg.Add(1)
-		go worker(w, jobs, &wg)
-	}
-
-	for j := 1; j <= 6; j++ {
-		jobs <- j
-	}
-	close(jobs)
-	wg.Wait()
-}
-`,
-  rust: `// Rust Ownership & Pattern Matching
-enum JobStatus {
-    Queued(u32),
-    Running(String),
-    Completed,
-}
-
-fn inspect_job(status: JobStatus) {
-    match status {
-        JobStatus::Queued(id) => println!("Job {} queued in memory pool", id),
-        JobStatus::Running(worker) => println!("Job executed by worker {}", worker),
-        JobStatus::Completed => println!("Job successfully processed"),
-    }
-}
-
-fn main() {
-    inspect_job(JobStatus::Queued(42));
-    inspect_job(JobStatus::Running(String::from("worker-01")));
-}
-`,
-  cpp: `// Modern C++ Algorithms & Lambdas
-#include <iostream>
-#include <vector>
-#include <algorithm>
-
-int main() {
-    std::vector<int> numbers = {42, 17, 89, 3, 26};
-    std::sort(numbers.begin(), numbers.end(), [](int a, int b) {
-        return a < b;
-    });
-
-    std::cout << "Sorted array: ";
-    for (int n : numbers) std::cout << n << " ";
-    std::cout << std::endl;
-    return 0;
-}
-`,
-  java: `// Java Streams & Lambdas
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-public class Main {
-    public static void main(String[] args) {
-        List<String> services = Arrays.asList("Kubernetes", "Qdrant", "FlashRank", "Groq");
-        List<String> filtered = services.stream()
-            .filter(s -> s.length() > 4)
-            .map(String::toUpperCase)
-            .collect(Collectors.toList());
-        System.out.println("Filtered services: " + filtered);
-    }
-}
-`,
-  sql: `-- SQL Window Functions & Analytics
-WITH RankedQueries AS (
-    SELECT 
-        user_id,
-        query_text,
-        execution_ms,
-        DENSE_RANK() OVER (PARTITION BY user_id ORDER BY execution_ms ASC) as rank
-    FROM query_logs
-)
-SELECT user_id, query_text, execution_ms
-FROM RankedQueries
-WHERE rank <= 3;
-`,
-  bash: `#!/usr/bin/env bash
-set -euo pipefail
-
-echo "Initializing health check..."
-if curl -s http://localhost:8000/health | grep -q "healthy"; then
-    echo "Backend service is operational."
-fi
-`,
-  html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
-      padding: 24px;
-      margin: 0;
-    }
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 20px;
-      max-width: 440px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    }
-    h2 { margin-top: 0; color: #38bdf8; font-size: 1.25rem; }
-    p { color: #94a3b8; font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px; }
-    .btn {
-      background: #0284c7;
-      color: #ffffff;
-      border: none;
-      border-radius: 6px;
-      padding: 8px 16px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .btn:hover { background: #0369a1; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2>HTML5 & CSS3 Live Preview</h2>
-    <p>HTML and CSS are interpreted markup & styling languages. They render live in the browser engine without needing compilation.</p>
-    <button class="btn" onclick="alert('Interactive DOM event fired!')">Test DOM Event</button>
-  </div>
-</body>
-</html>
-`,
-  css: `/* CSS3 Stylesheet Live Preview */
-:root {
-  --primary-accent: #38bdf8;
-  --bg-card: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-}
-
-body {
-  margin: 0;
-  padding: 30px;
-  background-color: #0f172a;
-  color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  display: flex;
-  justify-content: center;
-}
-
-.preview-container {
-  background: var(--bg-card);
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 24px;
-  width: 360px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
-}
-
-.preview-badge {
-  display: inline-block;
-  background: rgba(56, 189, 248, 0.15);
-  color: var(--primary-accent);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  margin-bottom: 12px;
-}
-
-.preview-btn {
-  background: var(--primary-accent);
-  color: #0f172a;
-  font-weight: 600;
-  border: none;
-  padding: 9px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.preview-btn:hover {
-  transform: translateY(-2px);
-}
-`
-};
-
-export function createCssPreview(css: string): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-${css}
-  </style>
-</head>
-<body>
-  <div class="preview-container">
-    <span class="preview-badge">CSS3 Live Preview</span>
-    <h3 style="margin: 0 0 8px 0; font-size: 1.15rem;">Live Styled Component</h3>
-    <p style="color: var(--text-muted, #94a3b8); font-size: 0.9rem; line-height: 1.45; margin-bottom: 16px;">
-      HTML and CSS are interpreted markup & style rules rendered in real-time by the browser layout engine.
-    </p>
-    <button class="preview-btn">Interactive Button</button>
-  </div>
-</body>
-</html>`;
-}
-
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  attachedFile?: string;
-  code?: string;
-  thoughtProcess?: string[];
-  sources?: string[];
-  skill?: string;
-}
-
-interface ChatSession {
-  id: string;
-  title: string;
-  messages: Message[];
-  timestamp: number;
-  activeDocument?: string;
-}
-
-export function App() {
-  const [sessionId, setSessionId] = useState(() => {
-    return localStorage.getItem('claude_rag_current_session') || Math.random().toString(36).substring(2, 10);
-  });
-  
-  const [sessions, setSessions] = useState<ChatSession[]>(() => {
-    try {
-      const saved = localStorage.getItem('claude_rag_sessions');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputPrompt, setInputPrompt] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeView, setActiveView] = useState<'chat' | 'projects' | 'code'>('chat');
-  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
-
-  // User Customization Settings
-  const [settings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('claude_rag_custom_settings');
-      return saved ? JSON.parse(saved) : {
-        persona: 'Enterprise Architect',
-        temperature: 0.1,
-        topK: 5,
-        systemPrompt: 'You are an Enterprise AI Architect specializing in distributed systems, Kubernetes, and networking.'
-      };
-    } catch {
-      return {
-        persona: 'Enterprise Architect',
-        temperature: 0.1,
-        topK: 5,
-        systemPrompt: 'You are an Enterprise AI Architect specializing in distributed systems, Kubernetes, and networking.'
-      };
-    }
-  });
-
-  // Interactive Code Studio State
-  const [codeLanguage, setCodeLanguage] = useState<string>('python');
-  const [codeContent, setCodeContent] = useState<string>(LANGUAGE_TEMPLATES.python);
-  const [terminalOutput, setTerminalOutput] = useState<string>('Ready. Click Run Code to execute in your browser runtime.');
-  const [terminalStatus, setTerminalStatus] = useState<string>('Ready');
-  const [outputTab, setOutputTab] = useState<'terminal' | 'preview'>('terminal');
-  const [previewHtml, setPreviewHtml] = useState<string>('');
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(() => {
-    const saved = localStorage.getItem('claude_rag_copilot_visible');
-    return saved !== null ? saved === 'true' : true;
-  });
-  const [copilotEngine, setCopilotEngine] = useState<'groq' | 'gemini'>('groq');
-  const [copilotPrompt, setCopilotPrompt] = useState('');
-  const [isCopilotLoading, setIsCopilotLoading] = useState(false);
-  const [copilotMessages, setCopilotMessages] = useState<Array<{ role: 'user' | 'assistant', text: string, code?: string }>>([
+  const partnerLogos: LogoItem[] = [
     {
-      role: 'assistant',
-      text: 'AI Coding Copilot initialized with Groq and Gemini engines. Select a project and language, choose a concept to learn, or ask custom questions. You can save your learning directly into the active project!'
-    }
-  ]);
-
-  // User Coding Projects State
-  const [projects, setProjects] = useState<CodingProject[]>(() => {
-    try {
-      const saved = localStorage.getItem('claude_rag_user_projects');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to load user projects', e);
-    }
-    return [
-      {
-        id: 'proj_algo',
-        name: 'Algorithms & Concurrency',
-        description: 'Core computer science algorithms, async patterns, and runtime complexity analysis.',
-        createdAt: Date.now() - 86400000 * 2,
-        learnings: [
-          {
-            id: 'learn_1',
-            title: 'QuickSort In-Place Partitioning',
-            language: 'python',
-            conceptSummary: 'Divide-and-conquer sorting algorithm using Hoare partitioning with average O(n log n) runtime.',
-            code: `def quicksort(arr):\n    if len(arr) <= 1:\n        return arr\n    pivot = arr[len(arr) // 2]\n    left = [x for x in arr if x < pivot]\n    middle = [x for x in arr if x == pivot]\n    right = [x for x in arr if x > pivot]\n    return quicksort(left) + middle + quicksort(right)\n\nprint("Sorted:", quicksort([23, 1, 10, 5, 2]))`,
-            timestamp: Date.now() - 86400000 * 2
-          },
-          {
-            id: 'learn_2',
-            title: 'Async Event Loop & Microtasks',
-            language: 'javascript',
-            conceptSummary: 'Non-blocking I/O event loop execution model with microtasks and macrotasks queues.',
-            code: `async function fetchMockData() {\n  return new Promise((resolve) => {\n    setTimeout(() => resolve({ status: 200, data: "Resolved async payload" }), 200);\n  });\n}\n\nfetchMockData().then(console.log);`,
-            timestamp: Date.now() - 86400000
-          }
-        ]
-      },
-      {
-        id: 'proj_sys',
-        name: 'Systems & Cloud Infrastructure',
-        description: 'Distributed systems, concurrency primitives, and container networking.',
-        createdAt: Date.now() - 86400000,
-        learnings: [
-          {
-            id: 'learn_3',
-            title: 'Go Channels Worker Pool',
-            language: 'go',
-            conceptSummary: 'Worker pool in Go using buffered channels and sync.WaitGroup for safe concurrent execution.',
-            code: `package main\n\nimport (\n\t"fmt"\n\t"sync"\n)\n\nfunc worker(id int, jobs <-chan int, wg *sync.WaitGroup) {\n\tdefer wg.Done()\n\tfor j := range jobs {\n\t\tfmt.Printf("worker %d finished job %d\\n", id, j)\n\t}\n}`,
-            timestamp: Date.now() - 86400000
-          }
-        ]
-      }
-    ];
-  });
-
-  const [activeProjectId, setActiveProjectId] = useState<string>(() => {
-    return localStorage.getItem('claude_rag_active_project_id') || 'proj_algo';
-  });
-
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectDesc, setNewProjectDesc] = useState('');
-  const [languageSearchQuery, setLanguageSearchQuery] = useState('');
-  const [savedLearningAlert, setSavedLearningAlert] = useState<string | null>(null);
-  const [activeSkill, setActiveSkill] = useState<'rag' | 'code' | 'guardrails'>('rag');
-  const [isUploadingFile, setIsUploadingFile] = useState(false);
-  const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    if (!inputPrompt && textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-  }, [inputPrompt]);
-
-  // Sync current session messages on mount or session switch
-  useEffect(() => {
-    const existing = sessions.find((s) => s.id === sessionId);
-    if (existing) {
-      setMessages(existing.messages);
-    }
-    localStorage.setItem('claude_rag_current_session', sessionId);
-  }, [sessionId]);
-
-  // Persist sessions to localStorage
-  const saveSessionsToStorage = (updatedSessions: ChatSession[]) => {
-    setSessions(updatedSessions);
-    try {
-      localStorage.setItem('claude_rag_sessions', JSON.stringify(updatedSessions));
-    } catch (e) {
-      console.error('Failed to save sessions to localStorage', e);
-    }
-  };
-
-  const handleNewChat = () => {
-    const newId = Math.random().toString(36).substring(2, 10);
-    setSessionId(newId);
-    setMessages([]);
-    setInputPrompt('');
-    setActiveView('chat');
-  };
-
-  const switchSession = (targetSession: ChatSession) => {
-    setSessionId(targetSession.id);
-    setMessages(targetSession.messages);
-    setActiveView('chat');
-  };
-
-  const deleteSession = (e: React.MouseEvent, idToDelete: string) => {
-    e.stopPropagation();
-    const updated = sessions.filter((s) => s.id !== idToDelete);
-    saveSessionsToStorage(updated);
-    if (sessionId === idToDelete) {
-      handleNewChat();
-    }
-  };
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen((prev) => !prev);
-  };
-
-  const copyToClipboard = (text: string, index?: number) => {
-    navigator.clipboard.writeText(text);
-    if (index !== undefined) {
-      setCopiedMessageIndex(index);
-      setTimeout(() => setCopiedMessageIndex(null), 2000);
-    }
-  };
-
-  const updateSessions = (targetSessionId: string, finalMessages: Message[], titleSeed?: string, activeDoc?: string) => {
-    const existingIdx = sessions.findIndex((s) => s.id === targetSessionId);
-    let updatedSessions: ChatSession[];
-    if (existingIdx >= 0) {
-      updatedSessions = [...sessions];
-      updatedSessions[existingIdx] = {
-        ...updatedSessions[existingIdx],
-        messages: finalMessages,
-        timestamp: Date.now(),
-        activeDocument: activeDoc || updatedSessions[existingIdx].activeDocument
-      };
-    } else {
-      const seed = titleSeed || (finalMessages.find(m => m.role === 'user')?.content || 'New Chat');
-      const title = seed.length > 34 ? seed.slice(0, 34) + '...' : seed;
-      updatedSessions = [
-        { id: targetSessionId, title, messages: finalMessages, timestamp: Date.now(), activeDocument: activeDoc },
-        ...sessions
-      ];
-    }
-    saveSessionsToStorage(updatedSessions);
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAttachedFile(file);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const removeAttachedFile = () => {
-    setAttachedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendQuery(inputPrompt);
-    }
-  };
-
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputPrompt(e.target.value);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
-    }
-  };
-
-  const sendQuery = async (queryText: string) => {
-    const trimmedText = queryText.trim();
-    const currentFile = attachedFile;
-
-    if ((!trimmedText && !currentFile) || isLoading || isUploadingFile) return;
-
-    setActiveView('chat');
-    setIsLoading(true);
-    setInputPrompt('');
-    setAttachedFile(null);
-
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-    let fileUploadedName: string | undefined = undefined;
-
-    // Step 1: Ingest attached file through Guardrails & RAG pipeline first if provided
-    if (currentFile) {
-      setIsUploadingFile(true);
-      setUploadStatusMessage(`Validating "${currentFile.name}" through NeMo Guardrails & indexing into RAG...`);
-      try {
-        const formData = new FormData();
-        formData.append('file', currentFile);
-        formData.append('session_id', sessionId);
-
-        const uploadRes = await fetch(`${backendUrl}/upload`, {
-          method: 'POST',
-          body: formData,
-        });
-
-        const uploadData = await uploadRes.json();
-
-        if (!uploadData.safe || !uploadData.success) {
-          const rejectMsg: Message = {
-            role: 'assistant',
-            content: `**Upload Blocked by Security Guardrails**\n\nFile **${uploadData.filename || currentFile.name}** was rejected and not ingested into the vector database.\n\n**Reason:** ${uploadData.reason || 'Disallowed prompt injection or safety policy violation detected.'}\n\n*NeMo Guardrails prevented untrusted content from entering the RAG knowledge store.*`,
-            thoughtProcess: [
-              `File Ingestion Gate: ${uploadData.filename || currentFile.name}`,
-              `Security Validation: Blocked by NeMo Guardrails`,
-              `Ingestion Status: Aborted`
-            ]
-          };
-          const updated = [...messages, rejectMsg];
-          setMessages(updated);
-          updateSessions(sessionId, updated, `Blocked: ${currentFile.name}`);
-          setSavedLearningAlert(`Upload blocked: Guardrails security policy`);
-          setTimeout(() => setSavedLearningAlert(null), 4000);
-          setIsUploadingFile(false);
-          setUploadStatusMessage(null);
-          setIsLoading(false);
-          return;
-        }
-
-        fileUploadedName = uploadData.filename || currentFile.name;
-      } catch (uploadErr: any) {
-        const errorMsg: Message = {
-          role: 'assistant',
-          content: `Failed to upload and validate file **${currentFile.name}**: ${uploadErr.message || uploadErr}`
-        };
-        const updated = [...messages, errorMsg];
-        setMessages(updated);
-        setIsUploadingFile(false);
-        setUploadStatusMessage(null);
-        setIsLoading(false);
-        return;
-      } finally {
-        setIsUploadingFile(false);
-        setUploadStatusMessage(null);
-      }
-    }
-
-    const currentSessionObj = sessions.find((s) => s.id === sessionId);
-    const sessionDocName = fileUploadedName || currentSessionObj?.activeDocument;
-
-    // Step 2: Formulate effective prompt with file context
-    const effectiveQuery = trimmedText || (sessionDocName 
-      ? `Please analyze, summarize, and highlight key concepts from the uploaded document: ${sessionDocName}` 
-      : '');
-
-    const userMessage: Message = { 
-      role: 'user', 
-      content: effectiveQuery,
-      attachedFile: fileUploadedName 
-    };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-
-    try {
-      // Skill Route 1: Code & Language Tutor Skill (only when active and no file was attached)
-      if (activeSkill === 'code' && !sessionDocName) {
-        const response = await fetch(`${backendUrl}/code/assist`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: effectiveQuery,
-            code: codeContent,
-            language: codeLanguage,
-            engine: copilotEngine
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Server returned status ${response.status}`);
-        }
-
-        const data = await response.json();
-        const assistantMessage: Message = {
-          role: 'assistant',
-          content: data.answer || 'No code response received.',
-          code: data.code || undefined,
-          thoughtProcess: [
-            `Skill: Code & Language Tutor`,
-            `Engine: ${data.engine?.toUpperCase() || 'GROQ'}`,
-            `Target Language: ${(data.language || codeLanguage).toUpperCase()}`
-          ],
-          skill: 'code'
-        };
-
-        const finalMessages = [...newMessages, assistantMessage];
-        setMessages(finalMessages);
-        updateSessions(sessionId, finalMessages, effectiveQuery, sessionDocName);
-        return;
-      }
-
-      // Skill Route 2 & 3: Enterprise RAG and Security & Guardrails
-      const effectiveSystemPrompt = activeSkill === 'guardrails'
-        ? "You are a Security & Guardrails Auditor. Test, analyze, and report on prompt safety, jailbreak defenses, and enterprise policy enforcement."
-        : settings.systemPrompt;
-
-      const response = await fetch(`${backendUrl}/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          q: effectiveQuery, 
-          thread_id: sessionId,
-          persona: settings.persona,
-          system_prompt: effectiveSystemPrompt,
-          temperature: settings.temperature,
-          top_k: settings.topK,
-          filename: sessionDocName
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server returned status ${response.status}`);
-      }
-
-      const data = await response.json();
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.answer || 'No response received from agent.',
-        thoughtProcess: data.thought_process || [],
-        sources: data.sources || [],
-        skill: activeSkill
-      };
-
-      const finalMessages = [...newMessages, assistantMessage];
-      setMessages(finalMessages);
-      updateSessions(sessionId, finalMessages, effectiveQuery, sessionDocName);
-
-    } catch (err: any) {
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: `Unable to connect to backend server (${backendUrl}). Error: ${err.message || err}`
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    sendQuery(inputPrompt);
-  };
-
-  const saveProjectsToStorage = (updated: CodingProject[]) => {
-    setProjects(updated);
-    try {
-      localStorage.setItem('claude_rag_user_projects', JSON.stringify(updated));
-    } catch (e) {
-      console.error('Failed to save projects to localStorage', e);
-    }
-  };
-
-  const createProject = (name: string, description: string) => {
-    if (!name.trim()) return;
-    const newProj: CodingProject = {
-      id: 'proj_' + Math.random().toString(36).substring(2, 9),
-      name: name.trim(),
-      description: description.trim() || 'Custom learning track',
-      createdAt: Date.now(),
-      learnings: []
-    };
-    const updated = [newProj, ...projects];
-    saveProjectsToStorage(updated);
-    setActiveProjectId(newProj.id);
-    localStorage.setItem('claude_rag_active_project_id', newProj.id);
-    setIsCreatingProject(false);
-    setNewProjectName('');
-    setNewProjectDesc('');
-    setSavedLearningAlert(`Created project "${newProj.name}"`);
-    setTimeout(() => setSavedLearningAlert(null), 3000);
-  };
-
-  const deleteProject = (projectId: string) => {
-    const updated = projects.filter(p => p.id !== projectId);
-    saveProjectsToStorage(updated);
-    if (activeProjectId === projectId && updated.length > 0) {
-      setActiveProjectId(updated[0].id);
-      localStorage.setItem('claude_rag_active_project_id', updated[0].id);
-    }
-  };
-
-  const saveLearningToProject = (title: string, lang: string, explanation: string, codeToSave: string) => {
-    const currentProj = projects.find(p => p.id === activeProjectId) || projects[0];
-    if (!currentProj) return;
-
-    const newEntry: LearningEntry = {
-      id: 'learn_' + Date.now(),
-      title: title.trim() || `${lang.toUpperCase()} Concept Note`,
-      language: lang,
-      conceptSummary: explanation.slice(0, 240),
-      code: codeToSave,
-      timestamp: Date.now()
-    };
-
-    const updated = projects.map(p => {
-      if (p.id === currentProj.id) {
-        return {
-          ...p,
-          learnings: [newEntry, ...p.learnings]
-        };
-      }
-      return p;
-    });
-
-    saveProjectsToStorage(updated);
-    setSavedLearningAlert(`Saved learning to "${currentProj.name}"`);
-    setTimeout(() => setSavedLearningAlert(null), 3000);
-  };
-
-  const deleteLearningFromProject = (projectId: string, learningId: string) => {
-    const updated = projects.map(p => {
-      if (p.id === projectId) {
-        return {
-          ...p,
-          learnings: p.learnings.filter(l => l.id !== learningId)
-        };
-      }
-      return p;
-    });
-    saveProjectsToStorage(updated);
-  };
-
-  const loadLearningIntoStudio = (entry: LearningEntry, projId: string) => {
-    setActiveProjectId(projId);
-    localStorage.setItem('claude_rag_active_project_id', projId);
-    handleLanguageChange(entry.language, entry.code);
-    setActiveView('code');
-  };
-
-  const handleLanguageChange = (newLang: string, customCode?: string) => {
-    const lang = newLang.toLowerCase();
-    setCodeLanguage(lang);
-    const code = customCode !== undefined 
-      ? customCode 
-      : (LANGUAGE_TEMPLATES[lang] || `// ${lang.toUpperCase()} Code Sandbox\n// Write or test ${lang} code here\n`);
-    setCodeContent(code);
-
-    if (lang === 'html') {
-      setPreviewHtml(code);
-      setOutputTab('preview');
-      setTerminalOutput('HTML5 document loaded. Click "Render HTML" or view Live Preview.');
-      setTerminalStatus('Ready');
-    } else if (lang === 'css') {
-      setPreviewHtml(createCssPreview(code));
-      setOutputTab('preview');
-      setTerminalOutput('CSS3 stylesheet loaded. Click "Render CSS" or view Live Preview.');
-      setTerminalStatus('Ready');
-    } else {
-      setOutputTab('terminal');
-      setTerminalOutput(`Ready. Click Run Code to execute in your ${lang === 'python' ? 'Pyodide WASM' : lang === 'javascript' ? 'browser runtime' : 'sandbox'}.`);
-      setTerminalStatus('Ready');
-    }
-  };
-
-  const runCode = async () => {
-    setIsExecuting(true);
-    setTerminalStatus(codeLanguage === 'html' || codeLanguage === 'css' ? 'Rendering...' : 'Running...');
-    const startTime = performance.now();
-
-    try {
-      if (codeLanguage === 'html') {
-        setPreviewHtml(codeContent);
-        setOutputTab('preview');
-        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
-        setTerminalOutput('HTML5 document rendered live in the Preview window below.');
-        setTerminalStatus(`Rendered (${duration}s)`);
-      } else if (codeLanguage === 'css') {
-        setPreviewHtml(createCssPreview(codeContent));
-        setOutputTab('preview');
-        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
-        setTerminalOutput('CSS3 styles applied live in the Preview window below.');
-        setTerminalStatus(`Rendered (${duration}s)`);
-      } else if (codeLanguage === 'javascript') {
-        setOutputTab('terminal');
-        const logs: string[] = [];
-        const customConsole = {
-          log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ')),
-          error: (...args: any[]) => logs.push('[ERROR] ' + args.join(' ')),
-          warn: (...args: any[]) => logs.push('[WARN] ' + args.join(' ')),
-          info: (...args: any[]) => logs.push('[INFO] ' + args.join(' ')),
-        };
-        const runFn = new Function('console', codeContent);
-        const ret = runFn(customConsole);
-        if (ret !== undefined) {
-          logs.push(`=> ${typeof ret === 'object' ? JSON.stringify(ret, null, 2) : ret}`);
-        }
-        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
-        setTerminalOutput(logs.length ? logs.join('\n') : '(Code executed successfully with no print output)');
-        setTerminalStatus(`Success (${duration}s)`);
-      } else if (codeLanguage === 'typescript') {
-        setOutputTab('terminal');
-        const logs: string[] = [];
-        const customConsole = {
-          log: (...args: any[]) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' ')),
-          error: (...args: any[]) => logs.push('[ERROR] ' + args.join(' ')),
-          warn: (...args: any[]) => logs.push('[WARN] ' + args.join(' ')),
-          info: (...args: any[]) => logs.push('[INFO] ' + args.join(' ')),
-        };
-        const stripped = codeContent
-          .replace(/interface\s+\w+(\s*<[^>]+>)?\s*\{[\s\S]*?\}/g, '')
-          .replace(/type\s+\w+(\s*<[^>]+>)?\s*=[\s\S]*?;/g, '')
-          .replace(/:\s*[A-Z]\w*(<[^>]+>)?(\[\])?/g, '')
-          .replace(/<[A-Z]\w*>/g, '');
-        const runFn = new Function('console', stripped);
-        const ret = runFn(customConsole);
-        if (ret !== undefined) {
-          logs.push(`=> ${typeof ret === 'object' ? JSON.stringify(ret, null, 2) : ret}`);
-        }
-        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
-        setTerminalOutput(logs.length ? logs.join('\n') : '(TypeScript executed successfully with no print output)');
-        setTerminalStatus(`Success (${duration}s)`);
-      } else if (codeLanguage === 'python') {
-        setOutputTab('terminal');
-        setTerminalOutput('Initializing Pyodide WebAssembly runtime...');
-
-        if (!(window as any).loadPyodide) {
-          await new Promise<void>((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load Pyodide WebAssembly engine.'));
-            document.head.appendChild(script);
-          });
-        }
-
-        let pyodide = (window as any).__pyodideInstance;
-        if (!pyodide) {
-          pyodide = await (window as any).loadPyodide();
-          (window as any).__pyodideInstance = pyodide;
-        }
-
-        let pyStdout = '';
-        pyodide.setStdout({ batched: (str: string) => { pyStdout += str + '\n'; } });
-        pyodide.setStderr({ batched: (str: string) => { pyStdout += '[stderr] ' + str + '\n'; } });
-
-        // Set up standard environment variables (__file__, __name__) and virtual filesystem directory
-        pyodide.runPython(`
-import sys, os
-os.makedirs('/home/pyodide', exist_ok=True)
-try:
-    os.chdir('/home/pyodide')
-except Exception:
-    pass
-__file__ = '/home/pyodide/main.py'
-__name__ = '__main__'
-`);
-
-        await pyodide.runPythonAsync(codeContent);
-
-        // Check if script generated any HTML files in the virtual filesystem
-        try {
-          const files: string[] = pyodide.FS.readdir('/home/pyodide');
-          const htmlFile = files.find((f: string) => f.endsWith('.html'));
-          if (htmlFile) {
-            const htmlData = pyodide.FS.readFile(`/home/pyodide/${htmlFile}`, { encoding: 'utf8' });
-            setPreviewHtml(htmlData);
-            pyStdout += `\n[HTML Output Generated: "${htmlFile}" — Click "Live Preview" tab to view rendered page]`;
-          }
-        } catch {
-          // Virtual FS inspection optional
-        }
-
-        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
-        setTerminalOutput(pyStdout.trim() || '(Python executed with no print output)');
-        setTerminalStatus(`Success (${duration}s)`);
-      } else {
-        setOutputTab('terminal');
-        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
-        setTerminalOutput(`Local browser sandbox directly executes Python (Pyodide WASM), JavaScript, and renders HTML/CSS.\nFor ${codeLanguage.toUpperCase()}, the AI Copilot provides live syntax explanation, code refactoring, and test cases.\nYou can click "Save to Project" to persist this ${codeLanguage.toUpperCase()} code into your active project.`);
-        setTerminalStatus(`Saved (${duration}s)`);
-      }
-    } catch (err: any) {
-      const duration = ((performance.now() - startTime) / 1000).toFixed(3);
-      setTerminalOutput(`[Execution Error]:\n${err.message || err}`);
-      setTerminalStatus(`Error (${duration}s)`);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-
-  const askCopilot = async (promptText: string) => {
-    if (!promptText.trim() || isCopilotLoading) return;
-
-    const userEntry = { role: 'user' as const, text: promptText };
-    setCopilotMessages(prev => [...prev, userEntry]);
-    setCopilotPrompt('');
-    setIsCopilotLoading(true);
-
-    try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backendUrl}/code/assist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: promptText,
-          code: codeContent,
-          language: codeLanguage,
-          engine: copilotEngine
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error(`Server returned status ${res.status}`);
-      }
-
-      const data = await res.json();
-      setCopilotMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          text: data.answer,
-          code: data.code || undefined
-        }
-      ]);
-    } catch (err: any) {
-      setCopilotMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          text: `Error connecting to Coding Copilot: ${err.message || err}`
-        }
-      ]);
-    } finally {
-      setIsCopilotLoading(false);
-    }
-  };
-
-  const getViewTitle = () => {
-    switch (activeView) {
-      case 'chat': return 'Knowledge Assistant';
-      case 'projects': return 'Projects';
-      case 'code': return 'Code Studio';
-      default: return 'Workspace';
-    }
-  };
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconCompass className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Northline</span>
+        </div>
+      ),
+      title: "Northline",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconCircleDotted className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Arcform</span>
+        </div>
+      ),
+      title: "Arcform",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconBolt className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Velo Group</span>
+        </div>
+      ),
+      title: "Velo Group",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconLeaf className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Juniper</span>
+        </div>
+      ),
+      title: "Juniper",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconWorld className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Meridian</span>
+        </div>
+      ),
+      title: "Meridian",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconSparkles className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Lumio</span>
+        </div>
+      ),
+      title: "Lumio",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconTriangle className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Vertex</span>
+        </div>
+      ),
+      title: "Vertex",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconCube className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Kube</span>
+        </div>
+      ),
+      title: "Kube",
+    },
+  ];
 
   return (
-    <div className="app-layout">
-      {/* ── Togglable Sidebar ── */}
-      <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-brand">
-            <span>RAG</span>
+    <div className="text-text font-body-lg min-h-screen antialiased selection:bg-black selection:text-white bg-page-bg">
+      {/* 1. Dynamic Resizable Navbar */}
+      <Navbar>
+        {/* Desktop Navigation */}
+        <NavBody>
+          <NavbarLogo logoText="3AM DEVS" />
+          <NavItems items={navItems} />
+          <div className="flex items-center gap-3 relative z-20 shrink-0">
+            <NavbarButton variant="secondary" href="#contact">Login</NavbarButton>
+            <NavbarButton variant="primary" href="#demo">Book a demo</NavbarButton>
           </div>
-          <button className="btn-toggle-sidebar" onClick={toggleSidebar} title="Collapse Sidebar">
-            <PanelLeftClose size={16} />
+        </NavBody>
+
+        {/* Mobile Navigation */}
+        <MobileNav>
+          <MobileNavHeader>
+            <NavbarLogo logoText="3AM DEVS" />
+            <MobileNavToggle
+              isOpen={isMobileMenuOpen}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            />
+          </MobileNavHeader>
+
+          <MobileNavMenu
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+          >
+            {navItems.map((item, idx) => (
+              <a
+                key={`mobile-link-${idx}`}
+                href={item.link}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="relative py-1 text-sm font-medium text-neutral-700 hover:text-black transition-colors"
+              >
+                <span className="block">{item.name}</span>
+              </a>
+            ))}
+            <div className="flex w-full flex-col gap-3 pt-2 border-t border-neutral-300">
+              <NavbarButton
+                onClick={() => setIsMobileMenuOpen(false)}
+                variant="secondary"
+                className="w-full"
+              >
+                Login
+              </NavbarButton>
+              <NavbarButton
+                onClick={() => setIsMobileMenuOpen(false)}
+                variant="primary"
+                className="w-full"
+              >
+                Book a demo
+              </NavbarButton>
+            </div>
+          </MobileNavMenu>
+        </MobileNav>
+      </Navbar>
+
+      <main>
+        {/* 1. Hero */}
+        <section className="min-h-[1000px] pt-[200px] md:pt-[240px] px-margin max-w-[1728px] mx-auto flex flex-col items-center text-center relative overflow-visible bg-page-bg">
+          <div className="relative w-full max-w-5xl flex flex-col items-center justify-center">
+            {/* Grid Design with Depth (No Ripples) */}
+            <div className="absolute -inset-x-8 md:-inset-x-24 -top-16 md:-top-24 h-[440px] md:h-[520px] overflow-hidden rounded-3xl pointer-events-auto -z-0">
+              <RippleGrid
+                enableRainbow={false}
+                gridColor="#8C8880"
+                rippleIntensity={0.0}
+                perspective={0.5}
+                gridSize={12}
+                gridThickness={15}
+                fadeDistance={1.4}
+                vignetteStrength={2.2}
+                mouseInteraction={true}
+                mouseInteractionRadius={1.2}
+                opacity={0.4}
+                glowIntensity={0}
+              />
+            </div>
+
+            <h1 className="relative z-10 font-display text-4xl sm:text-6xl md:text-[82px] leading-[1.05] tracking-[-0.04em] text-balance max-w-4xl mb-lg text-text font-semibold pointer-events-none select-none">
+              Bring every team into focus
+            </h1>
+          </div>
+          <p className="font-body-lg text-body-lg text-muted max-w-2xl mb-lg hidden">
+            Decode your lorem ipsum DNA. Bring absolute clarity to your organization's most critical assets with a platform designed for deep focus.
+          </p>
+          <button className="bg-black text-page-bg font-label text-label px-8 py-4 rounded-full hover:bg-black/90 transition-opacity mb-[80px] hidden">
+            Get started
           </button>
-        </div>
-
-        <button className="btn-new-chat" onClick={handleNewChat}>
-          <Plus size={15} />
-          <span>New chat</span>
-        </button>
-
-        {/* Navigation Section */}
-        <div className="nav-section">
-          <div 
-            className={`nav-item ${activeView === 'chat' ? 'active' : ''}`} 
-            onClick={() => setActiveView('chat')}
-          >
-            <MessageSquare size={15} />
-            <span>Chat</span>
+          {/* Interactive Keyboard */}
+          <div className="w-full max-w-[1492px] flex items-center justify-center relative z-10 py-6 md:py-10">
+            <KeyboardDemo />
           </div>
-          <div 
-            className={`nav-item ${activeView === 'code' ? 'active' : ''}`} 
-            onClick={() => setActiveView('code')}
-          >
-            <Code2 size={15} />
-            <span>Code Studio</span>
-          </div>
-          <div 
-            className={`nav-item ${activeView === 'projects' ? 'active' : ''}`} 
-            onClick={() => setActiveView('projects')}
-          >
-            <FolderTree size={15} />
-            <span>Projects</span>
-          </div>
-        </div>
+        </section>
 
-        <div className="nav-section-title">Saved Conversations</div>
-        <div className="history-list">
-          <div className={`chat-history-row ${messages.length > 0 && !sessions.some(s => s.id === sessionId) ? 'active' : ''}`}>
-            <button className="chat-title-btn" onClick={() => setActiveView('chat')}>
-              <MessageSquare size={13} />
-              <span>{messages.length > 0 ? "Current Conversation" : "Active Session"}</span>
+        {/* 2. Trust Strip with LogoLoop */}
+        <section className="py-12 md:py-16 px-4 md:px-margin border-t border-line/30 max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg relative z-0 overflow-hidden">
+          <p className="font-label text-xs uppercase tracking-[0.2em] text-muted mb-8 text-center font-medium">
+            Built with modern leaders from
+          </p>
+          <div className="w-full overflow-hidden">
+            <LogoLoop
+              logos={partnerLogos}
+              speed={60}
+              direction="left"
+              logoHeight={36}
+              gap={72}
+              hoverSpeed={0}
+              scaleOnHover
+              fadeOut
+              fadeOutColor="#FAF9F5"
+              ariaLabel="Partner brand logos"
+            />
+          </div>
+        </section>
+
+        {/* 3. Floating Visual Collage */}
+        <section className="h-[1200px] w-full max-w-[1728px] mx-auto relative overflow-hidden bg-page-bg hidden md:block">
+          {/* Central Anchor - 3D Astronaut */}
+          <div
+            className="absolute z-10 select-none flex items-center justify-center pointer-events-none"
+            style={{ left: '50%', top: '430px', transform: 'translate(-50%, -50%)' }}
+          >
+            <Loader size={360} />
+          </div>
+
+          {/* 1. Top-left */}
+          <div
+            className="absolute rounded-[12px] overflow-hidden bg-panel-bg shadow-md hover:scale-105 transition-transform duration-500"
+            style={{ left: '8%', top: '10px', width: '270px', height: '210px' }}
+          >
+            <img
+              alt="Collage piece 1"
+              className="w-full h-full object-cover opacity-90 mix-blend-luminosity"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9Eu4GHa4HcZNOEEtD99nwhNeXd_r6nKvv_j-kmlyfpOyJ-agnnRp8TCFPCgxdmD063zG5H55vS7Kl1Fm1sa9rmyTM9H3hRcnl-D5Zb0eM1q5MOIhGcoP5fBjbboQd42gVrYWS7IwChMh9jwlEuFS1h5yuxlC2yNp9NKbUvPtq9tivKTbQprQKWaoDn7DyXOB_4V4q7jLHjD5qwHUrh7dg3YLwxOBg1Y-Bb78Zfdo8lA8jinqJAf3YY4dB38_tyfPXzAqQvCH558H0"
+            />
+          </div>
+
+          {/* 2. Top-right */}
+          <div
+            className="absolute rounded-[12px] overflow-hidden bg-panel-bg shadow-md hover:scale-105 transition-transform duration-500"
+            style={{ right: '8%', top: '0px', width: '290px', height: '260px' }}
+          >
+            <img
+              alt="Collage piece 2"
+              className="w-full h-full object-cover grayscale opacity-80"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_ukkwXMpdu6e3ppYpH6BD1_-rNjOtPCNphQxqVAwibL3vPsIFhdrTseYbg_mFXNV8wfdsFKJzdM1llH6-3Ooyb7rnKK_W8wdU3JdsbBHv2HrWRub1BwUXCUCdBesVtKBjoukKmMwaO8GJlVfL0k97LJYVNEWn-F5r7fMIF99qrQvBhQ8XkttAku39rNe6s8MSlCCLLtFq1abMNKcy0UL1LSTGpVO3OuoWhVmIpJSWLHJ_CtFnzwnzLrDDvHxCf-x1SgnOeGrX9egf"
+            />
+          </div>
+
+          {/* 3. Left-middle */}
+          <div
+            className="absolute rounded-[12px] overflow-hidden bg-panel-bg relative shadow-md hover:scale-105 transition-transform duration-500"
+            style={{ left: '9%', top: '470px', width: '330px', height: '200px' }}
+          >
+            <img
+              alt="Collage piece 3"
+              className="w-full h-full object-cover grayscale opacity-90"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNavYRwMD7oKvwrejumqeVb5grj3c2x3jtZ_PV3sqY6_I8rnCesfQjvsgf3d0ic5jzrqvRjRUJsvDz2Aa58Ef6HgAHAjafCFs5AD0fXSd6qzZ1F1ICCMQT6xGCK2NrdWf9d1hghSt4P3uIDyDROe56ggPg0WoKH5Yxlisxx5X2dbPfsoQxdeC8qJdHMmdqHMjwjD_YxQWvXfqy2N4mGSwR6Icu8dAelCZkrUJsJoRVETkQ9G3YDvp9AsjQkNWULBEOonPtST81DFgJ"
+            />
+            <div className="absolute top-4 left-4 bg-white-card/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
+              <span className="font-label text-xs font-semibold text-text">Content Guidelines</span>
+            </div>
+          </div>
+
+          {/* 4. Right-middle */}
+          <div
+            className="absolute rounded-[12px] overflow-hidden bg-panel-bg shadow-md hover:scale-105 transition-transform duration-500"
+            style={{ right: '5%', top: '270px', width: '250px', height: '330px' }}
+          >
+            <img
+              alt="Collage piece 4"
+              className="w-full h-full object-cover grayscale opacity-90"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrpaFvvF7en0CGZX5ONntjNihYUq1Z_-_LbaQTubxafa9z3gPDG-EfHCHkWFqm3LoWth700qlDOvMW4CxRKoWinMdIbqdTLps1ehsQRniSSZvH6Vy8POjGKYMEKa1b0zM7_uWkKso-6aAIy8u8gkh6mExdkSBT0EpauryhquZA61p-lUkG0o_3WNHybUWjx7lBJVs4TWOfs4NuVQ_-l7LSS5Xi_KK5UFPYtTpoBmD1mqjcNDuGKIFSVdPeh-Wyf7P9_aun3Nm_-33h"
+            />
+          </div>
+
+          {/* 5. Center-lower */}
+          <div
+            className="absolute rounded-[12px] overflow-hidden bg-black z-0 shadow-md hover:scale-105 transition-transform duration-500"
+            style={{ left: '50%', top: '560px', width: '370px', height: '250px', transform: 'translateX(-20%)' }}
+          >
+            <img
+              alt="Collage piece 5"
+              className="w-full h-full object-cover grayscale opacity-80"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuhoApO9ae7ghimBcn9BPPTivJNd8wXOAIlaBLHDjnY0LOBt1RHjXYED1Gw1k4OyBVX3nzpsadBgr-PkaPpGOJ0Ncc2keoy5bLdbRaUvdWsd2X6nZ_UwN59sHVVMUbjVXvmErTc4-n1u6JeMz4cafAxh1LxhuDPmvZcT3i3-fY80U46x98ScklqvNEI4Wt8VJat6ztpSjUy_xxi-OjErnKcXbrBwC80xptX0SEljn5YieZtAok8butz8WHELTCCOUxSxCHtEYn9QbT"
+            />
+          </div>
+
+          {/* 6. Floating Comment */}
+          <div
+            className="absolute bg-panel-bg rounded-full flex items-center gap-3 px-4 py-3 shadow-lg border border-line/50 z-20 hover:shadow-xl transition-shadow"
+            style={{ left: '42%', top: '800px', width: '305px', height: '62px' }}
+          >
+            <div className="w-8 h-8 rounded-full bg-soft-card overflow-hidden shrink-0">
+              <img
+                alt="User avatar"
+                className="w-full h-full object-cover grayscale"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBq41uinHeBiMX-cglCA0RPd-Gyi7Rea3rfHcMQV30zxatLeEEwcA1Gv4dfpSOhjgbvrMTveFXAmVVgoZk51Wf-QIyxv1-btaTdygIk8IZ48U3e6MXY_1PXUu7DfIVQHMHK9Nd0bWUFXOqUWQX0kJEvX-ILe7j8VRfCWN8QnKWMeE4-oWrrvqyNExjMAYu89BGzhItmJddqUphk5I39JN8ewkBKrzmCHfVTrmlKWYfX2JLwl-z5KPudJOAGiuxOQqyXJzbJ2lxQ4YM"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-label text-[10px] text-text font-bold">lorem_d</span>
+              <span className="font-body-md text-[13px] text-muted leading-tight">so so good!!!! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1h</span>
+            </div>
+          </div>
+
+          {/* 7. Bottom-left */}
+          <div
+            className="absolute rounded-[12px] overflow-hidden bg-panel-bg relative shadow-md hover:scale-105 transition-transform duration-500"
+            style={{ left: '3%', top: '880px', width: '340px', height: '250px' }}
+          >
+            <img
+              alt="Collage piece 7"
+              className="w-full h-full object-cover grayscale opacity-90"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKsFrFItneuA8Y9MCUadGUZWuA8x4TxgTrVsbJtlXSr36Gjarjn1Q6nKVJ6RanXBHEaJp6wyn3rg4iiOCyihHaczxitcDA1ojzOjUxdaB6xi_cFk9TtDMImaj1XTF1VpvY2cpvlqSqHwim5KQ7ZVm6QeYoA-FWtKYpOVqlHvR1-hRKmoQLKfXRiCVY36O8PBMeaG3G2Lz4MtpjgukZ-8cdPI3gyhHTs0wU8fgENhE5rKff4nq4oVXF4ZGWph8qiihyLXBoVG1mdfCR"
+            />
+            <div className="absolute bottom-4 left-4 bg-white-card/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
+              <span className="font-label text-xs font-semibold text-text">Brand Voice</span>
+            </div>
+          </div>
+
+          {/* 8. Bottom-right */}
+          <div
+            className="absolute rounded-[12px] overflow-hidden bg-panel-bg shadow-md hover:scale-105 transition-transform duration-500"
+            style={{ right: '6%', top: '840px', width: '410px', height: '300px' }}
+          >
+            <img
+              alt="Collage piece 8"
+              className="w-full h-full object-cover mix-blend-luminosity opacity-80"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa-91Ro6EFVsdJZTyq2p_PBpy5-VPNrqP0-UG3SMytUgShIhaUyJ-uZ9kwySXw7RYWEhwPzBeUADFyDiJGZdM9diqei2CFJIQXGRHOnCFOXlfrwaGRruPnmIuehjcickYw8LpYdNHni5Tm6RhU_SEMxaEsLDMlzdWh_hXysftIEsoY6HD29HrcGC7lvi9reR6YdbjNNSFJloHpd39n_Dx1cqNKFwbQ3SISEHA6xZJk4JktqjYCXZ5ZdxGQJBnijlL_Yukxahb8nvyV"
+            />
+          </div>
+        </section>
+
+        {/* 4. Manifesto */}
+        <section className="py-[120px] md:py-[200px] px-margin max-w-[1728px] mx-auto relative flex flex-col items-center text-center bg-page-bg">
+          <div className="absolute top-0 right-[10%] w-[300px] md:w-[400px] h-[300px] md:h-[400px] opacity-10 pointer-events-none">
+            <svg className="w-full h-full" fill="none" stroke="currentColor" strokeWidth="0.5" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="48"></circle>
+              <ellipse cx="50" cy="50" rx="24" ry="48"></ellipse>
+              <ellipse cx="50" cy="50" rx="48" ry="24"></ellipse>
+              <line x1="2" x2="98" y1="50" y2="50"></line>
+              <line x1="50" x2="50" y1="2" y2="98"></line>
+            </svg>
+          </div>
+          <h2 className="font-display text-2xl sm:text-4xl md:text-[49px] leading-[1.15] md:leading-[1.1] text-balance max-w-[1200px] font-semibold text-text relative z-10">
+            As intelligent agents expand across the enterprise, the need for a singular source of truth has never been more critical. Lumio unifies your strategy.
+          </h2>
+        </section>
+
+        {/* 5. Brand OS Timeline */}
+        <section id="product" className="py-[40px] md:py-[80px] px-margin max-w-[1728px] mx-auto bg-page-bg">
+          <BrandTimeline />
+        </section>
+
+        {/* 6. Team Use Cases */}
+        <section id="solutions" className="py-[100px] md:py-[160px] px-margin max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg">
+          <h2 className="font-display text-2xl md:text-h2 mb-12 md:mb-16 font-semibold text-center text-text">
+            Built for every team.
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+            {/* Card 1 */}
+            <div className="bg-panel-bg h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden relative border border-line/10 hover:shadow-lg transition-all duration-300">
+              <div className="relative z-10">
+                <h4 className="font-h3 text-xl font-semibold mb-2 text-text">Campaign Briefs</h4>
+                <p className="font-body-md text-muted">Generate comprehensive briefs aligned with brand strategy.</p>
+              </div>
+              <div className="absolute bottom-[-20px] right-[-20px] w-2/3 h-2/3 bg-white-card rounded-tl-3xl shadow-lg border border-line/20 p-6 transform group-hover:-translate-y-2 group-hover:-translate-x-2 transition-transform duration-500">
+                <div className="h-3 w-1/2 bg-line rounded-full mb-4"></div>
+                <div className="h-2 w-full bg-line/50 rounded-full mb-3"></div>
+                <div className="h-2 w-5/6 bg-line/50 rounded-full mb-3"></div>
+              </div>
+            </div>
+
+            {/* Card 2 */}
+            <div className="bg-soft-card h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden relative border border-line/10 hover:shadow-lg transition-all duration-300">
+              <div className="relative z-10">
+                <h4 className="font-h3 text-xl font-semibold mb-2 text-text">Social Assets</h4>
+                <p className="font-body-md text-muted">Ensure visual consistency across all channels.</p>
+              </div>
+              <div className="absolute bottom-[-20px] right-[-20px] w-2/3 h-2/3 bg-panel-bg rounded-tl-3xl shadow-lg border border-line/20 overflow-hidden transform group-hover:-translate-y-2 group-hover:-translate-x-2 transition-transform duration-500">
+                <img
+                  alt="Social asset graphic"
+                  className="w-full h-full object-cover grayscale opacity-60"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOekHNw8ykdxPIkY24QzUwgPTWLmPyAXcPqZs-jYR1BrA_Ju27EGXtJe3Kuyg0CLmCM1UFUIWc67BAmYrlQXhsBlLS0IUBzfmB_FNQI61JTbt-DC1OgYKX64mvDQgENGsi4nGTf45BtJMbUIQd4pBoSS0UPWMrgTZt-SZdh8DBqu8Teo87JSRvOevY1DDz9By1ZC4GOxGohkBHKwyKfPzqD9B7mHf2qCwU9X8Nv9G8hZhRDGkfnhotflcGFJ19WHSYNpulNEcNwN-Q"
+                />
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div className="bg-white-card h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden relative border border-line/20 hover:shadow-lg transition-all duration-300">
+              <div className="relative z-10">
+                <h4 className="font-h3 text-xl font-semibold mb-2 text-text">Sales Decks</h4>
+                <p className="font-body-md text-muted">Empower reps with up-to-date, on-brand messaging.</p>
+              </div>
+              <div className="absolute bottom-[-20px] right-[-20px] w-2/3 h-2/3 bg-page-bg rounded-tl-3xl shadow-lg border border-line/20 p-6 transform group-hover:-translate-y-2 group-hover:-translate-x-2 transition-transform duration-500 flex flex-col gap-3">
+                <div className="w-full h-1/2 bg-soft-card rounded-lg"></div>
+                <div className="w-full h-1/2 bg-soft-card rounded-lg flex gap-2">
+                  <div className="w-1/2 h-full bg-line/30 rounded-md"></div>
+                  <div className="w-1/2 h-full bg-line/30 rounded-md"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4 */}
+            <div className="bg-panel-bg h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden relative border border-line/10 hover:shadow-lg transition-all duration-300">
+              <div className="relative z-10">
+                <h4 className="font-h3 text-xl font-semibold mb-2 text-text">Voice Guidelines</h4>
+                <p className="font-body-md text-muted">Codify your brand's unique tone and terminology.</p>
+              </div>
+              <div className="absolute bottom-[20px] right-[20px] w-1/2 h-1/2 bg-black rounded-2xl shadow-xl p-6 transform group-hover:scale-105 transition-transform duration-500 flex items-center justify-center">
+                <span className="material-symbols-outlined text-page-bg text-[48px]">record_voice_over</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 8. Testimonial */}
+        <section className="py-[100px] md:py-[160px] px-margin max-w-[1400px] mx-auto flex flex-col items-center text-center bg-page-bg">
+          <div className="mb-8 opacity-30">
+            <span className="material-symbols-outlined text-[64px] text-muted">format_quote</span>
+          </div>
+          
+          {/* Split-Flap Interactive Quote Board */}
+          <div className="w-full max-w-5xl mb-12">
+            <TextFlippingBoardDemo />
+          </div>
+
+          <div className="flex items-center gap-4 mt-4">
+            <div className="w-14 h-14 rounded-full bg-line overflow-hidden border border-line/40 shadow-sm">
+              <img
+                alt="Alex Morgan, VP of Brand"
+                className="w-full h-full object-cover grayscale"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1VIcb_dh48u8vUQuC7XZTgj7oB_3w3BskgDGqYgkBlYd2P672QeJNyH1IwFQaDx68BXSs_NFT0BRY0Qm8PyTYkQNcW_inCFD5lVmD9hnJRdcHbWVrKNRSYBgj2UegNx6F-Gqt4ji-jfUhSzOL0Kr8XslosIJfEpOMZ5EaFgBLAB0YZ_OzrUErFWwfLYRJ1UABvEUMpumJA3oayLtZ64tgEUE7W5LkZOJKQj7NyZIZjhSjHrzCF20-FxFA1DJGbNNuPwKeeTO3Kuck"
+              />
+            </div>
+            <div className="text-left">
+              <p className="font-label text-sm font-bold text-text">Alex Morgan</p>
+              <p className="font-label text-xs text-muted">VP of Brand, Northline</p>
+            </div>
+          </div>
+        </section>
+
+        {/* 9. Updates */}
+        <section id="blog" className="py-[80px] md:py-[120px] px-margin max-w-[1728px] mx-auto bg-page-bg">
+          <div className="flex justify-between items-end mb-12">
+            <h2 className="font-display text-2xl md:text-h2 font-semibold text-text">Latest Updates</h2>
+            <button className="font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-muted hover:border-muted transition-colors cursor-pointer">
+              View All
             </button>
           </div>
-
-          {sessions.map((sess) => (
-            <div key={sess.id} className={`chat-history-row ${sess.id === sessionId && activeView === 'chat' ? 'active' : ''}`}>
-              <button className="chat-title-btn" onClick={() => switchSession(sess)}>
-                <MessageSquare size={13} />
-                <span>{sess.title}</span>
-              </button>
-              <button 
-                type="button"
-                className="btn-delete-session" 
-                onClick={(e) => deleteSession(e, sess.id)}
-                title="Delete session"
-              >
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className="sidebar-footer">
-          <div>Persona: <code>{settings.persona}</code></div>
-          <div>Session: <code>{sessionId}</code></div>
-          <div>Engine: <code>Qdrant • Groq</code></div>
-        </div>
-      </aside>
-
-      {/* ── Main Content Area ── */}
-      <main className="main-content">
-        <header className="top-navbar">
-          <div className="navbar-left">
-            {!isSidebarOpen && (
-              <button className="btn-toggle-sidebar" onClick={toggleSidebar} title="Open Sidebar">
-                <PanelLeft size={16} />
-              </button>
-            )}
-            <div className="nav-breadcrumb">
-              <span className={activeView === 'chat' ? 'active-label' : ''}>Workspace</span>
-              {activeView !== 'chat' && (
-                <>
-                  <span>/</span>
-                  <span className="active-label">{getViewTitle()}</span>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* ── VIEW 1: CHAT ── */}
-        {activeView === 'chat' && (
-          <>
-            {/* Active Skills Bar */}
-            <div className="chat-skills-header">
-              <span className="chat-skills-label">Active Skill:</span>
-              <button
-                type="button"
-                className={`chat-skill-btn ${activeSkill === 'rag' ? 'active' : ''}`}
-                onClick={() => setActiveSkill('rag')}
-              >
-                <span>RAG</span>
-              </button>
-              <button
-                type="button"
-                className={`chat-skill-btn ${activeSkill === 'code' ? 'active' : ''}`}
-                onClick={() => setActiveSkill('code')}
-              >
-                <Code2 size={13} />
-                <span>Code & Language Tutor</span>
-              </button>
-              <button
-                type="button"
-                className={`chat-skill-btn ${activeSkill === 'guardrails' ? 'active' : ''}`}
-                onClick={() => setActiveSkill('guardrails')}
-              >
-                <ShieldCheck size={13} />
-                <span>Security & Guardrails</span>
-              </button>
-            </div>
-
-            {/* Sub-bar when Code Skill is active: Language switcher */}
-            {activeSkill === 'code' && (
-              <div className="chat-skill-subbar">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 500 }}>Language:</span>
-                  <select
-                    className="copilot-model-select"
-                    style={{ padding: '3px 8px', fontSize: '0.74rem' }}
-                    value={codeLanguage}
-                    onChange={(e) => handleLanguageChange(e.target.value)}
-                  >
-                    {POPULAR_LANGUAGES.map(lang => (
-                      <option key={lang} value={lang}>{lang.toUpperCase()}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Uploading / Guardrails Progress Banner */}
-            {isUploadingFile && (
-              <div className="uploading-banner">
-                <Loader />
-                <span>{uploadStatusMessage || 'Validating document through Guardrails and indexing to RAG...'}</span>
-              </div>
-            )}
-
-            <div className="chat-container">
-              {messages.length === 0 ? (
-                <div className="hero-container">
-                  <h1 className="hero-title">Enterprise Knowledge Workspace</h1>
-                  <p className="hero-subtitle">
-                    Agentic Retrieval-Augmented Generation • LangGraph Pipeline • Dual Embeddings
-                  </p>
-
-                  <div className="suggestions-grid">
-                    <button
-                      className="suggestion-card"
-                      onClick={() => sendQuery("Explain the technical architecture and pipeline of this Enterprise RAG system.")}
-                    >
-                      <Layers size={16} />
-                      <span>Technical Architecture & Pipeline</span>
-                    </button>
-                    <button
-                      className="suggestion-card"
-                      onClick={() => sendQuery("What input and output guardrails are configured via NeMo Guardrails?")}
-                    >
-                      <ShieldCheck size={16} />
-                      <span>NeMo Guardrails & Safety Checks</span>
-                    </button>
-                    <button
-                      className="suggestion-card"
-                      onClick={() => sendQuery("How does vector search with Qdrant and FlashRank reranking work in this project?")}
-                    >
-                      <Database size={16} />
-                      <span>Qdrant Vector Search & Reranking</span>
-                    </button>
-                    <button
-                      className="suggestion-card"
-                      onClick={() => sendQuery("Summarize the RAGAS evaluation pipeline and available evaluation metrics.")}
-                    >
-                      <FileText size={16} />
-                      <span>Evaluation Metrics & Suite</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                messages.map((msg, index) => (
-                  <div key={index} className={`message-bubble ${msg.role}`}>
-                    <div className="message-header">
-                      <span className="message-role">{msg.role === 'user' ? 'You' : 'Assistant'}</span>
-                      {msg.role === 'assistant' && (
-                        <button 
-                          type="button"
-                          className="btn-copy" 
-                          onClick={() => copyToClipboard(msg.content, index)}
-                          title="Copy response"
-                        >
-                          {copiedMessageIndex === index ? (
-                            <>
-                              <Check size={12} />
-                              <span>Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy size={12} />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    
-                    {msg.thoughtProcess && msg.thoughtProcess.length > 0 && (
-                      <details className="thought-accordion">
-                        <summary className="thought-summary">
-                          <ChevronRight size={14} />
-                          <span>Reasoning Steps ({msg.thoughtProcess.length})</span>
-                        </summary>
-                        <div className="thought-content">
-                          <ul>
-                            {msg.thoughtProcess.map((step, i) => (
-                              <li key={i}>{step}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </details>
-                    )}
-
-                    {msg.attachedFile && (
-                      <div className="message-attachment-chip">
-                        <Paperclip size={12} />
-                        <span>Attached file: {msg.attachedFile}</span>
-                      </div>
-                    )}
-                    <div className="message-text markdown-body">
-                      {msg.role === 'user' ? (
-                        <p>{msg.content}</p>
-                      ) : (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {msg.content}
-                        </ReactMarkdown>
-                      )}
-                    </div>
-
-                    {msg.code && (
-                      <div className="chat-code-actions">
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                          onClick={() => {
-                            handleLanguageChange(codeLanguage, msg.code || '');
-                            setActiveView('code');
-                          }}
-                        >
-                          <Play size={11} />
-                          <span>Run in Studio</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                          onClick={() => {
-                            const title = `${codeLanguage.toUpperCase()}: ${msg.content.slice(0, 30).replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Concept'}`;
-                            saveLearningToProject(title, codeLanguage, msg.content, msg.code || '');
-                          }}
-                        >
-                          <Bookmark size={11} />
-                          <span>Save to {projects.find(p => p.id === activeProjectId)?.name || 'Project'}</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {msg.sources && msg.sources.length > 0 && (
-                      <details className="sources-accordion">
-                        <summary className="sources-summary">
-                          <ChevronRight size={14} />
-                          <span>Retrieved Context Sources ({msg.sources.length} chunks)</span>
-                        </summary>
-                        <div className="sources-content">
-                          {msg.sources.map((src, i) => (
-                            <div key={i} className="source-item">
-                              <span className="source-badge">Chunk {i + 1}</span>
-                              <div className="source-text">{src.replace(/^CONTENT:\s*/, '')}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                  </div>
-                ))
-              )}
-
-              {isLoading && (
-                <div style={{ marginTop: 16 }}>
-                  <Loader />
-                </div>
-              )}
-            </div>
-
-            {/* Chat Input Bar */}
-            <form className="input-container" onSubmit={handleSubmit}>
-              <div className="input-wrapper">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  style={{ display: 'none' }}
-                  onChange={handleFileSelect}
-                  accept=".txt,.md,.pdf,.py,.json,.csv,.docx,.html,.htm,.sh,.sql,.yaml,.yml"
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="group cursor-pointer">
+              <div className="w-full h-[380px] md:h-[450px] bg-panel-bg rounded-[32px] mb-6 overflow-hidden border border-line/20 shadow-sm">
+                <img
+                  alt="Update 1 thumbnail"
+                  className="w-full h-full object-cover grayscale opacity-80 group-hover:scale-105 transition-transform duration-700"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBH43H6AQKssKrW-JNz_6bTSCRB11JHvJSTJfoMeTce8WOcUe7J3G-wvRtEYFDoN_HyqoVFM46zpRnKmRNIDizPMcW-cgH3ZTdjN86P9bkAVrDvTr6KhnvpuU4HmuaxxxdkKlAZQjm9KduNLD42amyGdF5SyMPYygRx6JKR-Me9Rtb2geiapBtNUIKZolpO5aQDi0qYOfLRQ72VYUQ87lGlR9S-ka8mqqO_MBASyv4mPduXpu20PURQRhMDHzYu8ho2yps1V4ALFZYE"
                 />
-
-                {attachedFile && (
-                  <div className="attached-file-badge">
-                    <FileText size={14} />
-                    <span className="attached-file-name" title={attachedFile.name}>
-                      {attachedFile.name}
-                    </span>
-                    <span className="attached-file-size">
-                      ({attachedFile.size < 1024 * 1024 
-                        ? `${(attachedFile.size / 1024).toFixed(1)} KB` 
-                        : `${(attachedFile.size / (1024 * 1024)).toFixed(1)} MB`})
-                    </span>
-                    <button
-                      type="button"
-                      className="attached-file-remove"
-                      onClick={removeAttachedFile}
-                      title="Remove attached file"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                )}
-
-                <div className="input-row">
-                  <button
-                    type="button"
-                    className="chat-attach-btn"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isLoading || isUploadingFile}
-                    title="Attach file (validated through NeMo Guardrails before indexing)"
-                  >
-                    <Paperclip size={16} />
-                  </button>
-
-                  <textarea
-                    ref={textareaRef}
-                    rows={1}
-                    className="chat-textarea"
-                    placeholder={
-                      attachedFile
-                        ? `Ask a specific question about "${attachedFile.name}" or press Enter to summarize...`
-                        : activeSkill === 'code'
-                        ? `Ask to teach a concept, write algorithms, or debug in ${codeLanguage.toUpperCase()}...`
-                        : activeSkill === 'guardrails'
-                        ? "Test prompt injection, jailbreak defenses, or security rules..."
-                        : "Ask a question about your enterprise documentation or attach a file..."
-                    }
-                    value={inputPrompt}
-                    onChange={handleTextareaChange}
-                    onKeyDown={handleKeyDown}
-                    disabled={isLoading || isUploadingFile}
-                  />
-
-                  <button
-                    type="submit"
-                    className="chat-submit-btn"
-                    disabled={isLoading || isUploadingFile || (!inputPrompt.trim() && !attachedFile)}
-                    title="Send message"
-                  >
-                    <Send size={15} />
-                  </button>
-                </div>
-
-                <div className="input-footer-hint">
-                  <span>Press <strong>Enter</strong> to send &bull; <strong>Shift + Enter</strong> for new line</span>
-                  <span>NeMo Guardrails &bull; Dual-Vector Qdrant &bull; FlashRank</span>
-                </div>
               </div>
-            </form>
-          </>
-        )}
-
-        {/* ── VIEW 2: CODE STUDIO ── */}
-        {activeView === 'code' && (
-          <div className="workspace-view">
-            <div className="view-header">
-              <div className="view-title-group">
-                <h2>Code Studio</h2>
-                <p>Search any programming language, write and test code, and save to your projects.</p>
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button
-                  type="button"
-                  className={`btn-secondary ${isCopilotOpen ? 'active' : ''}`}
-                  onClick={() => {
-                    setIsCopilotOpen(prev => {
-                      const next = !prev;
-                      localStorage.setItem('claude_rag_copilot_visible', String(next));
-                      return next;
-                    });
-                  }}
-                  title={isCopilotOpen ? "Hide Coding Copilot to expand Editor & Preview" : "Show Coding Copilot"}
-                >
-                  <MessageSquare size={13} />
-                  <span>{isCopilotOpen ? "Hide Copilot" : "Coding Copilot"}</span>
-                </button>
-                <button 
-                  type="button" 
-                  className="btn-primary" 
-                  onClick={() => setIsCreatingProject(prev => !prev)}
-                >
-                  <Plus size={13} />
-                  <span>{isCreatingProject ? 'Cancel' : 'Create Project'}</span>
-                </button>
-              </div>
+              <p className="font-label text-xs text-muted mb-3">Product Update • Oct 12</p>
+              <h4 className="font-h3 text-xl font-semibold text-text group-hover:text-muted transition-colors">
+                Introducing Lumio Studio Analytics
+              </h4>
             </div>
 
-            {/* Inline Project Creator */}
-            {isCreatingProject && (
-              <div className="inline-creator" style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Create New Project
-                </div>
-                <div className="inline-creator-row">
-                  <input 
-                    type="text" 
-                    placeholder="Project Name (e.g., Concurrency & Systems, Rust Microservices)"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Description (Optional)"
-                    value={newProjectDesc}
-                    onChange={(e) => setNewProjectDesc(e.target.value)}
-                  />
-                  <button 
-                    type="button" 
-                    className="btn-primary" 
-                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                    onClick={() => createProject(newProjectName, newProjectDesc)}
-                    disabled={!newProjectName.trim()}
-                  >
-                    Save Project
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn-secondary" 
-                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                    onClick={() => setIsCreatingProject(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Small Boxes List of Created Projects (Redirects to Projects Section) */}
-            <div className="code-projects-mini-list">
-              {projects.map((proj) => (
-                <button
-                  key={proj.id}
-                  type="button"
-                  className={`mini-project-box ${activeProjectId === proj.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveProjectId(proj.id);
-                    localStorage.setItem('claude_rag_active_project_id', proj.id);
-                    setActiveView('projects');
-                  }}
-                  title="Click to view details in Projects section"
-                >
-                  <Folder size={12} style={{ color: 'var(--text-secondary)' }} />
-                  <span className="mini-project-name">{proj.name}</span>
-                  <span className="mini-project-count">{proj.learnings.length}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Language Search & Picker */}
-            <div className="language-search-bar" style={{ marginBottom: 12 }}>
-              <Search size={13} style={{ color: 'var(--text-muted)' }} />
-              <input 
-                type="text" 
-                placeholder="Search language (e.g. Python, Rust, Go, TypeScript, C++)..."
-                value={languageSearchQuery}
-                onChange={(e) => setLanguageSearchQuery(e.target.value)}
-              />
-              {languageSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setLanguageSearchQuery('')}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-
-            {/* Language Selection Filter / Suggestions */}
-            {languageSearchQuery.trim() && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Matching Languages:</span>
-                {POPULAR_LANGUAGES
-                  .filter(l => l.toLowerCase().includes(languageSearchQuery.toLowerCase()))
-                  .map(lang => (
-                    <button
-                      key={lang}
-                      type="button"
-                      className="badge-tag"
-                      style={{ 
-                        cursor: 'pointer',
-                        borderColor: codeLanguage === lang ? 'var(--border-focus)' : 'var(--border)',
-                        color: codeLanguage === lang ? 'var(--text-primary)' : 'var(--text-secondary)'
-                      }}
-                      onClick={() => {
-                        handleLanguageChange(lang);
-                        setLanguageSearchQuery('');
-                      }}
-                    >
-                      {lang.toUpperCase()}
-                    </button>
-                  ))}
-                {!POPULAR_LANGUAGES.includes(languageSearchQuery.toLowerCase()) && (
-                  <button
-                    type="button"
-                    className="badge-tag"
-                    style={{ cursor: 'pointer', borderColor: 'var(--border-focus)' }}
-                    onClick={() => {
-                      handleLanguageChange(languageSearchQuery.trim().toLowerCase());
-                      setLanguageSearchQuery('');
-                    }}
-                  >
-                    Use "{languageSearchQuery}"
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Notification alert banner */}
-            {savedLearningAlert && (
-              <div style={{ marginBottom: 12 }}>
-                <span className="alert-toast">
-                  <Check size={13} style={{ color: '#34d399' }} />
-                  <span>{savedLearningAlert}</span>
-                </span>
-              </div>
-            )}
-
-            {/* Code Studio & Runner Layout */}
-            <div className="code-studio-layout">
-              {/* Left: AI Coding Copilot (Toggleable) */}
-              {isCopilotOpen && (
-                <div className="code-copilot-pane">
-                  <div className="copilot-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        Coding Copilot
-                      </span>
-                      <select 
-                        className="copilot-model-select"
-                        value={copilotEngine}
-                        onChange={(e) => setCopilotEngine(e.target.value as 'groq' | 'gemini')}
-                      >
-                        <option value="groq">Groq (Fast)</option>
-                        <option value="gemini">Gemini 2.5 (Flash)</option>
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCopilotOpen(false);
-                        localStorage.setItem('claude_rag_copilot_visible', 'false');
-                      }}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2 }}
-                      title="Hide Copilot to expand preview & editor"
-                    >
-                      <PanelLeftClose size={14} />
-                    </button>
-                  </div>
-
-                  <div className="copilot-chat-history">
-                    {copilotMessages.map((msg, idx) => (
-                      <div key={idx} className={`copilot-msg ${msg.role}`}>
-                        <div style={{ fontWeight: 600, fontSize: '0.74rem', marginBottom: 4, color: msg.role === 'user' ? '#93c5fd' : '#34d399' }}>
-                          {msg.role === 'user' ? 'You' : `Copilot (${copilotEngine.toUpperCase()})`}
-                        </div>
-                        <div className="markdown-body" style={{ fontSize: '0.82rem' }}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {msg.text}
-                          </ReactMarkdown>
-                        </div>
-                        {msg.code && (
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                            <button 
-                              type="button"
-                              className="btn-send-to-editor"
-                              onClick={() => setCodeContent(msg.code || '')}
-                            >
-                              <ArrowDownToLine size={12} />
-                              <span>Insert into Editor</span>
-                            </button>
-                            <button 
-                              type="button"
-                              className="btn-send-to-editor"
-                              style={{ borderColor: 'var(--border-focus)' }}
-                              onClick={() => {
-                                const title = `${codeLanguage.toUpperCase()} Snippet: ${msg.text.slice(0, 35).replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'Concept'}`;
-                                saveLearningToProject(title, codeLanguage, msg.text, msg.code || '');
-                              }}
-                            >
-                              <Bookmark size={12} />
-                              <span>Save to {projects.find(p => p.id === activeProjectId)?.name || 'Project'}</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {isCopilotLoading && (
-                      <div className="copilot-msg assistant" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        Copilot is generating explanation and code...
-                      </div>
-                    )}
-                  </div>
-
-                  <form 
-                    className="copilot-input-row"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      askCopilot(copilotPrompt);
-                    }}
-                  >
-                    <input 
-                      type="text" 
-                      className="copilot-input"
-                      placeholder="Ask to write, debug, explain or optimize code..."
-                      value={copilotPrompt}
-                      onChange={(e) => setCopilotPrompt(e.target.value)}
-                      disabled={isCopilotLoading}
-                    />
-                    <button 
-                      type="submit" 
-                      className="copilot-btn-submit"
-                      disabled={isCopilotLoading || !copilotPrompt.trim()}
-                    >
-                      <Send size={13} />
-                    </button>
-                  </form>
-                </div>
-              )}
-
-              {/* Right: Code Editor & In-Browser Runner (Expands to 100% when Copilot is hidden) */}
-              <div className="code-runner-pane">
-                <div className="runner-toolbar">
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      className={`btn-secondary ${isCopilotOpen ? 'active' : ''}`}
-                      style={{ padding: '4px 8px', fontSize: '0.76rem' }}
-                      onClick={() => {
-                        setIsCopilotOpen(prev => {
-                          const next = !prev;
-                          localStorage.setItem('claude_rag_copilot_visible', String(next));
-                          return next;
-                        });
-                      }}
-                      title={isCopilotOpen ? "Hide Coding Copilot to expand Editor & Preview" : "Show Coding Copilot"}
-                    >
-                      <MessageSquare size={12} />
-                      <span>{isCopilotOpen ? "Hide Copilot" : "Copilot"}</span>
-                    </button>
-
-                    <select 
-                      className="copilot-model-select"
-                      value={codeLanguage}
-                      onChange={(e) => handleLanguageChange(e.target.value)}
-                    >
-                      {POPULAR_LANGUAGES.map(lang => (
-                        <option key={lang} value={lang}>
-                          {lang.toUpperCase()} {
-                            lang === 'html' ? '(Live DOM Preview)' :
-                            lang === 'css' ? '(Live Stylesheet Preview)' :
-                            lang === 'python' ? '(Pyodide WASM)' :
-                            lang === 'javascript' ? '(V8 Engine)' :
-                            lang === 'typescript' ? '(Transpiled JS)' :
-                            '(AI Sandbox)'
-                          }
-                        </option>
-                      ))}
-                      {!POPULAR_LANGUAGES.includes(codeLanguage) && (
-                        <option value={codeLanguage}>{codeLanguage.toUpperCase()}</option>
-                      )}
-                    </select>
-
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '0.76rem' }}
-                      onClick={() => {
-                        const title = `${codeLanguage.toUpperCase()} Implementation`;
-                        saveLearningToProject(title, codeLanguage, `Saved from interactive editor for ${codeLanguage}`, codeContent);
-                      }}
-                      title="Save this code snippet to your active project"
-                    >
-                      <Bookmark size={12} />
-                      <span>Save to Project</span>
-                    </button>
-                  </div>
-
-                  <button 
-                    type="button" 
-                    className="btn-run-code"
-                    onClick={runCode}
-                    disabled={isExecuting}
-                    style={codeLanguage === 'html' || codeLanguage === 'css' ? { background: '#2563eb', borderColor: '#1d4ed8' } : undefined}
-                  >
-                    {codeLanguage === 'html' || codeLanguage === 'css' ? <Eye size={13} /> : <Play size={13} />}
-                    <span>{isExecuting ? 'Processing...' : codeLanguage === 'html' ? 'Live Preview' : codeLanguage === 'css' ? 'Live Preview' : 'Run Code'}</span>
-                  </button>
-                </div>
-
-                <textarea 
-                  className="code-editor-box"
-                  value={codeContent}
-                  onChange={(e) => {
-                    setCodeContent(e.target.value);
-                    if (codeLanguage === 'html') {
-                      setPreviewHtml(e.target.value);
-                    } else if (codeLanguage === 'css') {
-                      setPreviewHtml(createCssPreview(e.target.value));
-                    }
-                  }}
-                  spellCheck={false}
-                  placeholder="// Type code here..."
+            <div className="group cursor-pointer">
+              <div className="w-full h-[380px] md:h-[450px] bg-soft-card rounded-[32px] mb-6 overflow-hidden border border-line/20 shadow-sm">
+                <img
+                  alt="Update 2 thumbnail"
+                  className="w-full h-full object-cover grayscale opacity-80 group-hover:scale-105 transition-transform duration-700"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuADz9LW9HvfLVEe_I21nEVa4CLnkpZCr8Bgk70c2xyov3xgZeLdZSAPNjhhb0fHH4BnSUSssw5IFJkyANuAMXUOZqeh7zz1U3P8KdKwkD2Z5Ccf1FaU1GJQK8bA5IhSc_X3sdb5HojmJ8YLBfRAQnUzzeUJaCVOVIV4m9Pn4WqF_0o9ePR18DMzxkOF-ebPSTOPvHek99rCjsYVuQ5SuQrEj7jQu06la9v1EE7gPJlbsGo8eb7i5F-gJ94k0CDmnBWYnDgcxCL6YRI1"
                 />
-
-                <div className="terminal-box">
-                  <div className="terminal-header">
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      {codeLanguage !== 'html' && (
-                        <button
-                          type="button"
-                          className={`terminal-tab-btn ${outputTab === 'terminal' ? 'active' : ''}`}
-                          onClick={() => setOutputTab('terminal')}
-                        >
-                          <Terminal size={12} />
-                          <span>Console</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className={`terminal-tab-btn ${outputTab === 'preview' || codeLanguage === 'html' ? 'active' : ''}`}
-                        onClick={() => setOutputTab('preview')}
-                      >
-                        <Eye size={12} />
-                        <span>Live Preview</span>
-                      </button>
-                    </div>
-                    <span>Status: <strong style={{ color: terminalStatus.includes('Error') ? '#f87171' : '#34d399' }}>{terminalStatus}</strong></span>
-                  </div>
-                  {outputTab === 'preview' || codeLanguage === 'html' ? (
-                    previewHtml ? (
-                      <iframe 
-                        title="Live Code Preview"
-                        className="live-preview-frame"
-                        sandbox="allow-scripts allow-modals"
-                        srcDoc={previewHtml}
-                      />
-                    ) : (
-                      <div style={{ padding: 24, color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center' }}>
-                        No preview rendered yet. Click "Live Preview" to view rendered DOM.
-                      </div>
-                    )
-                  ) : (
-                    <div className={`terminal-screen ${terminalStatus.includes('Error') ? 'error' : ''}`}>
-                      {terminalOutput}
-                    </div>
-                  )}
-                </div>
               </div>
+              <p className="font-label text-xs text-muted mb-3">Guide • Sep 28</p>
+              <h4 className="font-h3 text-xl font-semibold text-text group-hover:text-muted transition-colors">
+                The Modern Brand Architecture
+              </h4>
+            </div>
+
+            <div className="group cursor-pointer">
+              <div className="w-full h-[380px] md:h-[450px] bg-panel-bg rounded-[32px] mb-6 overflow-hidden border border-line/20 shadow-sm">
+                <img
+                  alt="Update 3 thumbnail"
+                  className="w-full h-full object-cover grayscale opacity-80 group-hover:scale-105 transition-transform duration-700"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDct5kTYgop_t8S6JmJtOmgiz1hNX2UvSLdGT2dBhBQNPgK5qKA8ZCJPceU2332pg1ob4ZNasV5TQXEkAOmkfBIpwkmdPDeET1K0lhjlk6MntDCRVUanq67fElMoyCLd6XOD0j3-gAWBGvQyJ8LsHf_D3qMboq2buFlvUNxdeqxH7UbzYSzjjm5InxR0bV1pO9TLBoHJxJ2kphS0sstx7HPAAA7Oc93mMsc7BMCicUGfnf-50gK-_6_xhIpXjOcUbGvbwkUZj_Q2fbN"
+                />
+              </div>
+              <p className="font-label text-xs text-muted mb-3">Company • Sep 15</p>
+              <h4 className="font-h3 text-xl font-semibold text-text group-hover:text-muted transition-colors">
+                Lumio raises Series B to expand AI
+              </h4>
             </div>
           </div>
-        )}
+        </section>
 
-        {/* ── VIEW 3: PROJECTS ── */}
-        {activeView === 'projects' && (
-          <div className="workspace-view">
-            <div className="view-header">
-              <div className="view-title-group">
-                <h2>Projects</h2>
-                <p>Track created projects and inspect saved language concepts in detail.</p>
-              </div>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => setIsCreatingProject(prev => !prev)}
-              >
-                <Plus size={13} />
-                <span>{isCreatingProject ? 'Cancel' : 'Create Project'}</span>
-              </button>
-            </div>
-
-            {/* Inline Project Creator */}
-            {isCreatingProject && (
-              <div className="inline-creator" style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Create New Project
-                </div>
-                <div className="inline-creator-row">
-                  <input 
-                    type="text" 
-                    placeholder="Project Name (e.g., Distributed Systems, Rust Microservices)"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Description (Optional)"
-                    value={newProjectDesc}
-                    onChange={(e) => setNewProjectDesc(e.target.value)}
-                  />
-                  <button 
-                    type="button" 
-                    className="btn-primary" 
-                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                    onClick={() => createProject(newProjectName, newProjectDesc)}
-                    disabled={!newProjectName.trim()}
-                  >
-                    Save Project
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn-secondary" 
-                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                    onClick={() => setIsCreatingProject(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Saved Notification Banner */}
-            {savedLearningAlert && (
-              <div style={{ marginBottom: 14 }}>
-                <span className="alert-toast">
-                  <Check size={13} style={{ color: '#34d399' }} />
-                  <span>{savedLearningAlert}</span>
-                </span>
-              </div>
-            )}
-
-            {/* Dropdown Minimal Projects List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {projects.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                  <Folder size={32} style={{ margin: '0 auto 12px auto', display: 'block', opacity: 0.5 }} />
-                  <p>No projects created yet. Click "Create Project" to get started.</p>
-                </div>
-              ) : (
-                projects.map((project) => {
-                  const uniqueLanguages = Array.from(new Set(project.learnings.map(l => l.language.toLowerCase())));
-                  return (
-                    <details 
-                      key={project.id} 
-                      className="project-minimal-item"
-                      open={activeProjectId === project.id}
-                    >
-                      <summary className="project-minimal-summary">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <Folder size={14} style={{ color: 'var(--text-secondary)' }} />
-                          <span>{project.name}</span>
-                          <span className="badge-tag" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
-                            {project.learnings.length} {project.learnings.length === 1 ? 'learning' : 'learnings'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {uniqueLanguages.map(lang => (
-                            <span key={lang} className="badge-tag" style={{ fontSize: '0.68rem' }}>
-                              {lang.toUpperCase()}
-                            </span>
-                          ))}
-                          <ChevronRight size={13} style={{ color: 'var(--text-muted)' }} />
-                        </div>
-                      </summary>
-
-                      <div className="project-minimal-details">
-                        {project.description && (
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
-                            {project.description}
-                          </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            style={{ padding: '4px 8px', fontSize: '0.74rem' }}
-                            onClick={() => {
-                              setActiveProjectId(project.id);
-                              localStorage.setItem('claude_rag_active_project_id', project.id);
-                              setActiveView('code');
-                            }}
-                            title="Open in Code Studio"
-                          >
-                            <Terminal size={12} />
-                            <span>Open in Studio</span>
-                          </button>
-                          {projects.length > 1 && (
-                            <button
-                              type="button"
-                              className="chat-action-btn"
-                              onClick={() => deleteProject(project.id)}
-                              title="Delete project"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Saved Learnings */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {project.learnings.length === 0 ? (
-                            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 0' }}>
-                              No learnings saved yet. Open Code Studio, search any language or concept, and click "Save to Project".
-                            </div>
-                          ) : (
-                            project.learnings.map((entry) => (
-                              <div key={entry.id} className="learning-item">
-                                <div className="learning-item-header">
-                                  <div className="learning-item-title">
-                                    <BookOpen size={13} style={{ color: 'var(--text-muted)' }} />
-                                    <span>{entry.title}</span>
-                                    <span className="badge-tag" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
-                                      {entry.language.toUpperCase()}
-                                    </span>
-                                  </div>
-                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                    {new Date(entry.timestamp).toLocaleDateString()}
-                                  </span>
-                                </div>
-
-                                {entry.conceptSummary && (
-                                  <div className="learning-item-summary">
-                                    {entry.conceptSummary}
-                                  </div>
-                                )}
-
-                                {entry.code && (
-                                  <div>
-                                    <pre className="learning-item-code">
-                                      <code>{entry.code}</code>
-                                    </pre>
-                                  </div>
-                                )}
-
-                                <div className="learning-item-actions">
-                                  <button
-                                    type="button"
-                                    className="btn-secondary"
-                                    style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                                    onClick={() => copyToClipboard(entry.code)}
-                                  >
-                                    <Copy size={11} />
-                                    <span>Copy Code</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-secondary"
-                                    style={{ padding: '3px 8px', fontSize: '0.72rem' }}
-                                    onClick={() => loadLearningIntoStudio(entry, project.id)}
-                                  >
-                                    <Play size={11} />
-                                    <span>Run in Studio</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="chat-action-btn"
-                                    style={{ padding: '3px 6px' }}
-                                    onClick={() => deleteLearningFromProject(project.id, entry.id)}
-                                    title="Delete learning entry"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </details>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+        {/* 10. Draggable Cards */}
+        <section className="w-full relative overflow-clip">
+          <DraggableCardDemo />
+        </section>
       </main>
+
+      {/* 11. Dark Footer */}
+      <footer className="bg-black text-page-bg font-body-md text-body-md w-full pt-12 md:pt-16 pb-4 px-margin flex flex-col items-center rounded-t-[32px] md:rounded-t-[40px] mt-section">
+        <div className="max-w-[1728px] mx-auto w-full">
+          {/* Subheader info bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between w-full pb-8 text-neutral-500 text-xs font-mono tracking-wider uppercase">
+            <span>Engineering modern digital systems since 2024</span>
+            <div className="flex items-center gap-4 mt-2 sm:mt-0">
+              <span>© {new Date().getFullYear()} 3AM DEVS</span>
+              <span>•</span>
+              <span>All rights reserved</span>
+            </div>
+          </div>
+
+          {/* Massive 3AM DEVS Wordmark in clean black shade */}
+          <div className="w-full overflow-hidden flex justify-center items-center pt-4 sm:pt-6 pb-2 select-none border-t border-neutral-800">
+            <svg
+              viewBox="0 0 1200 240"
+              className="w-full h-auto select-none pointer-events-auto transition-colors duration-500"
+              preserveAspectRatio="xMidYMid meet"
+              aria-hidden="true"
+            >
+              <text
+                x="50%"
+                y="62%"
+                dominantBaseline="middle"
+                textAnchor="middle"
+                textLength="1160"
+                lengthAdjust="spacingAndGlyphs"
+                fill="#262626"
+                className="hover:fill-[#3a3a3a] transition-colors duration-300"
+                style={{
+                  fontFamily: "'Archivo Black', sans-serif",
+                  fontSize: "190px",
+                  fontWeight: 900,
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                3AM DEVS
+              </text>
+            </svg>
+            <h1 className="sr-only">3AM DEVS</h1>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
-
-export default App;
-
-
