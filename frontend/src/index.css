@@ -73,7 +73,9 @@
   --text-label--font-weight: 600;
 }
 
+html,
 body {
+  overflow-x: clip;
   background-color: #FAF9F5;
   color: #1B1B1B;
   font-family: 'Inter', sans-serif;

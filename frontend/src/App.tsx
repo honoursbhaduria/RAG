@@ -188,7 +188,7 @@ export default function App() {
   }
 
   return (
-    <div className="text-text font-body-lg min-h-screen antialiased selection:bg-black selection:text-white bg-page-bg">
+    <div className="text-text font-body-lg min-h-screen antialiased selection:bg-black selection:text-white bg-page-bg overflow-x-clip">
       {/* 1. Dynamic Resizable Navbar */}
       <Navbar>
         {/* Desktop Navigation */}
@@ -329,12 +329,12 @@ export default function App() {
         </section>
 
         {/* 3. Flowchart Visual Architecture around Central Astronaut */}
-        <section id="pipeline">
+        <section id="pipeline" className="w-full relative overflow-x-clip">
           <RagFlowchartSection />
         </section>
 
         {/* 4. Manifesto */}
-        <section className="py-[120px] md:py-[200px] px-margin max-w-[1728px] mx-auto relative flex flex-col items-center text-center bg-page-bg overflow-hidden">
+        <section className="py-[120px] md:py-[200px] px-4 sm:px-6 md:px-margin max-w-[1728px] mx-auto relative flex flex-col items-center text-center bg-page-bg overflow-hidden">
           <div className="absolute top-1/2 -translate-y-1/2 right-[-60px] md:right-[3%] lg:right-[6%] w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] md:w-[520px] md:h-[520px] opacity-80 pointer-events-none -z-0">
             <RedNetworkGlobe size="100%" glow={false} />
           </div>
@@ -349,7 +349,7 @@ export default function App() {
         </section>
 
         {/* 6. Core Subsystems */}
-        <section id="subsystems" className="py-[100px] md:py-[160px] px-margin max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg">
+        <section id="subsystems" className="py-[100px] md:py-[160px] px-4 sm:px-6 md:px-margin max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg overflow-x-clip">
           <h2 className="font-display text-2xl md:text-h2 mb-4 font-semibold text-center text-text">
             Engineered for enterprise scale.
           </h2>
@@ -509,7 +509,7 @@ export default function App() {
         </section>
 
         {/* 7. Testimonial */}
-        <section className="py-[100px] md:py-[160px] px-margin max-w-[1400px] mx-auto flex flex-col items-center text-center bg-page-bg">
+        <section className="py-[100px] md:py-[160px] px-4 sm:px-6 md:px-margin max-w-[1400px] mx-auto flex flex-col items-center text-center bg-page-bg overflow-x-clip">
           {/* Split-Flap Interactive Quote Board */}
           <div className="w-full max-w-5xl mb-12">
             <TextFlippingBoardDemo />
@@ -539,7 +539,7 @@ export default function App() {
       </main>
 
       {/* 11. Dark Footer */}
-      <footer className="bg-black text-page-bg font-body-md text-body-md w-full pt-12 md:pt-16 pb-4 px-margin flex flex-col items-center rounded-t-[32px] md:rounded-t-[40px] mt-section">
+      <footer className="bg-black text-page-bg font-body-md text-body-md w-full pt-12 md:pt-16 pb-4 px-4 sm:px-6 md:px-margin flex flex-col items-center rounded-t-[32px] md:rounded-t-[40px] mt-section overflow-x-clip">
         <div className="max-w-[1728px] mx-auto w-full">
           {/* Subheader info bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between w-full pb-8 text-neutral-500 text-xs font-mono tracking-wider uppercase">

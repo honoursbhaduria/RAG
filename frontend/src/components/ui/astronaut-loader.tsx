@@ -16,7 +16,7 @@ export const AstronautLoader: React.FC<AstronautProps> = ({ className = '', size
         src="/astronaut-3d.json"
         loop={true}
         autoplay={true}
-        className="w-full h-full object-contain filter drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
+        className="w-full h-full object-contain"
       />
     </div>
   );
