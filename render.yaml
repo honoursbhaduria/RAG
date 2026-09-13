@@ -2,7 +2,7 @@ services:
   - type: web
     name: cognivault-api
     runtime: python
-    buildCommand: pip install -r requirements-prod.txt
+    buildCommand: pip install --upgrade pip && pip install -r requirements-prod.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
