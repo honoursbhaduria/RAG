@@ -316,21 +316,21 @@ export const RagFlowchartSection: React.FC = () => {
           <Loader size={240} />
         </div>
 
-        {/* Overlapping Stacking Cards View */}
-        <div className="relative w-full flex flex-col items-center pb-20">
+        {/* Overlapping Stacking Square Cards View */}
+        <div className="relative w-full flex flex-col items-center pb-24">
           {FLOW_STEPS.map((step, index) => (
             <div
               key={step.stepNum}
-              className="sticky w-full max-w-[430px] mx-auto transition-all duration-200"
+              className="sticky w-[calc(100vw-32px)] max-w-[340px] sm:max-w-[380px] aspect-square mx-auto transition-all duration-200"
               style={{
                 top: `${72 + index * 12}px`,
                 zIndex: index + 10,
-                marginTop: index === 0 ? 0 : '-18px',
-                marginBottom: index === FLOW_STEPS.length - 1 ? '0' : '28px',
+                marginTop: index === 0 ? 0 : '-28px',
+                marginBottom: index === FLOW_STEPS.length - 1 ? '0' : '36px',
               }}
             >
-              {/* Overlapping Card Chassis with Top/Bottom Elevation Shadow */}
-              <div className="w-full relative rounded-[24px] p-4 sm:p-5 bg-[#222225] border border-neutral-600/70 shadow-[0_-8px_24px_rgba(0,0,0,0.55),0_18px_36px_rgba(0,0,0,0.65)] backdrop-blur-md">
+              {/* Square Overlapping Card Chassis */}
+              <div className="w-full h-full relative rounded-[24px] p-3.5 sm:p-4 bg-[#222225] border border-neutral-600/70 shadow-[0_-10px_28px_rgba(0,0,0,0.6),0_18px_36px_rgba(0,0,0,0.65)] backdrop-blur-md flex flex-col justify-between overflow-hidden">
                 {/* Corner registration marks */}
                 <div className="absolute top-2.5 left-2.5 w-1.5 h-1.5 border-t border-l border-neutral-500/60 pointer-events-none" />
                 <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 border-t border-r border-neutral-500/60 pointer-events-none" />
@@ -338,20 +338,20 @@ export const RagFlowchartSection: React.FC = () => {
                 <div className="absolute bottom-2.5 right-2.5 w-1.5 h-1.5 border-b border-r border-neutral-500/60 pointer-events-none" />
 
                 {/* Card Header Bar */}
-                <div className="flex items-center justify-between px-1 pb-2.5 border-b border-neutral-700/60 mb-3">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between px-1 pb-2 border-b border-neutral-700/60 shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
-                    <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-neutral-200">
+                    <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-neutral-200 truncate">
                       {step.step} &bull; {step.title}
                     </span>
                   </div>
-                  <span className="font-mono text-[10px] sm:text-[11px] font-semibold tracking-widest text-neutral-300 bg-neutral-800/90 px-2.5 py-1 rounded-full border border-neutral-700 shrink-0 ml-2">
+                  <span className="font-mono text-[10px] sm:text-[11px] font-semibold tracking-widest text-neutral-300 bg-neutral-800/90 px-2 py-0.5 rounded-full border border-neutral-700 shrink-0 ml-2">
                     STAGE 0{step.stepNum}
                   </span>
                 </div>
 
-                {/* Card Image */}
-                <div className="relative h-[170px] sm:h-[200px] w-full rounded-[16px] overflow-hidden border border-neutral-700/80 mb-3 bg-[#18181a]">
+                {/* Card Image Canvas (Fills Square Center) */}
+                <div className="relative flex-1 w-full rounded-[14px] overflow-hidden border border-neutral-700/80 my-2 bg-[#18181a] min-h-0">
                   <img
                     src={step.image}
                     alt={step.alt}
@@ -362,8 +362,8 @@ export const RagFlowchartSection: React.FC = () => {
                 </div>
 
                 {/* Card Footer Info */}
-                <div className="flex items-center justify-between text-xs sm:text-sm font-mono text-neutral-400 px-1 gap-2">
-                  <span className="text-neutral-300 font-sans font-medium text-xs sm:text-sm">
+                <div className="flex items-center justify-between text-xs font-mono text-neutral-400 px-1 gap-2 shrink-0">
+                  <span className="text-neutral-300 font-sans font-medium text-[11px] sm:text-xs truncate">
                     {step.subtitle}
                   </span>
                   <span className="text-emerald-400/90 font-mono text-[10px] sm:text-[11px] bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
