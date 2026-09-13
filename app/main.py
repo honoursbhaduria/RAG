@@ -224,14 +224,14 @@ def query(request: QueryRequest):
     config = {"configurable": {"thread_id": thread_id}}
     
     try:
-        # Gate 1: NeMo Guardrails — blocks overt prompt injection and malicious jailbreaks
+        # Gate 1: NeMo Guardrails — blocks overt prompt injection, XSS script tags, and malicious jailbreaks
         rail_fired, rail_response = guard(q)
-        if rail_fired and not effective_filename and not is_doc_query:
+        if rail_fired:
             logfire.info(f"Request blocked by guardrails | thread={thread_id}")
             return {
                 "question": q,
                 "answer": rail_response,
-                "thought_process": ["Intent: Guardrails Fired", "Retrieval: Skipped"],
+                "thought_process": ["Intent: Security Gate Triggered", "Action: Zero-Trust Interception", "Retrieval: Skipped"],
                 "status": "Blocked by guardrails.",
                 "sources": []
             }
@@ -284,7 +284,17 @@ def query(request: QueryRequest):
 def code_assist(request: CodeAssistRequest):
     """
     Executes specialized coding copilot generation using Groq or Gemini.
+    Protected by NeMo & Regex Security Gate to prevent prompt injection and script payloads.
     """
+    rail_fired, rail_response = guard(request.prompt)
+    if rail_fired:
+        return {
+            "answer": rail_response or "Security Guardrail Alert: Request blocked by safety guidelines.",
+            "code": None,
+            "language": request.language or "python",
+            "engine": "guardrails-shield"
+        }
+
     answer, code, lang, engine_used = generate_code_assistance(
         prompt=request.prompt,
         code_context=request.code,

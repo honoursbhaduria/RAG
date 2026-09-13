@@ -36,7 +36,7 @@ def generate_node(state: AgentState):
         """
     else:
         logfire.info(f"Generating technical RAG response ({persona}).")
-        max_context_chars = 25000
+        max_context_chars = 14000
         full_context = ""
 
         for doc in state["documents"]:

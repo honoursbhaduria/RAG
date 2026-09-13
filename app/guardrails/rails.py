@@ -44,6 +44,30 @@ JAILBREAK_PATTERNS = [
     r"bypass\s+(your\s+|the\s+)?(safety\s+|content\s+)?(filters|guidelines|policy)",
     r"act\s+as\s+an?\s+unrestricted\s+ai",
     r"forget\s+your\s+system\s+prompt",
+    r"reveal\s+(your\s+)?(secret\s+|system\s+)?(prompt|keys|tokens|credentials)",
+    r"exfiltrate\s+(all\s+)?(environment|api_key|database)",
+]
+
+# Patterns detecting XSS, script injection, and destructive command execution
+SCRIPT_INJECTION_PATTERNS = [
+    r"<\s*script\b[^>]*>",
+    r"<\s*/\s*script\s*>",
+    r"javascript\s*:",
+    r"vbscript\s*:",
+    r"data\s*:\s*text/html",
+    r"<\s*iframe\b[^>]*>",
+    r"<\s*object\b[^>]*>",
+    r"<\s*embed\b[^>]*>",
+    r"<\s*(?:svg|img|body|input|div|a)\b[^>]*\bon(?:error|load|click|mouseover|submit|focus|blur)\s*=",
+    r"\bon(?:error|load|click|mouseover|submit|keydown|focus|blur)\s*=\s*['\"][^'\"]*['\"]",
+    r"document\.(?:cookie|location|write|domain)",
+    r"window\.(?:location|navigate|open)\b",
+    r"(?:curl|wget)\s+https?://[^\s|;]+\s*\|\s*(?:bash|sh|python)",
+    r"/bin/(?:ba)?sh\s+-i",
+    r"nc\s+-[a-zA-Z0-9]*e\s+/bin/",
+    r"rm\s+-rf\s+[/~]",
+    r"__import__\s*\(\s*['\"](?:os|subprocess|sys|shutil|pty)['\"]\s*\)\.(?:system|popen|call)",
+    r"pty\.spawn\s*\(",
 ]
 
 
@@ -59,7 +83,13 @@ def guard(message: str) -> tuple[bool, str | None]:
     import re
     msg_lower = message.lower()
 
-    # Fast-path pattern gate for overt jailbreaks and injection attempts
+    # 1. Fast-path pattern gate for script injection & XSS attempts (<1ms)
+    for pattern in SCRIPT_INJECTION_PATTERNS:
+        if re.search(pattern, message, re.IGNORECASE):
+            logfire.warning(f"Guardrail triggered via script injection pattern | match='{pattern}' | query='{message[:80]}'")
+            return True, "Security Guardrail Alert: Potential script injection or unsafe executable code pattern detected and intercepted. Please submit a valid technical inquiry."
+
+    # 2. Fast-path pattern gate for overt jailbreaks and injection attempts (<1ms)
     for pattern in JAILBREAK_PATTERNS:
         if re.search(pattern, msg_lower):
             logfire.info(f"Guardrail triggered via jailbreak pattern | query='{message[:80]}'")

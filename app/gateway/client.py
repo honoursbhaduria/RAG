@@ -90,10 +90,22 @@ def generate_completion(prompt: str, feature: str = "rag", temperature: float = 
 
     from groq import Groq
     groq_client = Groq(api_key=settings.GROQ_API_KEY)
-    response = groq_client.chat.completions.create(
-        model=settings.GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=temp
-    )
-    content = response.choices[0].message.content
-    return content, "MISS"
+    try:
+        response = groq_client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temp
+        )
+        content = response.choices[0].message.content
+        return content, "MISS"
+    except Exception as e:
+        logfire.warning(f"Groq primary model {settings.GROQ_MODEL} failed: {e}. Falling back to {settings.GROQ_FALLBACK_MODEL}")
+        fallback_key = settings.GROQ_FALLBACK_API_KEY or settings.GROQ_API_KEY
+        fallback_client = Groq(api_key=fallback_key)
+        response = fallback_client.chat.completions.create(
+            model=settings.GROQ_FALLBACK_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temp
+        )
+        content = response.choices[0].message.content
+        return content, "MISS"

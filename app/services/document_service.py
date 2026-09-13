@@ -28,16 +28,38 @@ JAILBREAK_PATTERNS = [
     r"exfiltrate\s+(all\s+)?(environment|api_key|database)",
 ]
 
+# Signatures detecting XSS, malicious script execution, cookie theft, and shell injections
+SCRIPT_INJECTION_PATTERNS = [
+    r"<\s*script\b[^>]*>",
+    r"<\s*/\s*script\s*>",
+    r"javascript\s*:",
+    r"vbscript\s*:",
+    r"data\s*:\s*text/html",
+    r"<\s*iframe\b[^>]*>",
+    r"<\s*object\b[^>]*>",
+    r"<\s*embed\b[^>]*>",
+    r"<\s*(?:svg|img|body|input|div|a)\b[^>]*\bon(?:error|load|click|mouseover|submit|focus|blur)\s*=",
+    r"\bon(?:error|load|click|mouseover|submit|keydown|focus|blur)\s*=\s*['\"][^'\"]*['\"]",
+    r"document\.(?:cookie|location|write|domain)",
+    r"window\.(?:location|navigate|open)\b",
+    r"/bin/(?:ba)?sh\s+-i",
+    r"nc\s+-[a-zA-Z0-9]*e\s+/bin/",
+    r"(?:curl|wget)\s+https?://[^\s|;]+\s*\|\s*(?:bash|sh)",
+    r"rm\s+-rf\s+[/~]",
+]
+
 
 def validate_document_safety(content: str, filename: str) -> tuple[bool, str | None]:
     """
     Validates document content against prompt injection, jailbreak vectors,
-    and NeMo Guardrails policy gates before allowing ingestion into the RAG pipeline.
+    malicious scripts (XSS, reverse shells), and NeMo Guardrails policy gates
+    before allowing ingestion into the RAG pipeline.
     """
     with logfire.span("Document Guardrails Verification", file=filename):
         content_lower = content.lower()
+        is_python_file = filename.lower().endswith(".py")
 
-        # 1. Regex pattern check for prompt injections & jailbreak exploits
+        # 1. Regex pattern check for prompt injections & jailbreak exploits (Preserved)
         for pattern in JAILBREAK_PATTERNS:
             if re.search(pattern, content_lower):
                 logfire.warning(
@@ -45,10 +67,36 @@ def validate_document_safety(content: str, filename: str) -> tuple[bool, str | N
                 )
                 return False, f"Guardrail Violation: File '{filename}' contains disallowed prompt injection pattern ('{pattern}')."
 
-        # 2. Check document header / sample segments against NeMo rails
-        # Run first 800 chars through NeMo guard gate
+        # 2. Malicious script injection & XSS detection
+        if is_python_file:
+            # For Python code, block web injection vectors (XSS, script tags, cookie theft, reverse shells, rm -rf)
+            python_danger_patterns = [
+                r"<\s*script\b[^>]*>",
+                r"<\s*/\s*script\s*>",
+                r"javascript\s*:",
+                r"document\.(?:cookie|location|write)",
+                r"/bin/(?:ba)?sh\s+-i",
+                r"nc\s+-[a-zA-Z0-9]*e\s+/bin/",
+                r"(?:curl|wget)\s+https?://[^\s|;]+\s*\|\s*(?:bash|sh)",
+                r"rm\s+-rf\s+[/~]",
+            ]
+            for pattern in python_danger_patterns:
+                if re.search(pattern, content, re.IGNORECASE):
+                    logfire.warning(f"Malicious script/shell exploit detected in Python file '{filename}' (pattern '{pattern}')")
+                    return False, f"Guardrail Violation: File '{filename}' contains prohibited script or shell payload."
+        else:
+            # For text, markdown, docx, pptx, pdf, html: strict check against all script injection signatures
+            for pattern in SCRIPT_INJECTION_PATTERNS:
+                if re.search(pattern, content, re.IGNORECASE):
+                    logfire.warning(
+                        f"Script injection / XSS pattern detected in uploaded file '{filename}' (matched '{pattern}')"
+                    )
+                    return False, f"Guardrail Violation: File '{filename}' contains potential script injection or unsafe markup."
+
+        # 3. Check document header / sample segments against NeMo rails
+        # Run first 800 chars through NeMo guard gate (skip on pure Python code to avoid false positives)
         sample_query = content[:800].strip()
-        if sample_query:
+        if sample_query and not is_python_file:
             try:
                 rail_fired, rail_response = guard(sample_query)
                 if rail_fired:
@@ -81,15 +129,18 @@ def parse_uploaded_file(file_bytes: bytes, filename: str) -> str:
         elif ext in ("html", "htm"):
             from app.ingestion.loaders.html import parse_html
             return parse_html(tmp_path)
-        elif ext in ("docx", "pptx"):
+        elif ext in ("docx", "doc", "pptx", "ppt"):
             from app.ingestion.loaders.office import parse_office
             return parse_office(tmp_path)
         else:
-            # Plain text, markdown, source code, configs, json
-            try:
-                return file_bytes.decode("utf-8")
-            except UnicodeDecodeError:
-                return file_bytes.decode("latin-1", errors="ignore")
+            # Plain text, Markdown (.md), Python (.py), JSON, CSV, YAML, Shell, SQL
+            for encoding in ("utf-8", "latin-1", "cp1252"):
+                try:
+                    text = file_bytes.decode(encoding)
+                    return text.replace("\x00", "")
+                except UnicodeDecodeError:
+                    continue
+            return file_bytes.decode("utf-8", errors="replace").replace("\x00", "")
     finally:
         try:
             if os.path.exists(tmp_path):
@@ -168,6 +219,23 @@ def process_and_ingest_uploaded_file(
     End-to-end handler for uploaded files:
     Extract text -> Run Guardrails -> Chunk & Embed -> Index in Qdrant with session metadata.
     """
+    # Pre-parse raw content check for script injection and exploits
+    try:
+        raw_str = file_bytes.decode("utf-8", errors="ignore")
+        if raw_str:
+            is_safe, violation_reason = validate_document_safety(raw_str, filename)
+            if not is_safe:
+                return {
+                    "success": False,
+                    "status": "blocked",
+                    "safe": False,
+                    "filename": filename,
+                    "session_id": session_id,
+                    "reason": violation_reason
+                }
+    except Exception:
+        pass
+
     text = parse_uploaded_file(file_bytes, filename)
     if not text or not text.strip():
         return {
@@ -179,7 +247,7 @@ def process_and_ingest_uploaded_file(
             "reason": "File is empty or no readable text could be extracted."
         }
 
-    # Step 1: Guardrails verification
+    # Step 1: Guardrails verification on extracted text
     is_safe, violation_reason = validate_document_safety(text, filename)
     if not is_safe:
         return {

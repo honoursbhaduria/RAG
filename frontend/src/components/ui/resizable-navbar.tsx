@@ -172,21 +172,22 @@ export const MobileNavToggle = ({
 };
 
 export const NavbarLogo = ({
-  logoText = "3AM DEVS",
+  logoText = "Cognivault",
   href = "#",
+  fontClass = "dancing-script",
 }: {
   logoText?: string;
   href?: string;
+  fontClass?: string;
 }) => {
   return (
     <a
       href={href}
-      className="flex items-center space-x-2.5 py-1 text-white cursor-pointer shrink-0 select-none group"
+      className="flex items-center py-1 text-white cursor-pointer shrink-0 select-none group"
     >
-      <div className="px-2.5 h-[28px] rounded-lg bg-neutral-900 flex items-center justify-center shrink-0 border border-neutral-800 overflow-hidden relative group-hover:scale-105 transition-transform">
-        <span className="text-white font-black text-xs tracking-tight">3AM</span>
-      </div>
-      <span className="font-bold text-base tracking-tight text-white">{logoText}</span>
+      <span className={`text-2xl sm:text-3xl font-bold tracking-wide text-white transition-opacity group-hover:opacity-90 ${fontClass}`}>
+        {logoText}
+      </span>
     </a>
   );
 };

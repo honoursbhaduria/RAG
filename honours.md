@@ -4,7 +4,7 @@ This document provides an exhaustive, in-depth architectural and technical break
 
 ---
 
-## 1. 🌟 Executive Summary & System Purpose
+## 1.  Executive Summary & System Purpose
 
 The backend is an **Enterprise-Grade Agentic Retrieval-Augmented Generation (RAG) System** engineered for high scalability, fault tolerance, strict security guardrails, and deterministic multi-turn conversations.
 
@@ -19,7 +19,7 @@ Unlike basic, naive RAG pipelines that execute flat similarity queries directly 
 
 ---
 
-## 2. 🧰 Complete Technology Stack Matrix
+## 2. Complete Technology Stack Matrix
 
 | Category | Technology / Library | Version / Specific Model | Role & Architectural Rationale |
 | :--- | :--- | :--- | :--- |
@@ -42,7 +42,7 @@ Unlike basic, naive RAG pipelines that execute flat similarity queries directly 
 
 ---
 
-## 3. 🏗️ High-Level System Architecture & End-to-End Workflow
+## 3.  High-Level System Architecture & End-to-End Workflow
 
 ```mermaid
 flowchart TD
@@ -115,7 +115,7 @@ flowchart TD
 
 ---
 
-## 4. 🔬 Deep-Dive: Backend Subsystems & Module Breakdown
+## 4.  Deep-Dive: Backend Subsystems & Module Breakdown
 
 ### 4.1. Core Application Entrypoint (`app/main.py`)
 

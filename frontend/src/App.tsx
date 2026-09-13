@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TextFlippingBoardDemo from '@/components/text-flipping-board-demo';
 import KeyboardDemo from '@/components/keyboard-demo';
 import BrandTimeline from '@/components/brand-timeline';
@@ -8,6 +8,9 @@ import RedNetworkGlobe from '@/components/ui/red-network-globe';
 import RagFlowchartSection from '@/components/ui/rag-flowchart-section';
 import DraggableCardDemo from '@/components/ui/draggable-card-demo-2';
 import GooeyNav from '@/components/ui/GooeyNav';
+import RagChatbotPage from '@/components/chatbot/RagChatbotPage';
+import ChatbotLoadingTransition from '@/components/chatbot/ChatbotLoadingTransition';
+import ChatbotSkeleton from '@/components/chatbot/ChatbotSkeleton';
 import {
   IconCpu,
   IconDatabase,
@@ -31,8 +34,29 @@ import {
   MobileNavMenu,
 } from '@/components/ui/resizable-navbar';
 
+type AppView = 'landing' | 'loading' | 'skeleton' | 'chat';
+
 export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [view, setView] = useState<AppView>('landing');
+
+  const handleLaunchChat = () => {
+    window.location.hash = '#chat';
+    setView('loading');
+  };
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#chat') {
+        setView((prev) => (prev === 'landing' ? 'loading' : prev));
+      } else {
+        setView('landing');
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const navItems = [
     { name: "Pipeline", link: "#pipeline" },
@@ -133,13 +157,42 @@ export default function App() {
     },
   ];
 
+  if (view === 'loading') {
+    return (
+      <ChatbotLoadingTransition
+        durationMs={3800}
+        onComplete={() => {
+          setView('skeleton');
+          setTimeout(() => {
+            setView('chat');
+          }, 1400);
+        }}
+      />
+    );
+  }
+
+  if (view === 'skeleton') {
+    return <ChatbotSkeleton />;
+  }
+
+  if (view === 'chat') {
+    return (
+      <RagChatbotPage
+        onBack={() => {
+          window.location.hash = '';
+          setView('landing');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="text-text font-body-lg min-h-screen antialiased selection:bg-black selection:text-white bg-page-bg">
       {/* 1. Dynamic Resizable Navbar */}
       <Navbar>
         {/* Desktop Navigation */}
         <NavBody>
-          <NavbarLogo logoText="AGENTIC RAG" />
+          <NavbarLogo logoText="Cognivault" />
           <GooeyNav
             items={[
               { label: "Architecture", href: "#architecture" },
@@ -155,15 +208,25 @@ export default function App() {
             colors={[1, 2, 3, 1, 2, 3, 1, 4]}
           />
           <div className="flex items-center gap-3 relative z-20 shrink-0">
-            <NavbarButton variant="secondary" href="http://localhost:8000/api/docs">Swagger Docs</NavbarButton>
-            <NavbarButton variant="primary" href="http://localhost:8000/health">Health Check</NavbarButton>
+            <NavbarButton variant="secondary" href="http://localhost:8000/api/docs" target="_blank" rel="noreferrer">
+              Swagger Docs
+            </NavbarButton>
+            <NavbarButton
+              as="button"
+              variant="primary"
+              onClick={handleLaunchChat}
+              className="flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Launch</span>
+              <span className="text-[10px] opacity-70">↗</span>
+            </NavbarButton>
           </div>
         </NavBody>
 
         {/* Mobile Navigation */}
         <MobileNav>
           <MobileNavHeader>
-            <NavbarLogo logoText="3AM DEVS" />
+            <NavbarLogo logoText="Cognivault" />
             <MobileNavToggle
               isOpen={isMobileMenuOpen}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -186,18 +249,24 @@ export default function App() {
             ))}
             <div className="flex w-full flex-col gap-3 pt-3 border-t border-neutral-800">
               <NavbarButton
-                onClick={() => setIsMobileMenuOpen(false)}
+                href="http://localhost:8000/api/docs"
+                target="_blank"
+                rel="noreferrer"
                 variant="secondary"
                 className="w-full justify-center"
               >
-                Login
+                Swagger Docs
               </NavbarButton>
               <NavbarButton
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleLaunchChat();
+                }}
                 variant="primary"
-                className="w-full justify-center"
+                className="w-full justify-center flex items-center gap-1.5 cursor-pointer"
               >
-                Book a demo
+                <span>Launch</span>
+                <span>↗</span>
               </NavbarButton>
             </div>
           </MobileNavMenu>
@@ -472,15 +541,15 @@ export default function App() {
         <div className="max-w-[1728px] mx-auto w-full">
           {/* Subheader info bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between w-full pb-8 text-neutral-500 text-xs font-mono tracking-wider uppercase">
-            <span>Engineering modern digital systems since 2024</span>
+            <span>Enterprise Autonomous Knowledge & Intelligence</span>
             <div className="flex items-center gap-4 mt-2 sm:mt-0">
-              <span>© {new Date().getFullYear()} 3AM DEVS</span>
+              <span>© {new Date().getFullYear()} Cognivault</span>
               <span>•</span>
               <span>All rights reserved</span>
             </div>
           </div>
 
-          {/* Massive 3AM DEVS Wordmark in clean black shade */}
+          {/* Massive Cognivault Wordmark in clean black shade */}
           <div className="w-full overflow-hidden flex justify-center items-center pt-4 sm:pt-6 pb-2 select-none border-t border-neutral-800">
             <svg
               viewBox="0 0 1200 240"
@@ -490,24 +559,21 @@ export default function App() {
             >
               <text
                 x="50%"
-                y="62%"
+                y="65%"
                 dominantBaseline="middle"
                 textAnchor="middle"
-                textLength="1160"
-                lengthAdjust="spacingAndGlyphs"
                 fill="#262626"
-                className="hover:fill-[#3a3a3a] transition-colors duration-300"
+                className="hover:fill-[#404040] transition-colors duration-300"
                 style={{
-                  fontFamily: "'Archivo Black', sans-serif",
-                  fontSize: "190px",
-                  fontWeight: 900,
-                  letterSpacing: "-0.04em",
+                  fontFamily: "'Dancing Script', cursive",
+                  fontSize: "180px",
+                  fontWeight: 700,
                 }}
               >
-                3AM DEVS
+                Cognivault
               </text>
             </svg>
-            <h1 className="sr-only">3AM DEVS</h1>
+            <h1 className="sr-only">Cognivault</h1>
           </div>
         </div>
       </footer>

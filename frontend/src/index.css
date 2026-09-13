@@ -28,7 +28,8 @@
   --font-caslon: 'Libre Caslon Display', serif;
   --font-mono: 'Iosevka Charon', monospace;
   --font-iosevka: 'Iosevka Charon', monospace;
-  --font-logo: 'Archivo Black', sans-serif;
+  --font-dancing: 'Dancing Script', cursive;
+  --font-logo: 'Dancing Script', cursive;
   --font-h1: 'Libre Caslon Display', serif;
   --font-h2: 'Libre Caslon Display', serif;
   --font-h3: 'Inter', sans-serif;
@@ -139,6 +140,41 @@ body {
   font-style: normal;
 }
 
+/* Dancing Script */
+.dancing-script {
+  font-family: "Dancing Script", cursive;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+.dancing-script-regular {
+  font-family: "Dancing Script", cursive;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.dancing-script-medium {
+  font-family: "Dancing Script", cursive;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.dancing-script-semibold {
+  font-family: "Dancing Script", cursive;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.dancing-script-bold {
+  font-family: "Dancing Script", cursive;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}
+
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
@@ -234,4 +270,67 @@ body {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   will-change: transform;
+}
+
+/* Shimmer Loading Skeleton Effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+}
+
+/* Smooth Floating & Orbital Glow Animations */
+@keyframes floatSmooth {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes orbitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-float-smooth {
+  animation: floatSmooth 4.5s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.animate-orbit-spin {
+  animation: orbitSpin 10s linear infinite;
 }
