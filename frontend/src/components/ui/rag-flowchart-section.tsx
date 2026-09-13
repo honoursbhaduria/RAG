@@ -308,26 +308,29 @@ export const RagFlowchartSection: React.FC = () => {
       </section>
 
       {/* Mobile/Tablet Responsive Flowchart View (Overlapping Cards Deck Effect, Overflow Safe) */}
-      <section className="block xl:hidden py-12 px-4 sm:px-6 w-full max-w-xl mx-auto select-none overflow-x-clip">
+      <section className="block xl:hidden py-10 px-3 sm:px-6 w-full max-w-lg mx-auto select-none overflow-x-clip">
         {/* Mobile Central Anchor (Clean Astronaut, No Drop Shadow) */}
         <div className="flex flex-col items-center justify-center mb-6">
-          <Loader size={200} />
+          <Loader size={180} />
         </div>
 
-        {/* Overlapping Stacking Square Cards View */}
-        <div className="relative w-full flex flex-col items-center pb-24">
+        {/* Overlapping Stacking Square Cards View (Block container, No flexbox collapse) */}
+        <div className="relative w-full pb-24">
           {FLOW_STEPS.map((step, index) => (
             <div
               key={step.stepNum}
-              className="sticky w-full max-w-[340px] sm:max-w-[380px] aspect-square mx-auto transition-all duration-200"
+              className="sticky mx-auto transition-all duration-200"
               style={{
-                top: `${72 + index * 12}px`,
+                top: `${76 + index * 12}px`,
                 zIndex: index + 10,
                 marginBottom: index === FLOW_STEPS.length - 1 ? '0' : '24px',
+                width: 'calc(100% - 16px)',
+                maxWidth: '350px',
+                aspectRatio: '1 / 1',
               }}
             >
               {/* Square Overlapping Card Chassis (Zero Shadow, Clean Crisp Borders) */}
-              <div className="w-full h-full relative rounded-[24px] p-3.5 sm:p-4 bg-[#222225] border border-neutral-700 backdrop-blur-md flex flex-col justify-between overflow-hidden">
+              <div className="w-full h-full relative rounded-[24px] p-4 bg-[#222225] border border-neutral-700 backdrop-blur-md flex flex-col justify-between overflow-hidden">
                 {/* Corner registration marks */}
                 <div className="absolute top-2.5 left-2.5 w-1.5 h-1.5 border-t border-l border-neutral-500/60 pointer-events-none" />
                 <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 border-t border-r border-neutral-500/60 pointer-events-none" />
@@ -335,8 +338,8 @@ export const RagFlowchartSection: React.FC = () => {
                 <div className="absolute bottom-2.5 right-2.5 w-1.5 h-1.5 border-b border-r border-neutral-500/60 pointer-events-none" />
 
                 {/* Card Header Bar */}
-                <div className="flex items-center justify-between px-1 pb-2 border-b border-neutral-700/60 shrink-0">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center justify-between px-1 pb-2 border-b border-neutral-700/60 shrink-0 gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                     <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-neutral-200 truncate">
                       {step.step} &bull; {step.title}
@@ -347,8 +350,8 @@ export const RagFlowchartSection: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Card Image Canvas (Fills Square Center, Clean Crisp Display) */}
-                <div className="relative flex-1 w-full rounded-[14px] overflow-hidden border border-neutral-700/80 my-2 bg-[#18181a] min-h-0">
+                {/* Card Image Canvas (Fills Square Center, Guaranteed Min-Height) */}
+                <div className="relative flex-1 w-full rounded-[14px] overflow-hidden border border-neutral-700/80 my-2 bg-[#18181a] min-h-[170px]">
                   <img
                     src={step.image}
                     alt={step.alt}
@@ -358,8 +361,8 @@ export const RagFlowchartSection: React.FC = () => {
                 </div>
 
                 {/* Card Footer Info */}
-                <div className="flex items-center justify-between text-xs font-mono text-neutral-400 px-1 gap-2 shrink-0">
-                  <span className="text-neutral-300 font-sans font-medium text-[11px] sm:text-xs truncate">
+                <div className="flex items-center justify-between text-xs font-mono text-neutral-400 px-1 gap-2 shrink-0 pt-0.5">
+                  <span className="text-neutral-300 font-sans font-medium text-xs truncate flex-1 min-w-0">
                     {step.subtitle}
                   </span>
                   <span className="text-emerald-400 font-mono text-[10px] sm:text-[11px] bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
