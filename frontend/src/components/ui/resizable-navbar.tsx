@@ -62,8 +62,7 @@ export const NavBody = ({ children, className }: NavBodyProps) => {
     <div
       className={cn(
         "hidden lg:flex items-center justify-between h-14 w-full rounded-full px-6 select-none transition-all duration-200 overflow-hidden",
-        // Keyboard chassis aesthetic: solid neutral-200 tone matching keyboard
-        "bg-neutral-200 border border-neutral-300",
+        "bg-black border border-neutral-800 shadow-2xl text-white",
         className,
       )}
     >
@@ -99,7 +98,7 @@ export const MobileNav = ({ children, className }: MobileNavProps) => {
     <div
       className={cn(
         "flex lg:hidden flex-col w-full rounded-3xl select-none transition-all overflow-hidden",
-        "bg-neutral-200 border border-neutral-300",
+        "bg-black border border-neutral-800 shadow-2xl text-white",
         className,
       )}
     >
@@ -138,7 +137,7 @@ export const MobileNavMenu = ({
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.2, ease: "easeInOut" }}
           className={cn(
-            "overflow-hidden flex flex-col gap-3 px-5 pb-5 pt-2 border-t border-neutral-300",
+            "overflow-hidden flex flex-col gap-3 px-5 pb-5 pt-2 border-t border-neutral-800 text-white",
             className,
           )}
         >
@@ -160,13 +159,13 @@ export const MobileNavToggle = ({
     <button
       onClick={onClick}
       type="button"
-      className="p-1.5 cursor-pointer rounded-full hover:bg-black/5 transition-colors"
+      className="p-1.5 cursor-pointer rounded-full hover:bg-white/10 transition-colors text-white"
       aria-label="Toggle navigation menu"
     >
       {isOpen ? (
-        <IconX className="text-black w-5 h-5" />
+        <IconX className="text-white w-5 h-5" />
       ) : (
-        <IconMenu2 className="text-black w-5 h-5" />
+        <IconMenu2 className="text-white w-5 h-5" />
       )}
     </button>
   );
@@ -182,12 +181,12 @@ export const NavbarLogo = ({
   return (
     <a
       href={href}
-      className="flex items-center space-x-2.5 py-1 text-black cursor-pointer shrink-0 select-none group"
+      className="flex items-center space-x-2.5 py-1 text-white cursor-pointer shrink-0 select-none group"
     >
-      <div className="px-2 h-[28px] rounded-lg bg-[#181818] flex items-center justify-center shrink-0 border border-black/10 overflow-hidden relative group-hover:scale-105 transition-transform">
+      <div className="px-2.5 h-[28px] rounded-lg bg-neutral-900 flex items-center justify-center shrink-0 border border-neutral-800 overflow-hidden relative group-hover:scale-105 transition-transform">
         <span className="text-white font-black text-xs tracking-tight">3AM</span>
       </div>
-      <span className="font-bold text-base tracking-tight text-neutral-800">{logoText}</span>
+      <span className="font-bold text-base tracking-tight text-white">{logoText}</span>
     </a>
   );
 };
@@ -214,9 +213,9 @@ export const NavbarButton = ({
 
   const variantStyles = {
     primary:
-      "bg-[#181818] text-white hover:bg-neutral-800 border border-black/10",
+      "bg-white text-black hover:bg-neutral-200 border border-white font-medium",
     secondary:
-      "bg-transparent text-neutral-700 hover:text-black hover:bg-neutral-300/60 border border-transparent active:bg-neutral-300/80",
+      "bg-transparent text-neutral-300 hover:text-white hover:bg-white/10 border border-transparent active:bg-white/15",
     dark: "bg-neutral-900 text-white hover:bg-black",
     gradient:
       "bg-gradient-to-b from-blue-500 to-blue-700 text-white",

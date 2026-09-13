@@ -6,77 +6,117 @@ import {
 export default function DraggableCardDemo() {
   const items = [
     {
-      title: "Tyler Durden",
-      image:
-        "https://images.unsplash.com/photo-1732310216648-603c0255c000?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      className: "absolute top-8 left-[8%] sm:left-[14%] rotate-[-5deg]",
+      step: "NODE 01",
+      title: "StateGraph Reasoning Core",
+      subtitle: "LangGraph Cyclic Planner",
+      image: "/images/draggable/node1-stategraph.jpg",
+      className: "absolute top-10 left-[4%] sm:left-[8%] rotate-[-4deg]",
     },
     {
-      title: "The Narrator",
-      image:
-        "https://images.unsplash.com/photo-1697909623564-3dae17f6c20b?q=80&w=2667&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      className: "absolute top-36 left-[16%] sm:left-[22%] rotate-[-7deg]",
+      step: "NODE 02",
+      title: "Semantic Knowledge Mesh",
+      subtitle: "Qdrant Hybrid Vectors",
+      image: "/images/draggable/node2-knowledge-mesh.jpg",
+      className: "absolute top-12 right-[4%] sm:right-[8%] rotate-[5deg]",
     },
     {
-      title: "Iceland",
-      image:
-        "https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=2600&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      className: "absolute top-6 left-[30%] sm:left-[36%] rotate-[8deg]",
+      step: "NODE 03",
+      title: "Agentic Code Studio",
+      subtitle: "Groq LPU Copilot",
+      image: "/images/draggable/node3-code-copilot.jpg",
+      className: "absolute top-[280px] left-[10%] sm:left-[16%] rotate-[3deg]",
     },
     {
-      title: "Japan",
-      image:
-        "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?q=80&w=3648&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      className: "absolute top-32 left-[44%] sm:left-[50%] rotate-[10deg]",
+      step: "NODE 04",
+      title: "Neural Vector Accelerator",
+      subtitle: "FlashRank CPU ONNX",
+      image: "/images/draggable/node4-tensor-accelerator.jpg",
+      className: "absolute top-[290px] right-[10%] sm:right-[16%] rotate-[-5deg]",
     },
     {
-      title: "Norway",
-      image:
-        "https://images.unsplash.com/photo-1421789665209-c9b2a435e3dc?q=80&w=3542&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      className: "absolute top-16 right-[8%] sm:right-[16%] rotate-[2deg]",
+      step: "NODE 05",
+      title: "Zero-Trust Security Gate",
+      subtitle: "NeMo Colang Shield",
+      image: "/images/draggable/node5-guardrails-shield.jpg",
+      className: "absolute bottom-10 left-[6%] sm:left-[12%] rotate-[-2deg]",
     },
     {
-      title: "New Zealand",
-      image:
-        "https://images.unsplash.com/photo-1505142468610-359e7d316be0?q=80&w=3070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      className: "absolute top-24 left-[34%] sm:left-[42%] rotate-[-7deg]",
-    },
-    {
-      title: "Canada",
-      image:
-        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2560&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      className: "absolute top-10 left-[20%] sm:left-[28%] rotate-[4deg]",
+      step: "NODE 06",
+      title: "Resilient Portkey Gateway",
+      subtitle: "Sub-100ms LPU Inference",
+      image: "/images/draggable/node6-api-gateway.jpg",
+      className: "absolute bottom-10 right-[6%] sm:right-[12%] rotate-[4deg]",
     },
   ];
 
   return (
     <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8">
-      <DraggableCardContainer className="relative flex h-[760px] md:h-[840px] w-full items-center justify-center overflow-hidden rounded-[32px] border-2 border-dashed border-neutral-400/80 dark:border-neutral-700 bg-neutral-100/60 dark:bg-neutral-900/40 shadow-inner select-none">
-        {/* Border Status Header */}
-        <div className="absolute top-5 left-6 z-20 flex items-center gap-2 select-none pointer-events-none">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neutral-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-neutral-600 dark:bg-neutral-300"></span>
-          </span>
-          <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-500 dark:text-neutral-400 font-semibold">
-            Draggable Area • Move cards within border
+      {/* Movable Picture Box Container with Fine Art Rag Grain Finish */}
+      <DraggableCardContainer className="relative flex h-[880px] md:h-[940px] w-full items-center justify-center overflow-hidden rounded-[32px] border border-neutral-300/70 dark:border-neutral-800 bg-[#f4f2ea] dark:bg-[#151518] shadow-[inset_0_2px_30px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_2px_40px_rgba(0,0,0,0.5)] select-none">
+        {/* Fine Art Rag Paper / Tactile Grain Finish Overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-45 mix-blend-overlay z-0"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ragGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ragGrain)' opacity='0.75'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'repeat',
+          }}
+        />
+
+        {/* Subtle Vignette Depth */}
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_35%,rgba(0,0,0,0.08)_100%)] dark:bg-[radial-gradient(circle_at_center,transparent_30%,rgba(0,0,0,0.45)_100%)] z-0" />
+
+        {/* Header Status Indicator */}
+        <div className="absolute top-6 left-8 z-20 flex items-center gap-2 select-none pointer-events-none">
+          <span className="w-2 h-2 rounded-full bg-neutral-500 dark:bg-neutral-400" />
+          <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-600 dark:text-neutral-400 font-semibold">
+            Interactive Architecture Canvas • Drag to Rearrange
           </span>
         </div>
 
-        <p className="absolute top-1/2 mx-auto max-w-lg -translate-y-1/2 text-center text-2xl sm:text-3xl md:text-5xl font-normal libre-caslon-display-regular italic text-neutral-400/80 dark:text-neutral-700 select-none pointer-events-none px-4">
-          If its your first day at Fight Club, you have to fight.
+        {/* Centerpiece Watermark */}
+        <p className="absolute top-1/2 mx-auto max-w-xl -translate-y-1/2 text-center text-2xl sm:text-3xl md:text-5xl font-normal libre-caslon-display-regular italic text-neutral-400/80 dark:text-neutral-600 select-none pointer-events-none px-6 z-0">
+          Deterministic, hallucination-free retrieval for the enterprise.
         </p>
 
+        {/* Draggable Cards Distributed Across Canvas */}
         {items.map((item) => (
           <DraggableCardBody key={item.title} className={item.className}>
-            <img
-              src={item.image}
-              alt={item.title}
-              className="pointer-events-none relative z-10 h-64 sm:h-72 w-full rounded-xl object-cover border border-neutral-200/80 dark:border-neutral-800 shadow-sm"
-            />
-            <h3 className="mt-4 text-center text-xl font-bold text-neutral-800 dark:text-neutral-200 select-none">
-              {item.title}
-            </h3>
+            {/* Card Header */}
+            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-neutral-200/80 dark:border-neutral-800">
+              <span className="text-[10px] font-mono font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
+                {item.step}
+              </span>
+              <span className="text-[10px] font-mono text-neutral-400 dark:text-neutral-500">
+                Drag ✥
+              </span>
+            </div>
+
+            {/* Picture Window */}
+            <div className="relative overflow-hidden rounded-xl h-48 sm:h-52 w-full bg-black/10 dark:bg-black/40">
+              <img
+                src={item.image}
+                alt={item.title}
+                className="pointer-events-none w-full h-full object-cover border border-neutral-200/80 dark:border-neutral-800 shadow-sm"
+                loading="lazy"
+              />
+              {/* Subtle card grain */}
+              <div
+                className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay z-20"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='cardGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23cardGrain)'/%3E%3C/svg%3E")`,
+                }}
+              />
+            </div>
+
+            {/* Card Footer */}
+            <div className="mt-3">
+              <h3 className="text-sm sm:text-base font-bold text-neutral-800 dark:text-neutral-100 select-none">
+                {item.title}
+              </h3>
+              <p className="text-xs font-mono text-neutral-500 dark:text-neutral-400 mt-0.5 select-none">
+                {item.subtitle}
+              </p>
+            </div>
           </DraggableCardBody>
         ))}
       </DraggableCardContainer>

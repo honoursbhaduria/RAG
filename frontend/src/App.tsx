@@ -4,22 +4,25 @@ import KeyboardDemo from '@/components/keyboard-demo';
 import BrandTimeline from '@/components/brand-timeline';
 import RippleGrid from '@/components/ui/RippleGrid';
 import LogoLoop, { type LogoItem } from '@/components/ui/LogoLoop';
-import Loader from '@/components/ui/astronaut-loader';
+import RedNetworkGlobe from '@/components/ui/red-network-globe';
+import RagFlowchartSection from '@/components/ui/rag-flowchart-section';
 import DraggableCardDemo from '@/components/ui/draggable-card-demo-2';
+import GooeyNav from '@/components/ui/GooeyNav';
 import {
-  IconCompass,
-  IconCircleDotted,
-  IconBolt,
-  IconLeaf,
-  IconWorld,
+  IconCpu,
+  IconDatabase,
+  IconShieldCheck,
+  IconBrain,
   IconSparkles,
-  IconTriangle,
-  IconCube,
+  IconBolt,
+  IconServer,
+  IconActivity,
+  IconChartBar,
+  IconBrandOpenai,
 } from '@tabler/icons-react';
 import {
   Navbar,
   NavBody,
-  NavItems,
   MobileNav,
   NavbarLogo,
   NavbarButton,
@@ -32,83 +35,101 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { name: "Product", link: "#product" },
-    { name: "Solutions", link: "#solutions" },
-    { name: "Security", link: "#security" },
+    { name: "Pipeline", link: "#pipeline" },
+    { name: "Architecture", link: "#architecture" },
+    { name: "Subsystems", link: "#subsystems" },
   ];
 
   const partnerLogos: LogoItem[] = [
     {
       node: (
         <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
-          <IconCompass className="w-6 h-6 stroke-[1.75]" />
-          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Northline</span>
+          <IconBrain className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">LangGraph</span>
         </div>
       ),
-      title: "Northline",
+      title: "LangGraph",
     },
     {
       node: (
         <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
-          <IconCircleDotted className="w-6 h-6 stroke-[1.75]" />
-          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Arcform</span>
+          <IconShieldCheck className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">NVIDIA NeMo</span>
         </div>
       ),
-      title: "Arcform",
+      title: "NVIDIA NeMo",
     },
     {
       node: (
         <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
-          <IconBolt className="w-6 h-6 stroke-[1.75]" />
-          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Velo Group</span>
+          <IconDatabase className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Qdrant</span>
         </div>
       ),
-      title: "Velo Group",
+      title: "Qdrant",
     },
     {
       node: (
         <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
-          <IconLeaf className="w-6 h-6 stroke-[1.75]" />
-          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Juniper</span>
+          <IconCpu className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Groq LPUs</span>
         </div>
       ),
-      title: "Juniper",
-    },
-    {
-      node: (
-        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
-          <IconWorld className="w-6 h-6 stroke-[1.75]" />
-          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Meridian</span>
-        </div>
-      ),
-      title: "Meridian",
+      title: "Groq LPUs",
     },
     {
       node: (
         <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
           <IconSparkles className="w-6 h-6 stroke-[1.75]" />
-          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Lumio</span>
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Gemini 3072d</span>
         </div>
       ),
-      title: "Lumio",
+      title: "Gemini 3072d",
     },
     {
       node: (
         <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
-          <IconTriangle className="w-6 h-6 stroke-[1.75]" />
-          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Vertex</span>
+          <IconBolt className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">FlashRank</span>
         </div>
       ),
-      title: "Vertex",
+      title: "FlashRank",
     },
     {
       node: (
         <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
-          <IconCube className="w-6 h-6 stroke-[1.75]" />
-          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Kube</span>
+          <IconBrandOpenai className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Portkey AI</span>
         </div>
       ),
-      title: "Kube",
+      title: "Portkey AI",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconActivity className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">Logfire</span>
+        </div>
+      ),
+      title: "Logfire",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconChartBar className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">LangSmith</span>
+        </div>
+      ),
+      title: "LangSmith",
+    },
+    {
+      node: (
+        <div className="flex items-center gap-3 text-neutral-600 hover:text-black transition-colors duration-200 select-none cursor-pointer">
+          <IconServer className="w-6 h-6 stroke-[1.75]" />
+          <span className="font-h3 text-2xl md:text-3xl font-semibold tracking-tight">FastAPI</span>
+        </div>
+      ),
+      title: "FastAPI",
     },
   ];
 
@@ -118,11 +139,24 @@ export default function App() {
       <Navbar>
         {/* Desktop Navigation */}
         <NavBody>
-          <NavbarLogo logoText="3AM DEVS" />
-          <NavItems items={navItems} />
+          <NavbarLogo logoText="AGENTIC RAG" />
+          <GooeyNav
+            items={[
+              { label: "Architecture", href: "#architecture" },
+              { label: "Subsystems", href: "#subsystems" },
+              { label: "Telemetry", href: "#telemetry" },
+            ]}
+            particleCount={15}
+            particleDistances={[90, 10]}
+            particleR={100}
+            initialActiveIndex={0}
+            animationTime={600}
+            timeVariance={300}
+            colors={[1, 2, 3, 1, 2, 3, 1, 4]}
+          />
           <div className="flex items-center gap-3 relative z-20 shrink-0">
-            <NavbarButton variant="secondary" href="#contact">Login</NavbarButton>
-            <NavbarButton variant="primary" href="#demo">Book a demo</NavbarButton>
+            <NavbarButton variant="secondary" href="http://localhost:8000/api/docs">Swagger Docs</NavbarButton>
+            <NavbarButton variant="primary" href="http://localhost:8000/health">Health Check</NavbarButton>
           </div>
         </NavBody>
 
@@ -145,23 +179,23 @@ export default function App() {
                 key={`mobile-link-${idx}`}
                 href={item.link}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="relative py-1 text-sm font-medium text-neutral-700 hover:text-black transition-colors"
+                className="relative py-2 px-3 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors"
               >
                 <span className="block">{item.name}</span>
               </a>
             ))}
-            <div className="flex w-full flex-col gap-3 pt-2 border-t border-neutral-300">
+            <div className="flex w-full flex-col gap-3 pt-3 border-t border-neutral-800">
               <NavbarButton
                 onClick={() => setIsMobileMenuOpen(false)}
                 variant="secondary"
-                className="w-full"
+                className="w-full justify-center"
               >
                 Login
               </NavbarButton>
               <NavbarButton
                 onClick={() => setIsMobileMenuOpen(false)}
                 variant="primary"
-                className="w-full"
+                className="w-full justify-center"
               >
                 Book a demo
               </NavbarButton>
@@ -192,18 +226,12 @@ export default function App() {
               />
             </div>
 
-            <h1 className="relative z-10 font-display text-4xl sm:text-6xl md:text-[82px] leading-[1.05] tracking-[-0.04em] text-balance max-w-4xl mb-lg text-text font-semibold pointer-events-none select-none">
-              Bring every team into focus
+            <h1 className="relative z-10 font-display text-4xl sm:text-6xl md:text-[80px] leading-[1.05] tracking-[-0.04em] text-balance max-w-5xl mb-8 text-text font-semibold pointer-events-none select-none">
+              Enterprise Agentic RAG
             </h1>
           </div>
-          <p className="font-body-lg text-body-lg text-muted max-w-2xl mb-lg hidden">
-            Decode your lorem ipsum DNA. Bring absolute clarity to your organization's most critical assets with a platform designed for deep focus.
-          </p>
-          <button className="bg-black text-page-bg font-label text-label px-8 py-4 rounded-full hover:bg-black/90 transition-opacity mb-[80px] hidden">
-            Get started
-          </button>
           {/* Interactive Keyboard */}
-          <div className="w-full max-w-[1492px] flex items-center justify-center relative z-10 py-6 md:py-10">
+          <div className="w-full max-w-[1492px] flex items-center justify-center relative z-10 py-4 md:py-8">
             <KeyboardDemo />
           </div>
         </section>
@@ -211,7 +239,7 @@ export default function App() {
         {/* 2. Trust Strip with LogoLoop */}
         <section className="py-12 md:py-16 px-4 md:px-margin border-t border-line/30 max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg relative z-0 overflow-hidden">
           <p className="font-label text-xs uppercase tracking-[0.2em] text-muted mb-8 text-center font-medium">
-            Built with modern leaders from
+            Engineered with production-grade AI infrastructure
           </p>
           <div className="w-full overflow-hidden">
             <LogoLoop
@@ -229,215 +257,188 @@ export default function App() {
           </div>
         </section>
 
-        {/* 3. Floating Visual Collage */}
-        <section className="h-[1200px] w-full max-w-[1728px] mx-auto relative overflow-hidden bg-page-bg hidden md:block">
-          {/* Central Anchor - 3D Astronaut */}
-          <div
-            className="absolute z-10 select-none flex items-center justify-center pointer-events-none"
-            style={{ left: '50%', top: '430px', transform: 'translate(-50%, -50%)' }}
-          >
-            <Loader size={360} />
-          </div>
-
-          {/* 1. Top-left */}
-          <div
-            className="absolute rounded-[12px] overflow-hidden bg-panel-bg shadow-md hover:scale-105 transition-transform duration-500"
-            style={{ left: '8%', top: '10px', width: '270px', height: '210px' }}
-          >
-            <img
-              alt="Collage piece 1"
-              className="w-full h-full object-cover opacity-90 mix-blend-luminosity"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9Eu4GHa4HcZNOEEtD99nwhNeXd_r6nKvv_j-kmlyfpOyJ-agnnRp8TCFPCgxdmD063zG5H55vS7Kl1Fm1sa9rmyTM9H3hRcnl-D5Zb0eM1q5MOIhGcoP5fBjbboQd42gVrYWS7IwChMh9jwlEuFS1h5yuxlC2yNp9NKbUvPtq9tivKTbQprQKWaoDn7DyXOB_4V4q7jLHjD5qwHUrh7dg3YLwxOBg1Y-Bb78Zfdo8lA8jinqJAf3YY4dB38_tyfPXzAqQvCH558H0"
-            />
-          </div>
-
-          {/* 2. Top-right */}
-          <div
-            className="absolute rounded-[12px] overflow-hidden bg-panel-bg shadow-md hover:scale-105 transition-transform duration-500"
-            style={{ right: '8%', top: '0px', width: '290px', height: '260px' }}
-          >
-            <img
-              alt="Collage piece 2"
-              className="w-full h-full object-cover grayscale opacity-80"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_ukkwXMpdu6e3ppYpH6BD1_-rNjOtPCNphQxqVAwibL3vPsIFhdrTseYbg_mFXNV8wfdsFKJzdM1llH6-3Ooyb7rnKK_W8wdU3JdsbBHv2HrWRub1BwUXCUCdBesVtKBjoukKmMwaO8GJlVfL0k97LJYVNEWn-F5r7fMIF99qrQvBhQ8XkttAku39rNe6s8MSlCCLLtFq1abMNKcy0UL1LSTGpVO3OuoWhVmIpJSWLHJ_CtFnzwnzLrDDvHxCf-x1SgnOeGrX9egf"
-            />
-          </div>
-
-          {/* 3. Left-middle */}
-          <div
-            className="absolute rounded-[12px] overflow-hidden bg-panel-bg relative shadow-md hover:scale-105 transition-transform duration-500"
-            style={{ left: '9%', top: '470px', width: '330px', height: '200px' }}
-          >
-            <img
-              alt="Collage piece 3"
-              className="w-full h-full object-cover grayscale opacity-90"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNavYRwMD7oKvwrejumqeVb5grj3c2x3jtZ_PV3sqY6_I8rnCesfQjvsgf3d0ic5jzrqvRjRUJsvDz2Aa58Ef6HgAHAjafCFs5AD0fXSd6qzZ1F1ICCMQT6xGCK2NrdWf9d1hghSt4P3uIDyDROe56ggPg0WoKH5Yxlisxx5X2dbPfsoQxdeC8qJdHMmdqHMjwjD_YxQWvXfqy2N4mGSwR6Icu8dAelCZkrUJsJoRVETkQ9G3YDvp9AsjQkNWULBEOonPtST81DFgJ"
-            />
-            <div className="absolute top-4 left-4 bg-white-card/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
-              <span className="font-label text-xs font-semibold text-text">Content Guidelines</span>
-            </div>
-          </div>
-
-          {/* 4. Right-middle */}
-          <div
-            className="absolute rounded-[12px] overflow-hidden bg-panel-bg shadow-md hover:scale-105 transition-transform duration-500"
-            style={{ right: '5%', top: '270px', width: '250px', height: '330px' }}
-          >
-            <img
-              alt="Collage piece 4"
-              className="w-full h-full object-cover grayscale opacity-90"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrpaFvvF7en0CGZX5ONntjNihYUq1Z_-_LbaQTubxafa9z3gPDG-EfHCHkWFqm3LoWth700qlDOvMW4CxRKoWinMdIbqdTLps1ehsQRniSSZvH6Vy8POjGKYMEKa1b0zM7_uWkKso-6aAIy8u8gkh6mExdkSBT0EpauryhquZA61p-lUkG0o_3WNHybUWjx7lBJVs4TWOfs4NuVQ_-l7LSS5Xi_KK5UFPYtTpoBmD1mqjcNDuGKIFSVdPeh-Wyf7P9_aun3Nm_-33h"
-            />
-          </div>
-
-          {/* 5. Center-lower */}
-          <div
-            className="absolute rounded-[12px] overflow-hidden bg-black z-0 shadow-md hover:scale-105 transition-transform duration-500"
-            style={{ left: '50%', top: '560px', width: '370px', height: '250px', transform: 'translateX(-20%)' }}
-          >
-            <img
-              alt="Collage piece 5"
-              className="w-full h-full object-cover grayscale opacity-80"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuhoApO9ae7ghimBcn9BPPTivJNd8wXOAIlaBLHDjnY0LOBt1RHjXYED1Gw1k4OyBVX3nzpsadBgr-PkaPpGOJ0Ncc2keoy5bLdbRaUvdWsd2X6nZ_UwN59sHVVMUbjVXvmErTc4-n1u6JeMz4cafAxh1LxhuDPmvZcT3i3-fY80U46x98ScklqvNEI4Wt8VJat6ztpSjUy_xxi-OjErnKcXbrBwC80xptX0SEljn5YieZtAok8butz8WHELTCCOUxSxCHtEYn9QbT"
-            />
-          </div>
-
-          {/* 6. Floating Comment */}
-          <div
-            className="absolute bg-panel-bg rounded-full flex items-center gap-3 px-4 py-3 shadow-lg border border-line/50 z-20 hover:shadow-xl transition-shadow"
-            style={{ left: '42%', top: '800px', width: '305px', height: '62px' }}
-          >
-            <div className="w-8 h-8 rounded-full bg-soft-card overflow-hidden shrink-0">
-              <img
-                alt="User avatar"
-                className="w-full h-full object-cover grayscale"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBq41uinHeBiMX-cglCA0RPd-Gyi7Rea3rfHcMQV30zxatLeEEwcA1Gv4dfpSOhjgbvrMTveFXAmVVgoZk51Wf-QIyxv1-btaTdygIk8IZ48U3e6MXY_1PXUu7DfIVQHMHK9Nd0bWUFXOqUWQX0kJEvX-ILe7j8VRfCWN8QnKWMeE4-oWrrvqyNExjMAYu89BGzhItmJddqUphk5I39JN8ewkBKrzmCHfVTrmlKWYfX2JLwl-z5KPudJOAGiuxOQqyXJzbJ2lxQ4YM"
-              />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-label text-[10px] text-text font-bold">lorem_d</span>
-              <span className="font-body-md text-[13px] text-muted leading-tight">so so good!!!! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1h</span>
-            </div>
-          </div>
-
-          {/* 7. Bottom-left */}
-          <div
-            className="absolute rounded-[12px] overflow-hidden bg-panel-bg relative shadow-md hover:scale-105 transition-transform duration-500"
-            style={{ left: '3%', top: '880px', width: '340px', height: '250px' }}
-          >
-            <img
-              alt="Collage piece 7"
-              className="w-full h-full object-cover grayscale opacity-90"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKsFrFItneuA8Y9MCUadGUZWuA8x4TxgTrVsbJtlXSr36Gjarjn1Q6nKVJ6RanXBHEaJp6wyn3rg4iiOCyihHaczxitcDA1ojzOjUxdaB6xi_cFk9TtDMImaj1XTF1VpvY2cpvlqSqHwim5KQ7ZVm6QeYoA-FWtKYpOVqlHvR1-hRKmoQLKfXRiCVY36O8PBMeaG3G2Lz4MtpjgukZ-8cdPI3gyhHTs0wU8fgENhE5rKff4nq4oVXF4ZGWph8qiihyLXBoVG1mdfCR"
-            />
-            <div className="absolute bottom-4 left-4 bg-white-card/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
-              <span className="font-label text-xs font-semibold text-text">Brand Voice</span>
-            </div>
-          </div>
-
-          {/* 8. Bottom-right */}
-          <div
-            className="absolute rounded-[12px] overflow-hidden bg-panel-bg shadow-md hover:scale-105 transition-transform duration-500"
-            style={{ right: '6%', top: '840px', width: '410px', height: '300px' }}
-          >
-            <img
-              alt="Collage piece 8"
-              className="w-full h-full object-cover mix-blend-luminosity opacity-80"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa-91Ro6EFVsdJZTyq2p_PBpy5-VPNrqP0-UG3SMytUgShIhaUyJ-uZ9kwySXw7RYWEhwPzBeUADFyDiJGZdM9diqei2CFJIQXGRHOnCFOXlfrwaGRruPnmIuehjcickYw8LpYdNHni5Tm6RhU_SEMxaEsLDMlzdWh_hXysftIEsoY6HD29HrcGC7lvi9reR6YdbjNNSFJloHpd39n_Dx1cqNKFwbQ3SISEHA6xZJk4JktqjYCXZ5ZdxGQJBnijlL_Yukxahb8nvyV"
-            />
-          </div>
+        {/* 3. Flowchart Visual Architecture around Central Astronaut */}
+        <section id="pipeline">
+          <RagFlowchartSection />
         </section>
 
         {/* 4. Manifesto */}
-        <section className="py-[120px] md:py-[200px] px-margin max-w-[1728px] mx-auto relative flex flex-col items-center text-center bg-page-bg">
-          <div className="absolute top-0 right-[10%] w-[300px] md:w-[400px] h-[300px] md:h-[400px] opacity-10 pointer-events-none">
-            <svg className="w-full h-full" fill="none" stroke="currentColor" strokeWidth="0.5" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="48"></circle>
-              <ellipse cx="50" cy="50" rx="24" ry="48"></ellipse>
-              <ellipse cx="50" cy="50" rx="48" ry="24"></ellipse>
-              <line x1="2" x2="98" y1="50" y2="50"></line>
-              <line x1="50" x2="50" y1="2" y2="98"></line>
-            </svg>
+        <section className="py-[120px] md:py-[200px] px-margin max-w-[1728px] mx-auto relative flex flex-col items-center text-center bg-page-bg overflow-hidden">
+          <div className="absolute top-1/2 -translate-y-1/2 right-[-60px] md:right-[3%] lg:right-[6%] w-[320px] h-[320px] sm:w-[420px] sm:h-[420px] md:w-[520px] md:h-[520px] opacity-80 pointer-events-none -z-0">
+            <RedNetworkGlobe size="100%" glow={false} />
           </div>
-          <h2 className="font-display text-2xl sm:text-4xl md:text-[49px] leading-[1.15] md:leading-[1.1] text-balance max-w-[1200px] font-semibold text-text relative z-10">
-            As intelligent agents expand across the enterprise, the need for a singular source of truth has never been more critical. Lumio unifies your strategy.
+          <h2 className="font-display text-2xl sm:text-4xl md:text-[46px] leading-[1.2] md:leading-[1.15] text-balance max-w-[1240px] font-semibold text-text relative z-10">
+            Unlike basic flat-similarity RAG pipelines, our Enterprise Agentic RAG implements dynamic LangGraph reasoning, zero-trust NeMo guardrails, and two-stage cross-encoder reranking for deterministic, hallucination-free retrieval.
           </h2>
         </section>
 
-        {/* 5. Brand OS Timeline */}
-        <section id="product" className="py-[40px] md:py-[80px] px-margin max-w-[1728px] mx-auto bg-page-bg">
+        {/* 5. Architecture Timeline */}
+        <section id="architecture" className="py-[40px] md:py-[80px] px-margin max-w-[1728px] mx-auto bg-page-bg">
           <BrandTimeline />
         </section>
 
-        {/* 6. Team Use Cases */}
-        <section id="solutions" className="py-[100px] md:py-[160px] px-margin max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg">
-          <h2 className="font-display text-2xl md:text-h2 mb-12 md:mb-16 font-semibold text-center text-text">
-            Built for every team.
+        {/* 6. Core Subsystems */}
+        <section id="subsystems" className="py-[100px] md:py-[160px] px-margin max-w-[1728px] mx-auto flex flex-col items-center bg-page-bg">
+          <h2 className="font-display text-2xl md:text-h2 mb-4 font-semibold text-center text-text">
+            Engineered for enterprise scale.
           </h2>
+          <p className="font-body-md text-base md:text-lg text-muted text-center max-w-2xl mb-12 md:mb-16">
+            Production-hardened components delivering high throughput, fault tolerance, and deterministic multi-turn conversations.
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
             {/* Card 1 */}
-            <div className="bg-panel-bg h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden relative border border-line/10 hover:shadow-lg transition-all duration-300">
-              <div className="relative z-10">
-                <h4 className="font-h3 text-xl font-semibold mb-2 text-text">Campaign Briefs</h4>
-                <p className="font-body-md text-muted">Generate comprehensive briefs aligned with brand strategy.</p>
+            <div className="bg-panel-bg rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
+              <div>
+                <h4 className="font-h3 text-xl sm:text-2xl font-semibold mb-2 text-text">Adaptive Planning & Memory</h4>
+                <p className="font-body-md text-sm sm:text-base text-muted leading-relaxed mb-6">
+                  LangGraph StateGraph dynamically classifies intents between pure conversational context, document summaries, and technical retrieval, backed by MemorySaver thread persistence.
+                </p>
               </div>
-              <div className="absolute bottom-[-20px] right-[-20px] w-2/3 h-2/3 bg-white-card rounded-tl-3xl shadow-lg border border-line/20 p-6 transform group-hover:-translate-y-2 group-hover:-translate-x-2 transition-transform duration-500">
-                <div className="h-3 w-1/2 bg-line rounded-full mb-4"></div>
-                <div className="h-2 w-full bg-line/50 rounded-full mb-3"></div>
-                <div className="h-2 w-5/6 bg-line/50 rounded-full mb-3"></div>
+
+              {/* IDE Code Window */}
+              <div className="rounded-2xl bg-[#111111] border border-neutral-800/90 shadow-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-[#181818] border-b border-neutral-800/80">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90"></span>
+                    <span className="ml-2 font-mono text-xs text-neutral-400">planner.py</span>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase text-neutral-500 font-medium">python</span>
+                </div>
+                <pre className="p-4 font-mono text-[11px] sm:text-xs leading-relaxed text-neutral-300 overflow-x-auto">
+                  <code>
+                    <span className="text-[#c678dd]">async def</span> <span className="text-[#61afef]">planner_node</span>(state: AgentState):{'\n'}
+                    {'    '}intent = <span className="text-[#c678dd]">await</span> classify_intent(state[<span className="text-[#98c379]">"current_query"</span>]){'\n'}
+                    {'    '}<span className="text-[#c678dd]">if</span> intent == <span className="text-[#98c379]">"CONVERSATIONAL"</span>:{'\n'}
+                    {'        '}<span className="text-[#c678dd]">return</span> &#123;<span className="text-[#98c379]">"route"</span>: <span className="text-[#98c379]">"responder"</span>&#125;{'\n'}
+                    {'    '}<span className="text-[#c678dd]">return</span> &#123;<span className="text-[#98c379]">"plan"</span>: [<span className="text-[#98c379]">"qdrant"</span>, <span className="text-[#98c379]">"flashrank"</span>], <span className="text-[#98c379]">"route"</span>: <span className="text-[#98c379]">"retriever"</span>&#125;
+                  </code>
+                </pre>
+                <div className="px-4 py-2.5 bg-[#161616] border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                  <span className="text-emerald-400">route_planner() &rarr; RETRIEVAL | CONV</span>
+                  <span className="text-neutral-500">MemorySaver()</span>
+                </div>
               </div>
             </div>
 
             {/* Card 2 */}
-            <div className="bg-soft-card h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden relative border border-line/10 hover:shadow-lg transition-all duration-300">
-              <div className="relative z-10">
-                <h4 className="font-h3 text-xl font-semibold mb-2 text-text">Social Assets</h4>
-                <p className="font-body-md text-muted">Ensure visual consistency across all channels.</p>
+            <div className="bg-soft-card rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
+              <div>
+                <h4 className="font-h3 text-xl sm:text-2xl font-semibold mb-2 text-text">Zero-Trust NeMo Guardrails</h4>
+                <p className="font-body-md text-sm sm:text-base text-muted leading-relaxed mb-6">
+                  Dual-tier safety shield: sub-millisecond regex scanning (&lt; 1ms) plus NVIDIA NeMo Guardrails Colang 1.0 dialog flows intercepting prompt injections and jailbreaks before LLM or vector search.
+                </p>
               </div>
-              <div className="absolute bottom-[-20px] right-[-20px] w-2/3 h-2/3 bg-panel-bg rounded-tl-3xl shadow-lg border border-line/20 overflow-hidden transform group-hover:-translate-y-2 group-hover:-translate-x-2 transition-transform duration-500">
-                <img
-                  alt="Social asset graphic"
-                  className="w-full h-full object-cover grayscale opacity-60"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOekHNw8ykdxPIkY24QzUwgPTWLmPyAXcPqZs-jYR1BrA_Ju27EGXtJe3Kuyg0CLmCM1UFUIWc67BAmYrlQXhsBlLS0IUBzfmB_FNQI61JTbt-DC1OgYKX64mvDQgENGsi4nGTf45BtJMbUIQd4pBoSS0UPWMrgTZt-SZdh8DBqu8Teo87JSRvOevY1DDz9By1ZC4GOxGohkBHKwyKfPzqD9B7mHf2qCwU9X8Nv9G8hZhRDGkfnhotflcGFJ19WHSYNpulNEcNwN-Q"
-                />
+
+              {/* IDE Code Window */}
+              <div className="rounded-2xl bg-[#111111] border border-neutral-800/90 shadow-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-[#181818] border-b border-neutral-800/80">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90"></span>
+                    <span className="ml-2 font-mono text-xs text-neutral-400">rails.py</span>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase text-neutral-500 font-medium">python</span>
+                </div>
+                <pre className="p-4 font-mono text-[11px] sm:text-xs leading-relaxed text-neutral-300 overflow-x-auto">
+                  <code>
+                    <span className="text-[#c678dd]">async def</span> <span className="text-[#61afef]">verify_safety</span>(query: str):{'\n'}
+                    {'    '}<span className="text-[#5c6370]"># Tier 1: Sub-millisecond regex gate (&lt;1ms)</span>{'\n'}
+                    {'    '}<span className="text-[#c678dd]">if</span> any(re.search(p, query) <span className="text-[#c678dd]">for</span> p <span className="text-[#c678dd]">in</span> PATTERNS):{'\n'}
+                    {'        '}<span className="text-[#c678dd]">raise</span> SecurityException(<span className="text-[#98c379]">"Blocked exploit"</span>){'\n'}
+                    {'    '}<span className="text-[#5c6370]"># Tier 2: NeMo Colang rails</span>{'\n'}
+                    {'    '}<span className="text-[#c678dd]">return await</span> nemo_rails.generate_async(query)
+                  </code>
+                </pre>
+                <div className="px-4 py-2.5 bg-[#161616] border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                  <span className="text-blue-400">Regex Gate: &lt; 1ms latency</span>
+                  <span className="text-neutral-500">Colang 1.0 Flows</span>
+                </div>
               </div>
             </div>
 
             {/* Card 3 */}
-            <div className="bg-white-card h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden relative border border-line/20 hover:shadow-lg transition-all duration-300">
-              <div className="relative z-10">
-                <h4 className="font-h3 text-xl font-semibold mb-2 text-text">Sales Decks</h4>
-                <p className="font-body-md text-muted">Empower reps with up-to-date, on-brand messaging.</p>
+            <div className="bg-white-card rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
+              <div>
+                <h4 className="font-h3 text-xl sm:text-2xl font-semibold mb-2 text-text">Hybrid Named Vectors & FlashRank</h4>
+                <p className="font-body-md text-sm sm:text-base text-muted leading-relaxed mb-6">
+                  Single Qdrant collection with 3072-dim Gemini embeddings and sticky failover to local Sentence-Transformers 768-dim (all-mpnet-base-v2), followed by sub-100ms FlashRank CPU cross-encoder reranking.
+                </p>
               </div>
-              <div className="absolute bottom-[-20px] right-[-20px] w-2/3 h-2/3 bg-page-bg rounded-tl-3xl shadow-lg border border-line/20 p-6 transform group-hover:-translate-y-2 group-hover:-translate-x-2 transition-transform duration-500 flex flex-col gap-3">
-                <div className="w-full h-1/2 bg-soft-card rounded-lg"></div>
-                <div className="w-full h-1/2 bg-soft-card rounded-lg flex gap-2">
-                  <div className="w-1/2 h-full bg-line/30 rounded-md"></div>
-                  <div className="w-1/2 h-full bg-line/30 rounded-md"></div>
+
+              {/* IDE Code Window */}
+              <div className="rounded-2xl bg-[#111111] border border-neutral-800/90 shadow-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-[#181818] border-b border-neutral-800/80">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90"></span>
+                    <span className="ml-2 font-mono text-xs text-neutral-400">retrieval.py</span>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase text-neutral-500 font-medium">python</span>
+                </div>
+                <pre className="p-4 font-mono text-[11px] sm:text-xs leading-relaxed text-neutral-300 overflow-x-auto">
+                  <code>
+                    <span className="text-[#c678dd]">async def</span> <span className="text-[#61afef]">search_enterprise</span>(query: str):{'\n'}
+                    {'    '}gemini_v, local_v = <span className="text-[#c678dd]">await</span> embed_dual(query){'\n'}
+                    {'    '}candidates = <span className="text-[#c678dd]">await</span> qdrant.query_points({'\n'}
+                    {'        '}<span className="text-[#98c379]">"enterprise_rag"</span>, vectors=&#123;<span className="text-[#98c379]">"gemini"</span>: gemini_v&#125;{'\n'}
+                    {'    '}){'\n'}
+                    {'    '}<span className="text-[#c678dd]">return</span> flashrank.rerank(query, candidates, top_n=5)
+                  </code>
+                </pre>
+                <div className="px-4 py-2.5 bg-[#161616] border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                  <span className="text-purple-400">Dual: 3072d + 768d failover</span>
+                  <span className="text-neutral-500">ONNX TinyBERT (&lt;80ms)</span>
                 </div>
               </div>
             </div>
 
             {/* Card 4 */}
-            <div className="bg-panel-bg h-[400px] rounded-[32px] p-8 flex flex-col justify-between group overflow-hidden relative border border-line/10 hover:shadow-lg transition-all duration-300">
-              <div className="relative z-10">
-                <h4 className="font-h3 text-xl font-semibold mb-2 text-text">Voice Guidelines</h4>
-                <p className="font-body-md text-muted">Codify your brand's unique tone and terminology.</p>
+            <div className="bg-panel-bg rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
+              <div>
+                <h4 className="font-h3 text-xl sm:text-2xl font-semibold mb-2 text-text">Local Ingestion & Code Copilot</h4>
+                <p className="font-body-md text-sm sm:text-base text-muted leading-relaxed mb-6">
+                  Zero cloud OCR lock-in: 3-tier on-device document extraction cascade (pypdf &rarr; pdfplumber &rarr; pypdfium2) alongside an AI Code Copilot (/code/assist) powered by Groq LPUs & Gemini.
+                </p>
               </div>
-              <div className="absolute bottom-[20px] right-[20px] w-1/2 h-1/2 bg-black rounded-2xl shadow-xl p-6 transform group-hover:scale-105 transition-transform duration-500 flex items-center justify-center">
-                <span className="material-symbols-outlined text-page-bg text-[48px]">record_voice_over</span>
+
+              {/* IDE Code Window */}
+              <div className="rounded-2xl bg-[#111111] border border-neutral-800/90 shadow-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-[#181818] border-b border-neutral-800/80">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90"></span>
+                    <span className="ml-2 font-mono text-xs text-neutral-400">loaders.py</span>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase text-neutral-500 font-medium">python</span>
+                </div>
+                <pre className="p-4 font-mono text-[11px] sm:text-xs leading-relaxed text-neutral-300 overflow-x-auto">
+                  <code>
+                    <span className="text-[#c678dd]">def</span> <span className="text-[#61afef]">extract_pdf_cascade</span>(file_path: str):{'\n'}
+                    {'    '}text = pypdf_loader(file_path){'\n'}
+                    {'    '}<span className="text-[#c678dd]">if</span> len(text) &lt; 100:{'\n'}
+                    {'        '}text = pdfplumber_loader(file_path){'\n'}
+                    {'    '}<span className="text-[#c678dd]">if not</span> text:{'\n'}
+                    {'        '}text = pypdfium2_loader(file_path){'\n'}
+                    {'    '}<span className="text-[#c678dd]">return</span> chunk_paragraphs(text, max_chars=1500)
+                  </code>
+                </pre>
+                <div className="px-4 py-2.5 bg-[#161616] border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                  <span className="text-amber-400">pypdf &rarr; pdfplumber &rarr; pdfium2</span>
+                  <span className="text-neutral-500">POST /code/assist</span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 8. Testimonial */}
+        {/* 7. Testimonial */}
         <section className="py-[100px] md:py-[160px] px-margin max-w-[1400px] mx-auto flex flex-col items-center text-center bg-page-bg">
-          <div className="mb-8 opacity-30">
-            <span className="material-symbols-outlined text-[64px] text-muted">format_quote</span>
-          </div>
-          
           {/* Split-Flap Interactive Quote Board */}
           <div className="w-full max-w-5xl mb-12">
             <TextFlippingBoardDemo />
@@ -446,70 +447,19 @@ export default function App() {
           <div className="flex items-center gap-4 mt-4">
             <div className="w-14 h-14 rounded-full bg-line overflow-hidden border border-line/40 shadow-sm">
               <img
-                alt="Alex Morgan, VP of Brand"
-                className="w-full h-full object-cover grayscale"
+                alt="Honours Bhadauria, Full Stack Developer"
+                className="w-full h-full object-cover"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1VIcb_dh48u8vUQuC7XZTgj7oB_3w3BskgDGqYgkBlYd2P672QeJNyH1IwFQaDx68BXSs_NFT0BRY0Qm8PyTYkQNcW_inCFD5lVmD9hnJRdcHbWVrKNRSYBgj2UegNx6F-Gqt4ji-jfUhSzOL0Kr8XslosIJfEpOMZ5EaFgBLAB0YZ_OzrUErFWwfLYRJ1UABvEUMpumJA3oayLtZ64tgEUE7W5LkZOJKQj7NyZIZjhSjHrzCF20-FxFA1DJGbNNuPwKeeTO3Kuck"
               />
             </div>
             <div className="text-left">
-              <p className="font-label text-sm font-bold text-text">Alex Morgan</p>
-              <p className="font-label text-xs text-muted">VP of Brand, Northline</p>
+              <p className="font-label text-sm font-bold text-text">Honours Bhadauria</p>
+              <p className="font-label text-xs text-muted">Full Stack Developer</p>
             </div>
           </div>
         </section>
 
-        {/* 9. Updates */}
-        <section id="blog" className="py-[80px] md:py-[120px] px-margin max-w-[1728px] mx-auto bg-page-bg">
-          <div className="flex justify-between items-end mb-12">
-            <h2 className="font-display text-2xl md:text-h2 font-semibold text-text">Latest Updates</h2>
-            <button className="font-label text-sm font-bold border-b border-black text-text pb-1 hover:text-muted hover:border-muted transition-colors cursor-pointer">
-              View All
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="group cursor-pointer">
-              <div className="w-full h-[380px] md:h-[450px] bg-panel-bg rounded-[32px] mb-6 overflow-hidden border border-line/20 shadow-sm">
-                <img
-                  alt="Update 1 thumbnail"
-                  className="w-full h-full object-cover grayscale opacity-80 group-hover:scale-105 transition-transform duration-700"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBH43H6AQKssKrW-JNz_6bTSCRB11JHvJSTJfoMeTce8WOcUe7J3G-wvRtEYFDoN_HyqoVFM46zpRnKmRNIDizPMcW-cgH3ZTdjN86P9bkAVrDvTr6KhnvpuU4HmuaxxxdkKlAZQjm9KduNLD42amyGdF5SyMPYygRx6JKR-Me9Rtb2geiapBtNUIKZolpO5aQDi0qYOfLRQ72VYUQ87lGlR9S-ka8mqqO_MBASyv4mPduXpu20PURQRhMDHzYu8ho2yps1V4ALFZYE"
-                />
-              </div>
-              <p className="font-label text-xs text-muted mb-3">Product Update • Oct 12</p>
-              <h4 className="font-h3 text-xl font-semibold text-text group-hover:text-muted transition-colors">
-                Introducing Lumio Studio Analytics
-              </h4>
-            </div>
 
-            <div className="group cursor-pointer">
-              <div className="w-full h-[380px] md:h-[450px] bg-soft-card rounded-[32px] mb-6 overflow-hidden border border-line/20 shadow-sm">
-                <img
-                  alt="Update 2 thumbnail"
-                  className="w-full h-full object-cover grayscale opacity-80 group-hover:scale-105 transition-transform duration-700"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuADz9LW9HvfLVEe_I21nEVa4CLnkpZCr8Bgk70c2xyov3xgZeLdZSAPNjhhb0fHH4BnSUSssw5IFJkyANuAMXUOZqeh7zz1U3P8KdKwkD2Z5Ccf1FaU1GJQK8bA5IhSc_X3sdb5HojmJ8YLBfRAQnUzzeUJaCVOVIV4m9Pn4WqF_0o9ePR18DMzxkOF-ebPSTOPvHek99rCjsYVuQ5SuQrEj7jQu06la9v1EE7gPJlbsGo8eb7i5F-gJ94k0CDmnBWYnDgcxCL6YRI1"
-                />
-              </div>
-              <p className="font-label text-xs text-muted mb-3">Guide • Sep 28</p>
-              <h4 className="font-h3 text-xl font-semibold text-text group-hover:text-muted transition-colors">
-                The Modern Brand Architecture
-              </h4>
-            </div>
-
-            <div className="group cursor-pointer">
-              <div className="w-full h-[380px] md:h-[450px] bg-panel-bg rounded-[32px] mb-6 overflow-hidden border border-line/20 shadow-sm">
-                <img
-                  alt="Update 3 thumbnail"
-                  className="w-full h-full object-cover grayscale opacity-80 group-hover:scale-105 transition-transform duration-700"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDct5kTYgop_t8S6JmJtOmgiz1hNX2UvSLdGT2dBhBQNPgK5qKA8ZCJPceU2332pg1ob4ZNasV5TQXEkAOmkfBIpwkmdPDeET1K0lhjlk6MntDCRVUanq67fElMoyCLd6XOD0j3-gAWBGvQyJ8LsHf_D3qMboq2buFlvUNxdeqxH7UbzYSzjjm5InxR0bV1pO9TLBoHJxJ2kphS0sstx7HPAAA7Oc93mMsc7BMCicUGfnf-50gK-_6_xhIpXjOcUbGvbwkUZj_Q2fbN"
-                />
-              </div>
-              <p className="font-label text-xs text-muted mb-3">Company • Sep 15</p>
-              <h4 className="font-h3 text-xl font-semibold text-text group-hover:text-muted transition-colors">
-                Lumio raises Series B to expand AI
-              </h4>
-            </div>
-          </div>
-        </section>
 
         {/* 10. Draggable Cards */}
         <section className="w-full relative overflow-clip">

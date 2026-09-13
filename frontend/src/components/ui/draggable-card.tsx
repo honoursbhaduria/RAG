@@ -6,9 +6,6 @@ import {
   useMotionValue,
   useSpring,
   useTransform,
-  animate,
-  useVelocity,
-  useAnimationControls,
 } from "motion/react";
 
 export const DraggableContainerContext = React.createContext<React.RefObject<HTMLDivElement | null>>({
@@ -26,82 +23,55 @@ export const DraggableCardBody = ({
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const cardRef = useRef<HTMLDivElement>(null);
-  const controls = useAnimationControls();
+  const [isDragging, setIsDragging] = useState(false);
   const [constraints, setConstraints] = useState({
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: -250,
+    left: -450,
+    right: 450,
+    bottom: 250,
   });
 
-  // physics biatch
-  const velocityX = useVelocity(mouseX);
-  const velocityY = useVelocity(mouseY);
-
   const springConfig = {
-    stiffness: 100,
+    stiffness: 140,
     damping: 20,
     mass: 0.5,
   };
 
   const rotateX = useSpring(
-    useTransform(mouseY, [-300, 300], [25, -25]),
-    springConfig,
+    useTransform(mouseY, [-200, 200], [5, -5]),
+    springConfig
   );
   const rotateY = useSpring(
-    useTransform(mouseX, [-300, 300], [-25, 25]),
-    springConfig,
-  );
-
-  const opacity = useSpring(
-    useTransform(mouseX, [-300, 0, 300], [0.8, 1, 0.8]),
-    springConfig,
-  );
-
-  const glareOpacity = useSpring(
-    useTransform(mouseX, [-300, 0, 300], [0.2, 0, 0.2]),
-    springConfig,
+    useTransform(mouseX, [-200, 200], [-5, 5]),
+    springConfig
   );
 
   useEffect(() => {
-    // Update constraints when component mounts or window resizes
     const updateConstraints = () => {
-      if (typeof window !== "undefined") {
+      if (containerRef?.current && cardRef.current) {
+        const cRect = containerRef.current.getBoundingClientRect();
+        const kRect = cardRef.current.getBoundingClientRect();
         setConstraints({
-          top: -window.innerHeight / 2,
-          left: -window.innerWidth / 2,
-          right: window.innerWidth / 2,
-          bottom: window.innerHeight / 2,
+          top: -(kRect.top - cRect.top) + 20,
+          left: -(kRect.left - cRect.left) + 20,
+          right: cRect.width - (kRect.left - cRect.left + kRect.width) - 20,
+          bottom: cRect.height - (kRect.top - cRect.top + kRect.height) - 20,
         });
       }
     };
 
     updateConstraints();
-
-    // Add resize listener
     window.addEventListener("resize", updateConstraints);
-
-    // Clean up
-    return () => {
-      window.removeEventListener("resize", updateConstraints);
-    };
-  }, []);
+    return () => window.removeEventListener("resize", updateConstraints);
+  }, [containerRef]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { clientX, clientY } = e;
-    const { width, height, left, top } =
-      cardRef.current?.getBoundingClientRect() ?? {
-        width: 0,
-        height: 0,
-        left: 0,
-        top: 0,
-      };
+    if (!cardRef.current) return;
+    const { width, height, left, top } = cardRef.current.getBoundingClientRect();
     const centerX = left + width / 2;
     const centerY = top + height / 2;
-    const deltaX = clientX - centerX;
-    const deltaY = clientY - centerY;
-    mouseX.set(deltaX);
-    mouseY.set(deltaY);
+    mouseX.set(e.clientX - centerX);
+    mouseY.set(e.clientY - centerY);
   };
 
   const handleMouseLeave = () => {
@@ -113,73 +83,34 @@ export const DraggableCardBody = ({
     <motion.div
       ref={cardRef}
       drag
-      dragConstraints={containerRef?.current ? containerRef : constraints}
-      dragElastic={0.15}
+      dragConstraints={constraints}
+      dragElastic={0.08}
+      dragMomentum={true}
       onDragStart={() => {
+        setIsDragging(true);
         document.body.style.cursor = "grabbing";
       }}
-      onDragEnd={(_event, info) => {
+      onDragEnd={() => {
+        setIsDragging(false);
         document.body.style.cursor = "default";
-
-        controls.start({
-          rotateX: 0,
-          rotateY: 0,
-          transition: {
-            type: "spring",
-            ...springConfig,
-          },
-        });
-        const currentVelocityX = velocityX.get();
-        const currentVelocityY = velocityY.get();
-
-        const velocityMagnitude = Math.sqrt(
-          currentVelocityX * currentVelocityX +
-            currentVelocityY * currentVelocityY,
-        );
-        const bounce = Math.min(0.8, velocityMagnitude / 1000);
-
-        animate(info.point.x, info.point.x + currentVelocityX * 0.3, {
-          duration: 0.8,
-          ease: [0.2, 0, 0, 1],
-          bounce,
-          type: "spring",
-          stiffness: 50,
-          damping: 15,
-          mass: 0.8,
-        });
-
-        animate(info.point.y, info.point.y + currentVelocityY * 0.3, {
-          duration: 0.8,
-          ease: [0.2, 0, 0, 1],
-          bounce,
-          type: "spring",
-          stiffness: 50,
-          damping: 15,
-          mass: 0.8,
-        });
+        mouseX.set(0);
+        mouseY.set(0);
       }}
       style={{
         rotateX,
         rotateY,
-        opacity,
+        zIndex: isDragging ? 60 : 10,
         willChange: "transform",
       }}
-      animate={controls}
-      whileHover={{ scale: 1.02 }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        "relative min-h-96 w-80 overflow-hidden rounded-2xl border-2 border-neutral-200/90 dark:border-neutral-700/90 bg-neutral-100 p-6 shadow-2xl transform-3d dark:bg-neutral-900 cursor-grab active:cursor-grabbing",
-        className,
+        "relative min-h-[340px] w-72 sm:w-80 overflow-hidden rounded-2xl border border-neutral-300/80 dark:border-neutral-700/80 bg-white/95 p-5 shadow-xl dark:bg-[#1c1c1f]/95 cursor-grab active:cursor-grabbing transition-shadow",
+        isDragging && "shadow-2xl scale-[1.03]",
+        className
       )}
     >
       {children}
-      <motion.div
-        style={{
-          opacity: glareOpacity,
-        }}
-        className="pointer-events-none absolute inset-0 bg-white select-none"
-      />
     </motion.div>
   );
 };
@@ -197,7 +128,7 @@ export const DraggableCardContainer = ({
     <DraggableContainerContext.Provider value={containerRef}>
       <div
         ref={containerRef}
-        className={cn("[perspective:3000px]", className)}
+        className={cn("[perspective:2500px]", className)}
       >
         {children}
       </div>

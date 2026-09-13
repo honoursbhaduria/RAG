@@ -28,3 +28,4 @@ def chunk_text(text: str, chunk_size: int = 1500) -> List[str]:
         valid_chunks = [c for c in chunks if c.strip()]
         logfire.info(f"✅ Generated {len(valid_chunks)} chunks")
         return valid_chunks
+ 
