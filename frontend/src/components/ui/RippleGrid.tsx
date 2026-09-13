@@ -17,6 +17,7 @@ export interface RippleGridProps {
   mouseInteractionRadius?: number;
   lightMode?: boolean;
   perspective?: number;
+  moveSpeed?: number;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -36,6 +37,7 @@ export const RippleGrid: React.FC<RippleGridProps> = ({
   mouseInteractionRadius = 1,
   lightMode = false,
   perspective = 0.0,
+  moveSpeed = 0.2,
   className = '',
   style,
 }) => {
@@ -94,6 +96,7 @@ uniform float mouseInfluence;
 uniform float mouseInteractionRadius;
 uniform bool lightMode;
 uniform float perspective;
+uniform float moveSpeed;
 varying vec2 vUv;
 
 float pi = 3.141592;
@@ -119,10 +122,13 @@ void main() {
         gridUv = vec2(uv.x / z, uv.y / z);
     }
 
+    // Continuous smooth grid movement forward
+    gridUv.y -= iTime * moveSpeed;
+
     vec2 rippleUv = gridUv;
     if (rippleIntensity > 0.0) {
         float dist = length(gridUv);
-        float func = sin(pi * (iTime - dist));
+        float func = sin(pi * (iTime * 1.5 - dist));
         rippleUv += gridUv * func * rippleIntensity;
 
         if (mouseInteraction && mouseInfluence > 0.0) {
@@ -146,24 +152,23 @@ void main() {
 
     float pulse = rippleIntensity > 0.0 ? (0.8 + 0.5 * sin(pi * iTime)) : 1.0;
     float c = 0.0;
+    // Crisp grid lines only (no background shadow haze)
     c += exp(-gridThickness * smoothB.x * pulse);
     c += exp(-gridThickness * smoothB.y);
-    c += 0.5 * exp(-(gridThickness / 4.0) * sin(smoothB.x));
-    c += 0.5 * exp(-(gridThickness / 3.0) * smoothB.y);
 
     if (glowIntensity > 0.0) {
         c += glowIntensity * exp(-gridThickness * 0.5 * smoothB.x);
         c += glowIntensity * exp(-gridThickness * 0.5 * smoothB.y);
     }
 
-    if (mouseInteraction && mouseInfluence > 0.0 && rippleIntensity <= 0.001) {
+    // Spotlight only lights up grid lines - does not paint a dark shadow blob on background
+    if (mouseInteraction && mouseInfluence > 0.0) {
         vec2 mouseUv = (mousePosition * 2.0 - 1.0);
         mouseUv.x *= iResolution.x / iResolution.y;
         float mouseDist = length(uv - mouseUv);
         float spotlight = exp(-mouseDist * mouseDist * 3.8 / (mouseInteractionRadius * mouseInteractionRadius));
-        c += spotlight * mouseInfluence * 0.95;
+        c += c * spotlight * mouseInfluence * 1.4;
     }
-    vec3 color = vec3(c);
 
     float dist = length(uv);
     float ddd = exp(-2.0 * clamp(pow(dist, fadeDistance), 0.0, 1.0));
@@ -190,15 +195,9 @@ void main() {
     }
 
     float finalFade = ddd * vignette * depthFade;
-    float alpha = length(color) * finalFade * opacity;
-    vec3 effect = color * t * finalFade * opacity;
-    if (lightMode) {
-        float peak = max(effect.r, max(effect.g, effect.b));
-        vec3 chroma = pow(clamp(effect / max(peak, 0.0001), 0.0, 1.0), vec3(1.2));
-        gl_FragColor = vec4(mix(vec3(1.0), chroma, clamp(alpha * 0.94, 0.0, 0.94)), 1.0);
-    } else {
-        gl_FragColor = vec4(effect, alpha);
-    }
+    float gridAlpha = clamp(c, 0.0, 1.0) * finalFade * opacity;
+    // Completely transparent background between lines - zero shadow
+    gl_FragColor = vec4(t, gridAlpha);
 }
 `;
 
@@ -220,7 +219,8 @@ void main() {
       mouseInfluence: { value: 0 },
       mouseInteractionRadius: { value: mouseInteractionRadius },
       lightMode: { value: lightMode },
-      perspective: { value: perspective }
+      perspective: { value: perspective },
+      moveSpeed: { value: moveSpeed }
     };
 
     uniformsRef.current = uniforms;
@@ -347,6 +347,7 @@ void main() {
     uniformsRef.current.mouseInteractionRadius.value = mouseInteractionRadius;
     uniformsRef.current.lightMode.value = lightMode;
     uniformsRef.current.perspective.value = perspective;
+    uniformsRef.current.moveSpeed.value = moveSpeed;
   }, [
     enableRainbow,
     gridColor,
@@ -361,7 +362,8 @@ void main() {
     mouseInteraction,
     mouseInteractionRadius,
     lightMode,
-    perspective
+    perspective,
+    moveSpeed
   ]);
 
   return (

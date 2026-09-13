@@ -276,32 +276,33 @@ export default function App() {
 
       <main>
         {/* 1. Hero */}
-        <section className="min-h-[1000px] pt-[200px] md:pt-[240px] px-margin max-w-[1728px] mx-auto flex flex-col items-center text-center relative overflow-visible bg-page-bg">
+        <section className="min-h-auto md:min-h-[1000px] pt-[120px] sm:pt-[170px] md:pt-[240px] pb-10 sm:pb-16 md:pb-24 px-3 sm:px-6 md:px-margin max-w-[1728px] mx-auto flex flex-col items-center text-center relative overflow-hidden md:overflow-visible bg-page-bg">
           <div className="relative w-full max-w-5xl flex flex-col items-center justify-center">
-            {/* Grid Design with Depth (No Ripples) */}
+            {/* Moving Perspective Grid (Zero Shadow Background) */}
             <div className="absolute -inset-x-8 md:-inset-x-24 -top-16 md:-top-24 h-[440px] md:h-[520px] overflow-hidden rounded-3xl pointer-events-auto -z-0">
               <RippleGrid
                 enableRainbow={false}
                 gridColor="#8C8880"
-                rippleIntensity={0.0}
+                moveSpeed={0.22}
+                rippleIntensity={0.02}
                 perspective={0.5}
                 gridSize={12}
-                gridThickness={15}
+                gridThickness={16}
                 fadeDistance={1.4}
                 vignetteStrength={2.2}
                 mouseInteraction={true}
                 mouseInteractionRadius={1.2}
-                opacity={0.4}
+                opacity={0.45}
                 glowIntensity={0}
               />
             </div>
 
-            <h1 className="relative z-10 font-display text-4xl sm:text-6xl md:text-[80px] leading-[1.05] tracking-[-0.04em] text-balance max-w-5xl mb-8 text-text font-semibold pointer-events-none select-none">
+            <h1 className="relative z-10 font-display text-3xl sm:text-5xl md:text-[80px] leading-[1.1] sm:leading-[1.05] tracking-[-0.03em] sm:tracking-[-0.04em] text-balance max-w-5xl mb-6 sm:mb-8 text-text font-semibold pointer-events-none select-none px-2">
               Enterprise Agentic RAG
             </h1>
           </div>
           {/* Interactive Keyboard */}
-          <div className="w-full max-w-[1492px] flex items-center justify-center relative z-10 py-4 md:py-8">
+          <div className="w-full max-w-[1492px] flex items-center justify-center relative z-10 py-2 sm:py-4 md:py-8 overflow-x-hidden md:overflow-x-visible">
             <KeyboardDemo />
           </div>
         </section>

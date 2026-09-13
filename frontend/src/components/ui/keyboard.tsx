@@ -504,7 +504,7 @@ const KeystrokePreview = () => {
   const isPressed = pressedKeys.size > 0;
 
   return (
-    <div className="relative flex h-12 w-full items-center justify-center">
+    <div className="relative flex h-9 sm:h-12 w-full items-center justify-center">
       <AnimatePresence mode="popLayout">
         {displayKey && (
           <motion.div
@@ -615,13 +615,13 @@ const KeyboardContent = ({
   }, [autoTypeText, simulateKeyStroke, setTypedText]);
 
   return (
-    <div className="flex flex-col items-center justify-center w-full">
+    <div className="flex flex-col items-center justify-center w-full max-w-full overflow-visible">
       {showTypedDisplay && (
-        <div className="flex items-center justify-center mb-6">
-          <div className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-white/90 border border-line/60 backdrop-blur-md transition-all shadow-sm">
-            <span className="font-mono text-base sm:text-lg font-semibold text-text tracking-wider text-center">
+        <div className="flex items-center justify-center mb-3 sm:mb-6 px-2 w-full max-w-full">
+          <div className="inline-flex items-center justify-center px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-full bg-white/95 border border-line/60 backdrop-blur-md transition-all shadow-xs max-w-full">
+            <span className="font-mono text-xs sm:text-base md:text-lg font-semibold text-text tracking-wider text-center truncate">
               {typedText || <span className="text-muted/40 font-normal">...</span>}
-              <span className="inline-block w-2 h-4 ml-1 bg-black animate-pulse align-middle" />
+              <span className="inline-block w-1.5 sm:w-2 h-3.5 sm:h-4 ml-1 bg-black animate-pulse align-middle" />
             </span>
           </div>
         </div>
@@ -630,7 +630,7 @@ const KeyboardContent = ({
       <div
         ref={containerRef}
         className={cn(
-          "mx-auto w-fit [zoom:0.8] sm:[zoom:1.25] md:[zoom:1.5] lg:[zoom:1.75] xl:[zoom:2]",
+          "mx-auto w-fit [zoom:0.62] min-[380px]:[zoom:0.72] min-[440px]:[zoom:0.82] sm:[zoom:1.15] md:[zoom:1.4] lg:[zoom:1.7] xl:[zoom:2] transition-transform origin-center select-none",
           className,
         )}
       >
