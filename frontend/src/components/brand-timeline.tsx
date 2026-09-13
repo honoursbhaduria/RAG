@@ -8,8 +8,8 @@ export default function BrandTimeline() {
     {
       title: "Adaptive LangGraph StateGraph",
       content: (
-        <div className="w-full max-w-2xl">
-          <p className="mb-6 font-body-md text-base text-neutral-400 leading-relaxed">
+        <div className="w-full max-w-2xl min-w-0">
+          <p className="mb-4 sm:mb-6 font-body-md text-xs sm:text-sm md:text-base text-neutral-400 leading-relaxed">
             Cyclic state-machine orchestration with dynamic query planning, conditional routing between conversational intent and deep technical retrieval, and <span className="text-white font-mono font-medium">MemorySaver</span> thread checkpointing across multi-turn sessions.
           </p>
 
@@ -56,7 +56,7 @@ rag_agent = workflow.compile(checkpointer=MemorySaver())`,
 }`,
               },
             ]}
-            className="w-full max-w-[500px] aspect-square rounded-[24px] bg-[#181818] border border-neutral-800/90 shadow-2xl"
+            className="w-full max-w-full md:max-w-[500px] h-[340px] sm:h-[400px] md:h-auto md:aspect-square rounded-[18px] sm:rounded-[24px] bg-[#181818] border border-neutral-800/90 shadow-2xl overflow-hidden"
           />
         </div>
       ),
@@ -64,8 +64,8 @@ rag_agent = workflow.compile(checkpointer=MemorySaver())`,
     {
       title: "Zero-Trust NeMo & Regex Shield",
       content: (
-        <div className="w-full max-w-2xl">
-          <p className="mb-6 font-body-md text-base text-neutral-400 leading-relaxed">
+        <div className="w-full max-w-2xl min-w-0">
+          <p className="mb-4 sm:mb-6 font-body-md text-xs sm:text-sm md:text-base text-neutral-400 leading-relaxed">
             Dual-tier safety shield intercepting prompt injections, DAN exploits, and jailbreaks. A sub-millisecond regex gate (<span className="text-emerald-400 font-mono font-medium">&lt; 1ms</span>) pairs with NVIDIA NeMo Guardrails running Colang 1.0 dialog flows before vector execution.
           </p>
 
@@ -106,7 +106,7 @@ define flow
   stop`,
               },
             ]}
-            className="w-full max-w-[500px] aspect-square rounded-[24px] bg-[#181818] border border-neutral-800/90 shadow-2xl"
+            className="w-full max-w-full md:max-w-[500px] h-[340px] sm:h-[400px] md:h-auto md:aspect-square rounded-[18px] sm:rounded-[24px] bg-[#181818] border border-neutral-800/90 shadow-2xl overflow-hidden"
           />
         </div>
       ),
@@ -114,8 +114,8 @@ define flow
     {
       title: "Dual-Vector DB & FlashRank",
       content: (
-        <div className="w-full max-w-2xl">
-          <p className="mb-6 font-body-md text-base text-neutral-400 leading-relaxed">
+        <div className="w-full max-w-2xl min-w-0">
+          <p className="mb-4 sm:mb-6 font-body-md text-xs sm:text-sm md:text-base text-neutral-400 leading-relaxed">
             Single Qdrant collection with named vectors: Google Gemini 3072-dim embeddings with exponential backoff, coupled with automatic sticky failover to local Sentence-Transformers 768-dim (<span className="text-white font-mono font-medium">all-mpnet-base-v2</span>) and CPU-based FlashRank cross-encoder reranking.
           </p>
 
@@ -158,7 +158,7 @@ async def search_enterprise(query: str, top_k: int = 5):
 }`,
               },
             ]}
-            className="w-full max-w-[500px] aspect-square rounded-[24px] bg-[#181818] border border-neutral-800/90 shadow-2xl"
+            className="w-full max-w-full md:max-w-[500px] h-[340px] sm:h-[400px] md:h-auto md:aspect-square rounded-[18px] sm:rounded-[24px] bg-[#181818] border border-neutral-800/90 shadow-2xl overflow-hidden"
           />
         </div>
       ),
@@ -166,8 +166,8 @@ async def search_enterprise(query: str, top_k: int = 5):
     {
       title: "Portkey Gateway & Local Ingestion",
       content: (
-        <div className="w-full max-w-2xl">
-          <p className="mb-6 font-body-md text-base text-neutral-400 leading-relaxed">
+        <div className="w-full max-w-2xl min-w-0">
+          <p className="mb-4 sm:mb-6 font-body-md text-xs sm:text-sm md:text-base text-neutral-400 leading-relaxed">
             Resilient multi-LLM routing via Portkey AI to Groq LPUs (<span className="text-white font-mono font-medium">120B primary &bull; 20B fallback</span>) with automatic 429/503 retries and cache acceleration, alongside 100% on-device 3-tier document parsing (<span className="text-white font-mono font-medium">pypdf &rarr; pdfplumber &rarr; pypdfium2</span>).
           </p>
 
@@ -213,7 +213,7 @@ completion = await portkey.chat.completions.create(
     return chunk_paragraphs(text, max_chars=1500)`,
               },
             ]}
-            className="w-full max-w-[500px] aspect-square rounded-[24px] bg-[#181818] border border-neutral-800/90 shadow-2xl"
+            className="w-full max-w-full md:max-w-[500px] h-[340px] sm:h-[400px] md:h-auto md:aspect-square rounded-[18px] sm:rounded-[24px] bg-[#181818] border border-neutral-800/90 shadow-2xl overflow-hidden"
           />
         </div>
       ),

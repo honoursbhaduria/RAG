@@ -11,6 +11,7 @@ import GooeyNav from '@/components/ui/GooeyNav';
 import RagChatbotPage from '@/components/chatbot/RagChatbotPage';
 import ChatbotLoadingTransition from '@/components/chatbot/ChatbotLoadingTransition';
 import ChatbotSkeleton from '@/components/chatbot/ChatbotSkeleton';
+import { API_BASE_URL } from '@/config';
 import {
   IconCpu,
   IconDatabase,
@@ -208,7 +209,7 @@ export default function App() {
             colors={[1, 2, 3, 1, 2, 3, 1, 4]}
           />
           <div className="flex items-center gap-3 relative z-20 shrink-0">
-            <NavbarButton variant="secondary" href="http://localhost:8000/api/docs" target="_blank" rel="noreferrer">
+            <NavbarButton variant="secondary" href={`${API_BASE_URL}/api/docs`} target="_blank" rel="noreferrer">
               Swagger Docs
             </NavbarButton>
             <NavbarButton
@@ -249,7 +250,7 @@ export default function App() {
             ))}
             <div className="flex w-full flex-col gap-3 pt-3 border-t border-neutral-800">
               <NavbarButton
-                href="http://localhost:8000/api/docs"
+                href={`${API_BASE_URL}/api/docs`}
                 target="_blank"
                 rel="noreferrer"
                 variant="secondary"
@@ -342,7 +343,7 @@ export default function App() {
         </section>
 
         {/* 5. Architecture Timeline */}
-        <section id="architecture" className="py-[40px] md:py-[80px] px-margin max-w-[1728px] mx-auto bg-page-bg">
+        <section id="architecture" className="py-[32px] sm:py-[40px] md:py-[80px] px-3 sm:px-6 md:px-margin max-w-[1728px] mx-auto bg-page-bg overflow-hidden">
           <BrandTimeline />
         </section>
 

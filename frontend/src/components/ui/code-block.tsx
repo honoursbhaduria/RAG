@@ -60,25 +60,25 @@ export const CodeBlock = ({
 
   return (
     <div
-      className={`relative w-full h-full flex flex-col justify-between rounded-[20px] p-4 sm:p-5 font-mono text-sm overflow-hidden ${
+      className={`relative w-full h-full flex flex-col justify-between rounded-[18px] sm:rounded-[20px] p-3 sm:p-5 font-mono text-xs sm:text-sm overflow-hidden ${
         isLight
           ? "bg-white text-neutral-800 border border-neutral-200/90 shadow-sm"
           : "bg-[#1a1a1a] text-white border border-white/5 shadow-2xl"
       } ${className}`}
     >
       <div
-        className={`flex items-center justify-between pb-3 mb-2 gap-2 shrink-0 border-b ${
+        className={`flex items-center justify-between pb-2.5 sm:pb-3 mb-2 gap-2 shrink-0 border-b ${
           isLight ? "border-neutral-200/80" : "border-white/10"
         }`}
       >
         {tabsExist ? (
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-0.5 max-w-[calc(100%-68px)] sm:max-w-none">
             {tabs.map((tab, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => setActiveTab(index)}
-                className={`px-3 py-1.5 rounded-lg text-xs transition-colors font-sans cursor-pointer ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-xs transition-colors font-sans cursor-pointer whitespace-nowrap shrink-0 ${
                   activeTab === index
                     ? isLight
                       ? "bg-neutral-900 text-white font-medium shadow-xs"
@@ -95,7 +95,7 @@ export const CodeBlock = ({
         ) : (
           filename && (
             <div
-              className={`text-xs font-mono ${
+              className={`text-[11px] sm:text-xs font-mono truncate max-w-[calc(100%-68px)] ${
                 isLight ? "text-neutral-500" : "text-zinc-400"
               }`}
             >
@@ -107,7 +107,7 @@ export const CodeBlock = ({
         <button
           type="button"
           onClick={copyToClipboard}
-          className={`flex items-center gap-1.5 text-xs transition-colors font-sans px-2.5 py-1 rounded-md shrink-0 cursor-pointer ml-auto ${
+          className={`flex items-center gap-1 sm:gap-1.5 text-xs transition-colors font-sans px-2 sm:px-2.5 py-1 rounded-md shrink-0 cursor-pointer ml-auto ${
             isLight
               ? "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -117,12 +117,12 @@ export const CodeBlock = ({
           {copied ? (
             <>
               <IconCheck size={14} className="text-emerald-600" />
-              <span className="text-[11px] text-emerald-600 font-medium">Copied</span>
+              <span className="text-[10px] sm:text-[11px] text-emerald-600 font-medium">Copied</span>
             </>
           ) : (
             <>
               <IconCopy size={14} />
-              <span className="text-[11px]">Copy</span>
+              <span className="text-[10px] sm:text-[11px]">Copy</span>
             </>
           )}
         </button>
@@ -134,10 +134,10 @@ export const CodeBlock = ({
           style={isLight ? oneLight : atomDark}
           customStyle={{
             margin: 0,
-            padding: "8px 0",
+            padding: "6px 0",
             background: "transparent",
-            fontSize: "0.8125rem", // 13px
-            lineHeight: "1.6",
+            fontSize: "0.75rem", // 12px for crisp mobile and desktop code
+            lineHeight: "1.55",
             width: "100%",
             minWidth: "100%",
           }}

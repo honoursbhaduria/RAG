@@ -1,27 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  ArrowLeft,
-  Send,
-  Paperclip,
-  Sliders,
-  Plus,
-  Check,
-  Copy,
-  FileText,
-  Shield,
-  ShieldAlert,
-  Terminal,
-  Layers,
-  X,
-  ChevronDown,
-  ChevronRight,
-  Code,
-  Database,
-  Brain,
-  FileCheck,
-} from 'lucide-react';
 import { CodeBlock } from '@/components/ui/code-block';
 import MarkdownRenderer from './MarkdownRenderer';
+import AiWorkflowGraph from './AiWorkflowGraph';
+import { API_BASE_URL } from '@/config';
 
 interface RagChatbotPageProps {
   onBack: () => void;
@@ -52,13 +33,7 @@ interface Thread {
   };
 }
 
-interface BackendHealth {
-  status: 'online' | 'offline' | 'checking';
-  latencyMs: number;
-  service?: string;
-}
-
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = API_BASE_URL;
 
 const PERSONAS = [
   { id: 'Enterprise Architect', label: 'Enterprise Architect', desc: 'High-level systems, low-latency, and distributed architecture' },
@@ -96,8 +71,8 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showGraphModal, setShowGraphModal] = useState(false);
 
-  // Backend Health
-  const [health, setHealth] = useState<BackendHealth>({ status: 'checking', latencyMs: 0 });
+  // Sidebar Toggle & Responsive State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Settings State
   const [persona, setPersona] = useState('Enterprise Architect');
@@ -140,33 +115,24 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
 
   const activeThread = threads.find((t) => t.id === activeThreadId) || threads[0];
 
+  // Responsive Sidebar Initialization
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeThread?.messages, isLoading]);
-
-  // Check Backend Health
-  const checkHealth = async () => {
-    const start = performance.now();
-    try {
-      const res = await fetch(`${BACKEND_URL}/health`);
-      const latency = Math.round(performance.now() - start);
-      if (res.ok) {
-        const data = await res.json();
-        setHealth({ status: 'online', latencyMs: latency, service: data.service });
-      } else {
-        setHealth({ status: 'offline', latencyMs: latency });
-      }
-    } catch {
-      setHealth({ status: 'offline', latencyMs: 0 });
-    }
-  };
-
-  useEffect(() => {
-    checkHealth();
-    const interval = setInterval(checkHealth, 25000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Create New Thread
   const handleNewThread = () => {
@@ -181,6 +147,9 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
     setActiveThreadId(newId);
     setInputQuery('');
     setUploadFeedback(null);
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
   };
 
   // Handle Document Upload via POST /upload
@@ -208,7 +177,6 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
       const data = await res.json();
 
       if (data.success) {
-        // Update active thread with document metadata
         setThreads((prev) =>
           prev.map((t) =>
             t.id === activeThreadId
@@ -260,7 +228,6 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    // Append user message immediately
     setThreads((prev) =>
       prev.map((t) =>
         t.id === activeThreadId
@@ -278,7 +245,6 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
 
     try {
       if (activeTab === 'code') {
-        // Call Code Studio Copilot endpoint
         const res = await fetch(`${BACKEND_URL}/code/assist`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -316,7 +282,6 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
           )
         );
       } else {
-        // Call Primary Agentic RAG endpoint
         const res = await fetch(`${BACKEND_URL}/query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -386,34 +351,56 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#0d0d10] text-neutral-200 overflow-hidden font-sans select-none antialiased">
-      {/* -------------------- LEFT SIDEBAR -------------------- */}
-      <aside className="w-72 sm:w-80 bg-[#131316] border-r border-neutral-800 flex flex-col justify-between shrink-0 z-20">
+    <div className="flex h-screen w-full bg-[#0a0a0d] text-neutral-200 overflow-hidden font-sans select-none antialiased relative">
+      {/* -------------------- MOBILE BACKDROP OVERLAY -------------------- */}
+      {isSidebarOpen && (
+        <div
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-30 lg:hidden transition-opacity"
+        />
+      )}
+
+      {/* -------------------- LEFT SIDEBAR (COLLAPSIBLE & RESPONSIVE) -------------------- */}
+      <aside
+        className={`bg-[#121217] border-r border-neutral-800 flex flex-col justify-between shrink-0 z-40 transition-all duration-300 ease-in-out ${
+          isSidebarOpen
+            ? 'fixed inset-y-0 left-0 w-72 sm:w-80 translate-x-0 shadow-2xl lg:static lg:shadow-none'
+            : 'fixed inset-y-0 left-0 w-72 sm:w-80 -translate-x-full lg:w-0 lg:translate-x-0 lg:p-0 lg:overflow-hidden lg:border-r-0 lg:opacity-0'
+        }`}
+      >
         {/* Top Header / Branding */}
         <div className="p-4 border-b border-neutral-800/80 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <button
               onClick={onBack}
-              className="p-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer text-xs font-mono"
               title="Return to Landing Page"
             >
-              <ArrowLeft className="w-4 h-4" />
+              Back
             </button>
             <div>
-              <h2 className="text-base font-bold tracking-wide text-neutral-200 dancing-script">
+              <h2 className="text-base font-bold tracking-wide text-neutral-100 dancing-script">
                 Cognivault Studio
               </h2>
             </div>
           </div>
 
-          <button
-            onClick={handleNewThread}
-            className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white transition-all cursor-pointer flex items-center gap-1"
-            title="Start New Thread"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="text-xs font-mono font-medium">New</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleNewThread}
+              className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white transition-all cursor-pointer text-xs font-mono"
+              title="Start New Thread"
+            >
+              + New
+            </button>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="px-2 py-1 rounded-lg text-xs font-mono text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+              title="Hide Sidebar"
+            >
+              Hide
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Sidebar Body */}
@@ -421,17 +408,18 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
           {/* Active Document Ingestion Hub */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-neutral-400">
                 Active Knowledge Doc
               </span>
             </div>
 
             {activeThread.activeDocument ? (
-              <div className="p-3 rounded-xl bg-[#1b1b20] border border-blue-500/30 flex items-start justify-between gap-2">
+              <div className="p-3 rounded-xl bg-[#181820] border border-blue-500/30 flex items-start justify-between gap-2">
                 <div className="overflow-hidden">
                   <div className="flex items-center gap-1.5 text-xs font-medium text-blue-300 truncate">
-                    <FileCheck className="w-3.5 h-3.5 shrink-0 text-blue-400" />
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-950 text-blue-300 border border-blue-800/60 font-semibold">
+                      DOC
+                    </span>
                     <span className="truncate">{activeThread.activeDocument.filename}</span>
                   </div>
                   <p className="text-[10px] font-mono text-neutral-400 mt-1">
@@ -440,16 +428,16 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                 </div>
                 <button
                   onClick={handleRemoveActiveDocument}
-                  className="text-neutral-400 hover:text-neutral-200 p-1 cursor-pointer"
+                  className="text-neutral-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-neutral-800 transition-colors cursor-pointer"
                   title="Remove Document"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  Remove
                 </button>
               </div>
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className={`p-3 rounded-xl border border-dashed border-neutral-700/80 hover:border-neutral-500 bg-[#16161a] hover:bg-[#1a1a1f] cursor-pointer transition-colors text-center ${
+                className={`p-3 rounded-xl border border-dashed border-neutral-700/80 hover:border-neutral-500 bg-[#15151a] hover:bg-[#191920] cursor-pointer transition-colors text-center ${
                   uploadingFile ? 'opacity-50 pointer-events-none' : ''
                 }`}
               >
@@ -460,36 +448,34 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                   className="hidden"
                   accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md,.py,.json,.csv,.html,.xml,.yaml,.yml,.sh,.sql"
                 />
-                <Paperclip className="w-4 h-4 mx-auto text-neutral-400 mb-1" />
-                <p className="text-xs text-neutral-300 font-medium">Upload Document for RAG</p>
-                <p className="text-[10px] text-neutral-500 font-mono mt-0.5">
-                  TXT • DOCS • PDF • MD • PPT • PYTHON
+                <p className="text-xs text-neutral-200 font-medium font-mono">Upload Knowledge File</p>
+                <p className="text-[10px] text-neutral-400 font-mono mt-1">
+                  PDF • DOCX • TXT • MD • PPT • PY
                 </p>
               </div>
             )}
 
             {uploadFeedback && (
               <div
-                className={`text-[11px] font-mono p-2 rounded-lg border animate-fade-in flex items-start gap-1.5 ${
+                className={`text-[11px] font-mono p-2.5 rounded-lg border animate-fade-in ${
                   uploadFeedback.startsWith('Blocked') || uploadFeedback.startsWith('Upload error')
                     ? 'text-rose-300 bg-rose-950/50 border-rose-800/60'
                     : 'text-emerald-300 bg-emerald-950/40 border-emerald-800/40'
                 }`}
               >
-                {uploadFeedback.startsWith('Blocked') || uploadFeedback.startsWith('Upload error') ? (
-                  <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
-                ) : (
-                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                )}
-                <span className="leading-snug">{uploadFeedback}</span>
+                <span className="font-semibold block mb-0.5">
+                  {uploadFeedback.startsWith('Blocked') || uploadFeedback.startsWith('Upload error')
+                    ? '[SECURITY INTERCEPTION]'
+                    : '[INDEXED SUCCESSFULLY]'}
+                </span>
+                <span className="leading-snug block">{uploadFeedback}</span>
               </div>
             )}
           </div>
 
           {/* Persona Selector */}
           <div className="space-y-2">
-            <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-              <Brain className="w-3.5 h-3.5 text-purple-400" />
+            <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-neutral-400">
               Agent Persona
             </span>
             <div className="grid grid-cols-1 gap-1.5">
@@ -519,7 +505,10 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
               {threads.map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => setActiveThreadId(t.id)}
+                  onClick={() => {
+                    setActiveThreadId(t.id);
+                    if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                  }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-xs truncate transition-colors cursor-pointer flex items-center justify-between ${
                     t.id === activeThreadId
                       ? 'bg-neutral-800 text-white font-medium border border-neutral-700/60'
@@ -535,97 +524,69 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
             </div>
           </div>
         </div>
-
-        {/* Sidebar Footer - System Health */}
-        <div className="p-4 border-t border-neutral-800/80 bg-[#111114] space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-mono">
-            <span className="text-neutral-400 flex items-center gap-1.5">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  health.status === 'online'
-                    ? 'bg-emerald-500'
-                    : health.status === 'checking'
-                    ? 'bg-amber-500'
-                    : 'bg-rose-500'
-                }`}
-              />
-              Backend API
-            </span>
-            <span
-              className={
-                health.status === 'online'
-                  ? 'text-emerald-400 font-semibold'
-                  : 'text-neutral-500'
-              }
-            >
-              {health.status === 'online' ? `200 OK (${health.latencyMs}ms)` : health.status}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
-            <span className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-blue-400" />
-              NeMo Guardrails
-            </span>
-            <span className="text-blue-400 font-medium">Active</span>
-          </div>
-        </div>
       </aside>
 
       {/* -------------------- MAIN CHAT AREA -------------------- */}
-      <div className="flex-1 flex flex-col h-full bg-[#0f0f12] overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full bg-[#09090c] overflow-hidden relative">
         {/* Top Navbar */}
-        <header className="h-14 px-6 border-b border-neutral-800 flex items-center justify-between bg-[#131317]/90 backdrop-blur-md shrink-0 z-10">
-          {/* Mode Switcher Tabs */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-neutral-900 border border-neutral-800">
+        <header className="h-14 px-3 sm:px-6 flex items-center justify-between bg-[#111116]/95 backdrop-blur-md shrink-0 z-10 gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto py-1">
+            {/* Sidebar Toggle Button */}
             <button
-              onClick={() => setActiveTab('rag')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'rag'
-                  ? 'bg-neutral-800 text-white shadow-sm'
-                  : 'text-neutral-400 hover:text-neutral-200'
-              }`}
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-mono bg-neutral-800/90 hover:bg-neutral-700 text-neutral-200 hover:text-white border border-neutral-700/60 transition-colors cursor-pointer shrink-0"
+              title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
             >
-              <Database className="w-3.5 h-3.5 text-blue-400" />
-              Agentic RAG
+              {isSidebarOpen ? 'Hide Sidebar' : 'Sidebar'}
             </button>
-            <button
-              onClick={() => setActiveTab('code')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === 'code'
-                  ? 'bg-neutral-800 text-white shadow-sm'
-                  : 'text-neutral-400 hover:text-neutral-200'
-              }`}
-            >
-              <Terminal className="w-3.5 h-3.5 text-amber-400" />
-              Code Studio Copilot
-            </button>
+
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center p-0.5 rounded-xl bg-neutral-900 border border-neutral-800 shrink-0">
+              <button
+                onClick={() => setActiveTab('rag')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                  activeTab === 'rag'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-neutral-200'
+                }`}
+              >
+                Agentic RAG
+              </button>
+              <button
+                onClick={() => setActiveTab('code')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                  activeTab === 'code'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-neutral-200'
+                }`}
+              >
+                Code Studio
+              </button>
+            </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowGraphModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 hover:text-white text-xs font-mono flex items-center gap-1.5 border border-neutral-700/50 cursor-pointer transition-colors"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 hover:text-white text-xs font-mono border border-neutral-700/50 cursor-pointer transition-colors"
             >
-              <Layers className="w-3.5 h-3.5 text-purple-400" />
-              <span>Workflow Graph</span>
+              Workflow Graph
             </button>
 
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="p-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700/50 cursor-pointer transition-colors"
-              title="RAG Parameters"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 hover:text-white border border-neutral-700/50 cursor-pointer transition-colors text-xs font-mono"
             >
-              <Sliders className="w-4 h-4" />
+              Parameters
             </button>
           </div>
         </header>
 
         {/* Messages Viewport */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-8 py-4 sm:py-6 space-y-6">
           {activeThread.messages.length === 0 ? (
-            /* Empty State Hero */
+            /* Clean Empty State Hero */
             <div className="max-w-3xl mx-auto my-auto py-12 flex flex-col items-center text-center space-y-6">
               <div>
                 <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white dancing-script">
@@ -639,13 +600,14 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                   <button
                     key={idx}
                     onClick={() => handleSendMessage(p.query)}
-                    className="p-3.5 rounded-xl bg-[#16161a] hover:bg-[#1f1f26] border border-neutral-800 hover:border-neutral-700 text-left transition-all cursor-pointer group"
+                    className="p-3.5 rounded-xl bg-[#141419] hover:bg-[#1b1b22] border border-neutral-800 hover:border-neutral-700 text-left transition-all cursor-pointer group"
                   >
-                    <div className="text-xs font-semibold text-neutral-200 group-hover:text-white flex items-center justify-between">
+                    <div className="text-xs font-semibold text-neutral-200 group-hover:text-white">
                       {p.title}
-                      <ChevronRight className="w-3.5 h-3.5 text-neutral-500 group-hover:text-neutral-300" />
                     </div>
-                    <p className="text-[11px] text-neutral-400 mt-1 line-clamp-2">{p.desc}</p>
+                    <p className="text-[11px] text-neutral-400 mt-1 line-clamp-2 leading-relaxed">
+                      {p.desc}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -661,19 +623,18 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
               >
                 {/* User Message Bubble */}
                 {m.role === 'user' ? (
-                  <div className="max-w-[85%] rounded-2xl px-5 py-3.5 bg-[#25252b] border border-neutral-700/70 text-neutral-100 shadow-md">
+                  <div className="max-w-[92%] sm:max-w-[85%] rounded-2xl px-5 py-3.5 bg-[#202027] border border-neutral-700/70 text-neutral-100 shadow-md">
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</p>
-                    <span className="text-[10px] font-mono text-neutral-400 mt-1 block text-right">
+                    <span className="text-[10px] font-mono text-neutral-400 mt-1.5 block text-right">
                       {m.timestamp}
                     </span>
                   </div>
                 ) : (
                   /* Assistant Message Card */
-                  <div className="w-full rounded-2xl p-5 bg-[#17171c] border border-neutral-800 shadow-lg space-y-4">
+                  <div className="w-full rounded-2xl p-4 sm:p-5 bg-[#141419] border border-neutral-800 shadow-lg space-y-4">
                     {/* Header */}
                     <div className="flex items-center justify-between border-b border-neutral-800/80 pb-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-500" />
                         <span className="font-mono text-xs font-semibold text-neutral-200">
                           LangGraph StateGraph
                         </span>
@@ -685,40 +646,28 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => copyToClipboard(m.content, m.id)}
-                          className="text-neutral-400 hover:text-white p-1 rounded transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-mono"
+                          className="text-neutral-400 hover:text-white px-2 py-0.5 rounded hover:bg-neutral-800 transition-colors cursor-pointer text-[11px] font-mono"
                           title="Copy Answer"
                         >
-                          {copiedId === m.id ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-400">Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copy</span>
-                            </>
-                          )}
+                          {copiedId === m.id ? 'Copied' : 'Copy'}
                         </button>
                       </div>
                     </div>
 
                     {/* Execution Reasoning / Thoughts Accordion */}
                     {m.thought_process && m.thought_process.length > 0 && (
-                      <div className="rounded-xl border border-neutral-800 bg-[#121215] overflow-hidden">
+                      <div className="rounded-xl border border-neutral-800 bg-[#0e0e12] overflow-hidden">
                         <button
                           onClick={() => toggleThoughts(m.id)}
-                          className="w-full px-3.5 py-2 flex items-center justify-between text-xs font-mono text-neutral-400 hover:text-neutral-200 cursor-pointer bg-neutral-900/50"
+                          className="w-full px-3.5 py-2 flex items-center justify-between text-xs font-mono text-neutral-300 hover:text-white cursor-pointer bg-neutral-900/50"
                         >
-                          <span className="flex items-center gap-1.5">
-                            <Brain className="w-3.5 h-3.5 text-purple-400" />
-                            Agent Trajectory & Reasoning Steps ({m.thought_process.length})
+                          <span>
+                            {expandedThoughts[m.id] ? '[–] Reasoning Trace' : '[+] Reasoning Trace'}{' '}
+                            ({m.thought_process.length} steps)
                           </span>
-                          {expandedThoughts[m.id] ? (
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          ) : (
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          )}
+                          <span className="text-[10px] text-neutral-500">
+                            {expandedThoughts[m.id] ? 'Collapse' : 'Expand'}
+                          </span>
                         </button>
 
                         {expandedThoughts[m.id] && (
@@ -726,7 +675,7 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                             {m.thought_process.map((step, sIdx) => (
                               <div
                                 key={sIdx}
-                                className="flex items-start gap-2 text-neutral-300 bg-[#17171d] p-1.5 rounded"
+                                className="flex items-start gap-2 text-neutral-300 bg-[#16161d] p-2 rounded"
                               >
                                 <span className="text-purple-400 font-bold shrink-0">
                                   {`0${sIdx + 1}`}.
@@ -741,17 +690,14 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
 
                     {/* Guardrails Alert Banner if Blocked */}
                     {m.isGuardrailBlocked && (
-                      <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-800/60 flex items-start gap-3 text-amber-200">
-                        <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="text-xs font-semibold">
-                            Interception: NeMo Guardrails Activated
-                          </h4>
-                          <p className="text-xs text-amber-300/90 mt-0.5">
-                            This prompt was flagged by the zero-trust safety rail for policy
-                            intervention or injection risk.
-                          </p>
-                        </div>
+                      <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-200">
+                        <h4 className="text-xs font-mono font-semibold">
+                          [SAFETY INTERCEPTION: NeMo Guardrails Activated]
+                        </h4>
+                        <p className="text-xs text-amber-300/90 mt-1 leading-relaxed">
+                          This prompt was flagged by the zero-trust safety rail for policy
+                          intervention or injection defense.
+                        </p>
                       </div>
                     )}
 
@@ -760,34 +706,43 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                       <MarkdownRenderer content={m.content} />
                     </div>
 
-                    {/* Additional Runnable Code Snippet (if separate from content) */}
-                    {m.codeSnippet && !m.content.includes(m.codeSnippet.slice(0, 30)) && (
+                    {/* Code Studio Code Snippet (if any) */}
+                    {m.codeSnippet && (
                       <div className="pt-2">
+                        <div className="text-xs font-mono text-neutral-400 mb-1.5 flex items-center justify-between">
+                          <span>Verified AST Output ({m.codeLanguage})</span>
+                        </div>
                         <CodeBlock
                           language={m.codeLanguage || 'python'}
-                          filename={`solution.${m.codeLanguage === 'python' ? 'py' : 'js'}`}
+                          filename={`solution.${m.codeLanguage === 'typescript' ? 'ts' : m.codeLanguage === 'javascript' ? 'js' : 'py'}`}
                           code={m.codeSnippet}
                         />
                       </div>
                     )}
 
-                    {/* Cited Sources Footer */}
+                    {/* Sources Provenance Section */}
                     {m.sources && m.sources.length > 0 && (
-                      <div className="pt-2 border-t border-neutral-800/60 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] font-mono uppercase text-neutral-500 font-semibold mr-1">
-                          Sources Cited:
+                      <div className="pt-3 border-t border-neutral-800/80">
+                        <span className="text-[11px] font-mono text-neutral-400 font-semibold block mb-2">
+                          Sources & Citations ({m.sources.length})
                         </span>
-                        {m.sources.map((src, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-neutral-800/80 border border-neutral-700/60 text-[10px] font-mono text-neutral-300"
-                          >
-                            <FileText className="w-3 h-3 text-blue-400" />
-                            {src}
-                          </span>
-                        ))}
+                        <div className="flex flex-wrap gap-1.5">
+                          {m.sources.map((src, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 rounded-md bg-[#191920] border border-neutral-800 text-[11px] font-mono text-blue-300"
+                            >
+                              [Ref {idx + 1}] {src}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
+
+                    <div className="text-[10px] font-mono text-neutral-500 pt-1 flex items-center justify-between">
+                      <span>Status: {m.status || 'Complete'}</span>
+                      <span>{m.timestamp}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -796,50 +751,45 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
 
           {/* Loading Indicator */}
           {isLoading && (
-            <div className="max-w-4xl mx-auto flex items-start gap-3 p-4 rounded-xl bg-[#17171c] border border-neutral-800">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping mt-1" />
-              <div className="space-y-1">
-                <p className="text-xs font-mono font-medium text-neutral-300">
-                  {activeTab === 'code'
-                    ? `Synthesizing code with ${codeEngine.toUpperCase()} LPU...`
-                    : 'Executing LangGraph Agent (Guardrails → Qdrant Vector Retrieval → FlashRank Reranking → Synthesis)...'}
-                </p>
-                <p className="text-[10px] font-mono text-neutral-500">
-                  MemorySaver persistence thread: {activeThreadId}
-                </p>
-              </div>
+            <div className="max-w-4xl mx-auto flex items-center gap-3 p-4 rounded-xl bg-[#141419] border border-neutral-800 text-neutral-300">
+              <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+              <span className="text-xs font-mono">
+                {activeTab === 'code'
+                  ? 'Compiling code solution via Groq LPU...'
+                  : 'Orchestrating LangGraph StateGraph • Querying Qdrant • Reranking via FlashRank...'}
+              </span>
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* -------------------- BOTTOM INPUT BAR -------------------- */}
-        <div className="p-4 sm:p-6 bg-[#131317]/90 border-t border-neutral-800 shrink-0">
+        {/* -------------------- BOTTOM QUERY INPUT AREA -------------------- */}
+        <div className="p-3 sm:p-6 shrink-0 bg-transparent">
           <div className="max-w-4xl mx-auto space-y-2">
-            {/* Code Studio Optional Snippet Input */}
+            {/* Optional Code Context Input Box (Code Studio Mode) */}
             {activeTab === 'code' && showCodeContextInput && (
-              <div className="p-3 rounded-xl bg-[#18181e] border border-neutral-800 space-y-1.5 animate-fade-in">
-                <div className="flex items-center justify-between text-xs font-mono text-neutral-400">
-                  <span>Existing Code Snippet (Optional context for debug / refactor):</span>
+              <div className="p-3 rounded-xl bg-[#15151a] border border-neutral-700/60 space-y-2 animate-fade-in">
+                <div className="flex items-center justify-between text-xs font-mono text-neutral-300">
+                  <span>Target Code Context</span>
                   <button
                     onClick={() => setShowCodeContextInput(false)}
-                    className="text-neutral-500 hover:text-neutral-300"
+                    className="text-neutral-400 hover:text-white cursor-pointer text-xs"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    Close
                   </button>
                 </div>
                 <textarea
                   value={codeContext}
                   onChange={(e) => setCodeContext(e.target.value)}
-                  placeholder="// Paste your code snippet here..."
-                  className="w-full h-20 bg-[#121215] rounded-lg p-2 font-mono text-xs text-neutral-200 border border-neutral-700/60 focus:outline-none focus:border-blue-500 resize-none"
+                  placeholder="// Paste existing code snippet for debug, refactor, or optimization..."
+                  className="w-full h-20 bg-[#0d0d10] rounded-lg p-2 font-mono text-xs text-neutral-200 border border-neutral-700/60 focus:outline-none focus:border-blue-500 resize-none"
                 />
               </div>
             )}
 
             {/* Input Bar Container */}
-            <div className="relative rounded-2xl bg-[#1a1a20] border border-neutral-700/70 p-2 shadow-xl focus-within:border-neutral-500 transition-colors">
+            <div className="relative rounded-2xl bg-[#17171d] border border-neutral-700/70 p-2 shadow-xl focus-within:border-neutral-500 transition-colors">
               <textarea
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
@@ -865,32 +815,30 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                   {/* File Upload Trigger */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer border border-neutral-700/60"
                     title="Upload Document (PDF, DOCS, PPT, TXT, MD, PYTHON)"
                   >
-                    <Paperclip className="w-4 h-4" />
+                    Attach File
                   </button>
 
                   {/* Code Context Toggle (In Code Mode) */}
                   {activeTab === 'code' && (
                     <button
                       onClick={() => setShowCodeContextInput(!showCodeContextInput)}
-                      className={`px-2 py-1 rounded-lg text-[11px] font-mono transition-colors cursor-pointer flex items-center gap-1 ${
+                      className={`px-2 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer border ${
                         showCodeContextInput
-                          ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                          : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                          ? 'bg-amber-950 text-amber-300 border-amber-800'
+                          : 'bg-neutral-800 text-neutral-300 hover:text-white border-neutral-700/60'
                       }`}
                     >
-                      <Code className="w-3.5 h-3.5" />
-                      <span>{showCodeContextInput ? 'Context Active' : '+ Code Context'}</span>
+                      {showCodeContextInput ? 'Context Active' : '+ Context'}
                     </button>
                   )}
 
                   {/* Active Document Tag */}
                   {activeThread.activeDocument && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-950/60 border border-blue-800/60 text-[10px] font-mono text-blue-300">
-                      <FileCheck className="w-3 h-3 text-blue-400" />
-                      {activeThread.activeDocument.filename}
+                    <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-950/70 border border-blue-800/60 text-[10px] font-mono text-blue-300">
+                      <span>Doc: {activeThread.activeDocument.filename}</span>
                     </span>
                   )}
                 </div>
@@ -899,10 +847,9 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={!inputQuery.trim() || isLoading}
-                  className="px-4 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed font-semibold text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
+                  className="px-4 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed font-semibold text-xs transition-all cursor-pointer shadow-md active:scale-95"
                 >
-                  <span>Send</span>
-                  <Send className="w-3.5 h-3.5" />
+                  Send
                 </button>
               </div>
             </div>
@@ -910,7 +857,7 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
             {/* Bottom Telemetry Bar */}
             <div className="flex items-center justify-between px-1 text-[10px] font-mono text-neutral-500">
               <span>Enter to send • Shift+Enter for new line</span>
-              <span>Session: {activeThreadId}</span>
+              <span className="hidden sm:inline">Session: {activeThreadId}</span>
             </div>
           </div>
         </div>
@@ -918,18 +865,17 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
 
       {/* -------------------- RAG PARAMETERS DRAWER -------------------- */}
       {showSettings && (
-        <div className="fixed inset-y-0 right-0 w-80 sm:w-96 bg-[#16161b] border-l border-neutral-800 shadow-2xl z-30 p-6 flex flex-col justify-between animate-in slide-in-from-right duration-200">
-          <div className="space-y-6">
+        <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-[#141419] border-l border-neutral-800 shadow-2xl z-50 p-6 flex flex-col justify-between animate-in slide-in-from-right duration-200 max-w-[100vw]">
+          <div className="space-y-6 overflow-y-auto">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-neutral-200 flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-400" />
-                RAG Engine Settings
+              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-neutral-100">
+                RAG Engine Parameters
               </h3>
               <button
                 onClick={() => setShowSettings(false)}
-                className="text-neutral-400 hover:text-white cursor-pointer"
+                className="text-neutral-400 hover:text-white text-xs font-mono px-2 py-1 rounded bg-neutral-800 cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                Close
               </button>
             </div>
 
@@ -983,7 +929,7 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                 onChange={(e) => setSystemPrompt(e.target.value)}
                 placeholder="e.g., Focus specifically on hardware bypass, memory layout, and latency."
                 rows={3}
-                className="w-full bg-[#111114] border border-neutral-700/60 rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-blue-500 resize-none font-sans"
+                className="w-full bg-[#0d0d10] border border-neutral-700/60 rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-blue-500 resize-none font-sans"
               />
             </div>
 
@@ -1050,38 +996,12 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* -------------------- WORKFLOW GRAPH MODAL -------------------- */}
+      {/* -------------------- AI WORKFLOW GRAPH MODAL -------------------- */}
       {showGraphModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-4xl bg-[#17171d] rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-purple-400" />
-                <h3 className="font-mono text-sm font-bold text-white">
-                  LangGraph Agentic Workflow Graph
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowGraphModal(false)}
-                className="text-neutral-400 hover:text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto flex-1 flex flex-col items-center justify-center bg-[#0e0e11]">
-              <img
-                src={`${BACKEND_URL}/graph`}
-                alt="LangGraph Architecture Workflow"
-                className="max-w-full max-h-[500px] object-contain rounded-lg border border-neutral-800 shadow-inner bg-black/40"
-              />
-              <p className="text-xs font-mono text-neutral-400 mt-4 text-center max-w-xl">
-                Dynamic cyclic state machine: Planner node classifies intents, evaluates NeMo Guardrails,
-                retrieves multi-vector embeddings from Qdrant, and reranks via FlashRank cross-encoder.
-              </p>
-            </div>
-          </div>
-        </div>
+        <AiWorkflowGraph
+          onClose={() => setShowGraphModal(false)}
+          backendUrl={BACKEND_URL}
+        />
       )}
     </div>
   );

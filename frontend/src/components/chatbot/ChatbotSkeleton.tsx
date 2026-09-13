@@ -1,5 +1,4 @@
 import React from 'react';
-import { Brain } from 'lucide-react';
 
 export const ChatbotSkeleton: React.FC = () => {
   return (
@@ -28,7 +27,6 @@ export const ChatbotSkeleton: React.FC = () => {
         {/* Persona Selector Skeleton */}
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
-            <Brain className="w-3.5 h-3.5 text-neutral-600" />
             <div className="h-2.5 w-24 rounded bg-neutral-800 animate-shimmer" />
           </div>
           <div className="space-y-1.5">

@@ -7,7 +7,7 @@ export default function KeyboardDemo() {
       <Keyboard
         enableSound
         showPreview
-        autoTypeText='rag_agent.invoke({"q": "explain SR-IOV architecture"})'
+        autoTypeText="Welcome to Cognivault"
         showTypedDisplay
       />
     </div>
