@@ -1,7 +1,6 @@
 "use client";
 import { cn } from "../../lib/utils";
 import { IconMenu2, IconX } from "@tabler/icons-react";
-import { motion, AnimatePresence } from "motion/react";
 import React from "react";
 
 interface NavbarProps {
@@ -97,8 +96,8 @@ export const MobileNav = ({ children, className }: MobileNavProps) => {
   return (
     <div
       className={cn(
-        "flex lg:hidden flex-col w-full rounded-3xl select-none transition-all overflow-hidden",
-        "bg-black border border-neutral-800 shadow-2xl text-white",
+        "flex lg:hidden flex-col w-full rounded-3xl select-none overflow-hidden",
+        "bg-black border border-neutral-800 shadow-xl text-white",
         className,
       )}
     >
@@ -129,22 +128,25 @@ export const MobileNavMenu = ({
   isOpen,
 }: MobileNavMenuProps) => {
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.2, ease: "easeInOut" }}
+    <div
+      className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+        isOpen
+          ? "grid-rows-[1fr] opacity-100"
+          : "grid-rows-[0fr] opacity-0 pointer-events-none",
+      )}
+    >
+      <div className="overflow-hidden">
+        <div
           className={cn(
-            "overflow-hidden flex flex-col gap-3 px-5 pb-5 pt-2 border-t border-neutral-800 text-white",
+            "flex flex-col gap-3 px-5 pb-5 pt-2 border-t border-neutral-800 text-white",
             className,
           )}
         >
           {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
+      </div>
+    </div>
   );
 };
 

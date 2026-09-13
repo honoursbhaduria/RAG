@@ -309,38 +309,66 @@ export const RagFlowchartSection: React.FC = () => {
         ))}
       </section>
 
-      {/* Mobile/Tablet Responsive Flowchart View (Gray, No Glow, No Tags, No Wikipedia Link) */}
-      <section className="block xl:hidden py-12 px-4 max-w-4xl mx-auto select-none">
+      {/* Mobile/Tablet Responsive Flowchart View (Overlapping Cards Deck Effect) */}
+      <section className="block xl:hidden py-12 px-3 sm:px-6 max-w-lg mx-auto select-none">
         {/* Mobile Central Anchor */}
-        <div className="flex flex-col items-center justify-center mb-10">
-          <Loader size={260} />
+        <div className="flex flex-col items-center justify-center mb-8">
+          <Loader size={240} />
         </div>
 
-        {/* Vertical Flowchart Steps */}
-        <div className="space-y-5 relative">
-          {/* Vertical Connecting Line (No Glow) */}
-          <div className="absolute left-[24px] top-6 bottom-6 w-0.5 bg-neutral-600/50 pointer-events-none z-0" />
+        {/* Overlapping Stacking Cards View */}
+        <div className="relative w-full pb-16">
+          {FLOW_STEPS.map((step, index) => (
+            <div
+              key={step.stepNum}
+              className="sticky transition-all duration-200"
+              style={{
+                top: `${72 + index * 10}px`,
+                zIndex: index + 10,
+                marginTop: index === 0 ? 0 : '-16px',
+                marginBottom: index === FLOW_STEPS.length - 1 ? '0' : '24px',
+              }}
+            >
+              {/* Overlapping Card Chassis with Top/Bottom Elevation Shadow */}
+              <div className="relative rounded-[22px] p-3.5 sm:p-4 bg-[#232326] border border-neutral-600/70 shadow-[0_-8px_24px_rgba(0,0,0,0.55),0_16px_32px_rgba(0,0,0,0.6)] backdrop-blur-md">
+                {/* Corner registration marks */}
+                <div className="absolute top-2.5 left-2.5 w-1.5 h-1.5 border-t border-l border-neutral-500/60 pointer-events-none" />
+                <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 border-t border-r border-neutral-500/60 pointer-events-none" />
+                <div className="absolute bottom-2.5 left-2.5 w-1.5 h-1.5 border-b border-l border-neutral-500/60 pointer-events-none" />
+                <div className="absolute bottom-2.5 right-2.5 w-1.5 h-1.5 border-b border-r border-neutral-500/60 pointer-events-none" />
 
-          {FLOW_STEPS.map((step) => (
-            <div key={step.stepNum} className="relative z-10 flex items-start gap-4">
-              {/* Step indicator node */}
-              <div className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center font-mono text-xs font-semibold text-neutral-200 border border-neutral-600/60 bg-[#252528] shadow-sm">
-                {step.stepNum}
-              </div>
-
-              {/* Gray Framed Card */}
-              <div className="flex-1 rounded-[18px] p-3.5 bg-[#252528] border border-neutral-600/50 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs font-semibold text-neutral-200">
-                    {step.step} &bull; {step.title}
+                {/* Card Header Bar */}
+                <div className="flex items-center justify-between px-1 pb-2 border-b border-neutral-700/60 mb-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                    <span className="font-mono text-xs font-semibold tracking-wider text-neutral-200 truncate">
+                      {step.step} &bull; {step.title}
+                    </span>
+                  </div>
+                  <span className="font-mono text-[10px] font-semibold tracking-widest text-neutral-400 bg-neutral-800/80 px-2 py-0.5 rounded-full border border-neutral-700 shrink-0 ml-2">
+                    STAGE 0{step.stepNum}
                   </span>
                 </div>
-                <div className="h-[140px] w-full rounded-[10px] overflow-hidden border border-neutral-700/60 mb-2 bg-[#1b1b1d]">
-                  <img src={step.image} alt={step.alt} className="w-full h-full object-cover" />
+
+                {/* Card Image */}
+                <div className="relative h-[145px] sm:h-[175px] w-full rounded-[14px] overflow-hidden border border-neutral-700/80 mb-2.5 bg-[#18181a]">
+                  <img
+                    src={step.image}
+                    alt={step.alt}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 pointer-events-none" />
                 </div>
-                <div className="flex items-center justify-between text-xs font-mono text-neutral-400">
-                  <span>{step.subtitle}</span>
-                  <span className="text-neutral-300">{step.metric}</span>
+
+                {/* Card Footer Info */}
+                <div className="flex items-center justify-between text-xs font-mono text-neutral-400 px-1 gap-2">
+                  <span className="text-neutral-300 font-sans font-medium text-[11px] sm:text-xs truncate">
+                    {step.subtitle}
+                  </span>
+                  <span className="text-emerald-400/90 font-mono text-[10px] sm:text-[11px] bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
+                    {step.metric}
+                  </span>
                 </div>
               </div>
             </div>
