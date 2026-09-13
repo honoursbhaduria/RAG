@@ -307,67 +307,73 @@ export const RagFlowchartSection: React.FC = () => {
         ))}
       </section>
 
-      {/* Mobile/Tablet Responsive Flowchart View (Overlapping Cards Deck Effect, Overflow Safe) */}
-      <section className="block xl:hidden py-10 px-3 sm:px-6 w-full max-w-lg mx-auto select-none overflow-x-clip">
-        {/* Mobile Central Anchor (Clean Astronaut, No Drop Shadow) */}
-        <div className="flex flex-col items-center justify-center mb-6">
-          <Loader size={180} />
+      {/* Mobile/Tablet Responsive Flowchart View — Full-width cards like Subsystems */}
+      <section className="block xl:hidden py-16 sm:py-20 px-4 sm:px-6 w-full max-w-[1728px] mx-auto select-none overflow-x-clip bg-page-bg">
+        {/* Mobile Central Astronaut */}
+        <div className="flex flex-col items-center justify-center mb-10">
+          <Loader size={220} />
         </div>
 
-        {/* Overlapping Stacking Square Cards View (Block container, No flexbox collapse) */}
-        <div className="relative w-full pb-24">
+
+
+
+        {/* Full-width Sticky Stacking Cards */}
+        <div className="relative w-full pb-16">
           {FLOW_STEPS.map((step, index) => (
             <div
               key={step.stepNum}
-              className="sticky mx-auto transition-all duration-200"
+              className="sticky w-full"
               style={{
-                top: `${76 + index * 12}px`,
-                zIndex: index + 10,
-                marginBottom: index === FLOW_STEPS.length - 1 ? '0' : '24px',
-                width: 'calc(100% - 16px)',
-                maxWidth: '350px',
-                aspectRatio: '1 / 1',
+                top: `${80 + index * 14}px`,
+                zIndex: 10 + index,
+                marginBottom: index === FLOW_STEPS.length - 1 ? '0' : '28px',
               }}
             >
-              {/* Square Overlapping Card Chassis (Zero Shadow, Clean Crisp Borders) */}
-              <div className="w-full h-full relative rounded-[24px] p-4 bg-[#222225] border border-neutral-700 backdrop-blur-md flex flex-col justify-between overflow-hidden">
-                {/* Corner registration marks */}
-                <div className="absolute top-2.5 left-2.5 w-1.5 h-1.5 border-t border-l border-neutral-500/60 pointer-events-none" />
-                <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 border-t border-r border-neutral-500/60 pointer-events-none" />
-                <div className="absolute bottom-2.5 left-2.5 w-1.5 h-1.5 border-b border-l border-neutral-500/60 pointer-events-none" />
-                <div className="absolute bottom-2.5 right-2.5 w-1.5 h-1.5 border-b border-r border-neutral-500/60 pointer-events-none" />
+              <div
+                className="bg-panel-bg rounded-[24px] sm:rounded-[32px] p-5 sm:p-7 flex flex-col border border-line/30 w-full shadow-[0_4px_24px_-6px_rgba(0,0,0,0.10)] transition-shadow duration-300"
+              >
+                {/* Card Text Content */}
+                <div className="mb-4">
+                  <p className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.15em] text-muted mb-1.5">
+                    {step.step}
+                  </p>
+                  <h4 className="font-h3 text-lg sm:text-xl font-semibold text-text mb-1">
+                    {step.title}
+                  </h4>
+                  <p className="font-body-md text-sm text-muted leading-relaxed">
+                    {step.subtitle}
+                  </p>
+                </div>
 
-                {/* Card Header Bar */}
-                <div className="flex items-center justify-between px-1 pb-2 border-b border-neutral-700/60 shrink-0 gap-2">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                    <span className="font-mono text-xs sm:text-sm font-semibold tracking-wider text-neutral-200 truncate">
-                      {step.step} &bull; {step.title}
+                {/* Card Image */}
+                <div className="rounded-2xl bg-[#111111] border border-neutral-800/90 shadow-xl overflow-hidden">
+                  {/* Window Chrome */}
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-[#181818] border-b border-neutral-800/80">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90" />
+                    </div>
+                    <span className="text-[10px] font-mono uppercase text-neutral-500 font-medium">
+                      stage 0{step.stepNum}
                     </span>
                   </div>
-                  <span className="font-mono text-[10px] sm:text-[11px] font-semibold tracking-widest text-neutral-300 bg-neutral-800 px-2 py-0.5 rounded-full border border-neutral-700 shrink-0 ml-2">
-                    STAGE 0{step.stepNum}
-                  </span>
-                </div>
 
-                {/* Card Image Canvas (Fills Square Center, Guaranteed Min-Height) */}
-                <div className="relative flex-1 w-full rounded-[14px] overflow-hidden border border-neutral-700/80 my-2 bg-[#18181a] min-h-[170px]">
-                  <img
-                    src={step.image}
-                    alt={step.alt}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
+                  {/* Image Canvas */}
+                  <div className="relative w-full h-[160px] sm:h-[200px] bg-[#1b1b1d]">
+                    <img
+                      src={step.image}
+                      alt={step.alt}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
 
-                {/* Card Footer Info */}
-                <div className="flex items-center justify-between text-xs font-mono text-neutral-400 px-1 gap-2 shrink-0 pt-0.5">
-                  <span className="text-neutral-300 font-sans font-medium text-xs truncate flex-1 min-w-0">
-                    {step.subtitle}
-                  </span>
-                  <span className="text-emerald-400 font-mono text-[10px] sm:text-[11px] bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
-                    {step.metric}
-                  </span>
+                  {/* Bottom Info Bar */}
+                  <div className="px-4 py-2.5 bg-[#161616] border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                    <span className="text-emerald-400">{step.metric}</span>
+                    <span className="text-neutral-500">{step.subtitle}</span>
+                  </div>
                 </div>
               </div>
             </div>

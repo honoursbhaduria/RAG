@@ -357,9 +357,11 @@ export default function App() {
             Production-hardened components delivering high throughput, fault tolerance, and deterministic multi-turn conversations.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+          {/* Mobile: sticky stacking cards / Desktop: 2-col grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-8 w-full relative pb-8 md:pb-0">
             {/* Card 1 */}
-            <div className="bg-panel-bg rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
+            <div className="sticky md:static w-full mb-7 md:mb-0 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.10)] md:shadow-none rounded-[24px] sm:rounded-[32px]" style={{ top: '80px', zIndex: 10 }}>
+            <div className="bg-panel-bg rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
               <div>
                 <h4 className="font-h3 text-xl sm:text-2xl font-semibold mb-2 text-text">Adaptive Planning & Memory</h4>
                 <p className="font-body-md text-sm sm:text-base text-muted leading-relaxed mb-6">
@@ -393,9 +395,11 @@ export default function App() {
                 </div>
               </div>
             </div>
+            </div>
 
             {/* Card 2 */}
-            <div className="bg-soft-card rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
+            <div className="sticky md:static w-full mb-7 md:mb-0 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.10)] md:shadow-none rounded-[24px] sm:rounded-[32px]" style={{ top: '94px', zIndex: 11 }}>
+            <div className="bg-soft-card rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
               <div>
                 <h4 className="font-h3 text-xl sm:text-2xl font-semibold mb-2 text-text">Zero-Trust NeMo Guardrails</h4>
                 <p className="font-body-md text-sm sm:text-base text-muted leading-relaxed mb-6">
@@ -430,9 +434,11 @@ export default function App() {
                 </div>
               </div>
             </div>
+            </div>
 
             {/* Card 3 */}
-            <div className="bg-white-card rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
+            <div className="sticky md:static w-full mb-7 md:mb-0 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.10)] md:shadow-none rounded-[24px] sm:rounded-[32px]" style={{ top: '108px', zIndex: 12 }}>
+            <div className="bg-white-card rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
               <div>
                 <h4 className="font-h3 text-xl sm:text-2xl font-semibold mb-2 text-text">Hybrid Named Vectors & FlashRank</h4>
                 <p className="font-body-md text-sm sm:text-base text-muted leading-relaxed mb-6">
@@ -467,9 +473,11 @@ export default function App() {
                 </div>
               </div>
             </div>
+            </div>
 
             {/* Card 4 */}
-            <div className="bg-panel-bg rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
+            <div className="sticky md:static w-full mb-0 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.10)] md:shadow-none rounded-[24px] sm:rounded-[32px]" style={{ top: '122px', zIndex: 13 }}>
+            <div className="bg-panel-bg rounded-[24px] sm:rounded-[32px] p-6 sm:p-8 flex flex-col justify-between group border border-line/30 hover:border-line/60 hover:shadow-2xl transition-all duration-300">
               <div>
                 <h4 className="font-h3 text-xl sm:text-2xl font-semibold mb-2 text-text">Local Ingestion & Code Copilot</h4>
                 <p className="font-body-md text-sm sm:text-base text-muted leading-relaxed mb-6">
@@ -504,6 +512,7 @@ export default function App() {
                   <span className="text-neutral-500">POST /code/assist</span>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </section>
