@@ -27,7 +27,8 @@ langchain-openai==1.2.1
 pydantic==2.13.4
 
 # --- GUARDRAILS ---
-nemoguardrails==0.21.0
+# NeMo removed: downloads 91MB local model at runtime, causes OOM on Render free tier.
+# Guardrails now use cloud-backed ChatGroq semantic gate (zero local RAM overhead).
 
 # --- LLM GATEWAY ---
 portkey-ai==2.3.0
