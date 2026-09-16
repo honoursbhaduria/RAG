@@ -14,7 +14,6 @@ interface NodeData {
   description: string;
   specs: { label: string; val: string }[];
   status: 'Ready' | 'Active' | 'Complete' | 'Guarded';
-  color: string;
 }
 
 const NODES: NodeData[] = [
@@ -23,28 +22,26 @@ const NODES: NodeData[] = [
     name: 'Query & Ingestion Hub',
     category: 'Input',
     badge: 'STAGE 01',
-    description: 'Ingests user prompt and multi-format files (PDF, DOCS, TXT, PY). Extracts text, calculates token budgets, and normalizes encodings.',
+    description: 'Ingests user prompt and multi-format files (PDF, DOCX, TXT, PY). Extracts text, calculates token budgets, and normalizes encodings.',
     specs: [
       { label: 'Supported Formats', val: 'PDF, DOCX, TXT, MD, PPT, PY' },
       { label: 'Chunking Strategy', val: 'Semantic Token Window (500t)' },
       { label: 'Context Buffer', val: 'Multi-turn Memory Checkpoint' },
     ],
     status: 'Ready',
-    color: '#60a5fa',
   },
   {
     id: 'guardrail',
-    name: 'NeMo Zero-Trust Guardrails',
+    name: 'Zero-Trust Safety Gate',
     category: 'Security',
     badge: 'GATE 01',
-    description: 'First defensive barrier. Evaluates input against Colang safety rails, detects jailbreaks, prompt injections, and XSS payload attempts before execution.',
+    description: 'First defensive barrier. Evaluates input against injection patterns, script injection, jailbreak keywords, and semantic safety rules before execution.',
     specs: [
       { label: 'Latency Overhead', val: '< 2.4 ms (Zero-Trust)' },
-      { label: 'Colang Policy', val: 'Strict Anti-Injection & PII' },
-      { label: 'Action on Breach', val: 'Deterministic Interception' },
+      { label: 'Policy Model', val: 'Deterministic Regex + Cloud Guard' },
+      { label: 'Action on Breach', val: 'Immediate Safe Refusal' },
     ],
     status: 'Guarded',
-    color: '#f59e0b',
   },
   {
     id: 'planner',
@@ -58,7 +55,6 @@ const NODES: NodeData[] = [
       { label: 'Branching', val: 'Conditional Intent Dispatcher' },
     ],
     status: 'Active',
-    color: '#a855f7',
   },
   {
     id: 'retrieval',
@@ -72,7 +68,6 @@ const NODES: NodeData[] = [
       { label: 'Sparse Alignment', val: 'BM25 Lexical Keyword Boost' },
     ],
     status: 'Ready',
-    color: '#38bdf8',
   },
   {
     id: 'qdrant',
@@ -86,7 +81,6 @@ const NODES: NodeData[] = [
       { label: 'Top-K Retrieval', val: '5 to 15 Vector Chunks' },
     ],
     status: 'Ready',
-    color: '#34d399',
   },
   {
     id: 'reranker',
@@ -100,7 +94,6 @@ const NODES: NodeData[] = [
       { label: 'Precision Boost', val: '+38% Relevance Precision' },
     ],
     status: 'Active',
-    color: '#ec4899',
   },
   {
     id: 'synthesis',
@@ -114,7 +107,6 @@ const NODES: NodeData[] = [
       { label: 'Grounding Rule', val: 'Zero-Hallucination Strict Context' },
     ],
     status: 'Ready',
-    color: '#818cf8',
   },
   {
     id: 'telemetry',
@@ -128,7 +120,6 @@ const NODES: NodeData[] = [
       { label: 'Latency Profiling', val: 'Per-node Millisecond Budget' },
     ],
     status: 'Complete',
-    color: '#10b981',
   },
 ];
 
@@ -142,20 +133,20 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
   const selectedNode = NODES.find((n) => n.id === selectedNodeId) || NODES[2];
 
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-6 select-none animate-fade-in">
-      <div className="w-full max-w-5xl bg-[#111116] border border-neutral-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95dvh]">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-6 animate-fade-in">
+      <div className="w-full max-w-5xl bg-[#111116] border border-neutral-800 rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[95dvh]">
         {/* Modal Top Bar */}
-        <div className="px-3 sm:px-6 py-3 border-b border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#15151c]">
-          <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
-            <span className="text-xs font-mono font-bold tracking-wider uppercase text-neutral-100 truncate">
-              Cognivault AI Workflow
+        <div className="px-3.5 sm:px-6 py-3 border-b border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#141419]">
+          <div className="flex items-center justify-between sm:justify-start gap-2.5">
+            <span className="text-xs font-mono font-bold tracking-wider uppercase text-neutral-200 truncate">
+              Cognivault Architecture
             </span>
-            <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-950/80 border border-blue-800 text-blue-300">
-              LangGraph StateGraph Engine
+            <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-400 border border-neutral-700/60">
+              LangGraph StateGraph
             </span>
             <button
               onClick={onClose}
-              className="sm:hidden px-2 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700 transition-colors cursor-pointer"
+              className="sm:hidden px-2 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700/60 transition-colors cursor-pointer"
               title="Close"
             >
               ✕
@@ -167,21 +158,21 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
             <div className="flex items-center rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-[11px] font-mono w-full sm:w-auto justify-between sm:justify-start">
               <button
                 onClick={() => setViewMode('neural')}
-                className={`px-2 sm:px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                   viewMode === 'neural'
-                    ? 'bg-neutral-800 text-white font-medium shadow-sm'
-                    : 'text-neutral-400 hover:text-white'
+                    ? 'bg-neutral-800 text-white font-medium border border-neutral-700/60 shadow-sm'
+                    : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
                 <span className="sm:hidden">DAG</span>
-                <span className="hidden sm:inline">Interactive AI DAG</span>
+                <span className="hidden sm:inline">Interactive DAG</span>
               </button>
               <button
                 onClick={() => setViewMode('backend')}
-                className={`px-2 sm:px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                   viewMode === 'backend'
-                    ? 'bg-neutral-800 text-white font-medium shadow-sm'
-                    : 'text-neutral-400 hover:text-white'
+                    ? 'bg-neutral-800 text-white font-medium border border-neutral-700/60 shadow-sm'
+                    : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
                 <span className="sm:hidden">Mermaid</span>
@@ -189,10 +180,10 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
               </button>
               <button
                 onClick={() => setViewMode('trace')}
-                className={`px-2 sm:px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                   viewMode === 'trace'
-                    ? 'bg-neutral-800 text-white font-medium shadow-sm'
-                    : 'text-neutral-400 hover:text-white'
+                    ? 'bg-neutral-800 text-white font-medium border border-neutral-700/60 shadow-sm'
+                    : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
                 <span className="sm:hidden">Cycle</span>
@@ -202,7 +193,7 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
 
             <button
               onClick={onClose}
-              className="hidden sm:inline-block px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700 transition-colors cursor-pointer"
+              className="hidden sm:inline-block px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700/60 transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -210,56 +201,46 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
         </div>
 
         {/* Modal Main Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#0a0a0d] flex flex-col gap-6">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 bg-[#0c0c10] flex flex-col gap-4 sm:gap-6">
           {viewMode === 'neural' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 flex-1">
               {/* Left Column: Interactive AI Neural Nodes Pipeline (8 cols) */}
-              <div className="lg:col-span-8 flex flex-col gap-4">
-                <div className="p-3 rounded-xl bg-[#131318] border border-neutral-800 flex items-center justify-between text-xs font-mono">
+              <div className="lg:col-span-8 flex flex-col gap-3 sm:gap-4">
+                <div className="p-3 rounded-xl bg-[#131317] border border-neutral-800/80 flex items-center justify-between text-xs font-mono">
                   <span className="text-neutral-400">
-                    Active Architecture: <span className="text-white">Cyclic State Machine</span>
+                    Topology: <span className="text-neutral-200">Cyclic State Machine</span>
                   </span>
-                  <span className="text-emerald-400">All 8 AI Subsystems Online</span>
+                  <span className="text-neutral-400 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
+                    8 Subsystems Active
+                  </span>
                 </div>
 
-                {/* Cyber DAG Visual Pipeline */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Clean Subtle Nodes Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   {NODES.map((node) => {
                     const isSelected = selectedNode.id === node.id;
                     return (
                       <div
                         key={node.id}
                         onClick={() => setSelectedNodeId(node.id)}
-                        className={`p-3.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden group ${
+                        className={`p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
                           isSelected
-                            ? 'bg-[#181822] border-blue-500/80 shadow-[0_0_20px_rgba(59,130,246,0.2)]'
-                            : 'bg-[#121217] border-neutral-800 hover:border-neutral-700 hover:bg-[#15151c]'
+                            ? 'bg-[#18181f] border-neutral-600 shadow-sm'
+                            : 'bg-[#121216] border-neutral-800/80 hover:border-neutral-700 hover:bg-[#15151a]'
                         }`}
                       >
-                        {/* Status accent border line */}
-                        <div
-                          className="absolute top-0 left-0 bottom-0 w-1 transition-all"
-                          style={{ backgroundColor: node.color }}
-                        />
-
-                        <div className="flex items-center justify-between pl-2 pb-1.5 border-b border-neutral-800/60">
-                          <span className="text-[10px] font-mono tracking-widest uppercase text-neutral-400">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-neutral-800/60">
+                          <span className="text-[10px] font-mono tracking-wider uppercase text-neutral-500">
                             {node.badge}
                           </span>
-                          <span
-                            className="text-[9px] font-mono px-1.5 py-0.5 rounded uppercase font-semibold"
-                            style={{
-                              color: node.color,
-                              backgroundColor: `${node.color}15`,
-                              border: `1px solid ${node.color}40`,
-                            }}
-                          >
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded uppercase font-medium bg-neutral-800/80 text-neutral-300 border border-neutral-700/60">
                             {node.status}
                           </span>
                         </div>
 
-                        <div className="pl-2 pt-2">
-                          <h4 className="text-xs font-bold text-white font-mono group-hover:text-blue-300 transition-colors">
+                        <div className="pt-2">
+                          <h4 className="text-xs font-semibold text-neutral-100 font-mono group-hover:text-white transition-colors">
                             {node.name}
                           </h4>
                           <p className="text-[11px] text-neutral-400 font-sans line-clamp-2 mt-1 leading-snug">
@@ -267,11 +248,10 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
                           </p>
                         </div>
 
-                        {/* Connection indicator */}
-                        <div className="pl-2 pt-2 flex items-center justify-between text-[10px] font-mono text-neutral-500">
+                        <div className="pt-2.5 flex items-center justify-between text-[10px] font-mono text-neutral-500">
                           <span>{node.category}</span>
-                          <span className="text-neutral-400 group-hover:text-white transition-colors">
-                            {isSelected ? '[Selected]' : 'Click to inspect'}
+                          <span className={isSelected ? 'text-neutral-300 font-medium' : 'text-neutral-500 group-hover:text-neutral-300'}>
+                            {isSelected ? '● Selected' : 'View details'}
                           </span>
                         </div>
                       </div>
@@ -280,28 +260,25 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
                 </div>
               </div>
 
-              {/* Right Column: Node Inspector & Live Metrics (4 cols) */}
+              {/* Right Column: Node Inspector & Specifications (4 cols) */}
               <div className="lg:col-span-4 flex flex-col gap-4">
-                <div className="p-4 rounded-xl bg-[#14141a] border border-neutral-800 shadow-lg flex flex-col gap-4 sticky top-0">
-                  <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                <div className="p-4 rounded-xl bg-[#131317] border border-neutral-800/80 flex flex-col gap-4 sticky top-0">
+                  <div className="flex items-center justify-between border-b border-neutral-800/80 pb-3">
                     <div>
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">
                         Node Inspector
                       </span>
-                      <h3
-                        className="text-sm font-bold font-mono text-white mt-0.5"
-                        style={{ color: selectedNode.color }}
-                      >
+                      <h3 className="text-sm font-bold font-mono text-neutral-100 mt-0.5">
                         {selectedNode.name}
                       </h3>
                     </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 border border-neutral-700">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 border border-neutral-700/60">
                       {selectedNode.badge}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-semibold block mb-1">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-medium block mb-1">
                       Function & Responsibility
                     </span>
                     <p className="text-xs text-neutral-300 font-sans leading-relaxed">
@@ -309,25 +286,25 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
                     </p>
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-neutral-800">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-semibold block">
+                  <div className="space-y-2 pt-2 border-t border-neutral-800/80">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-medium block">
                       Runtime Specifications
                     </span>
                     <div className="space-y-1.5 font-mono text-xs">
                       {selectedNode.specs.map((spec, sIdx) => (
                         <div
                           key={sIdx}
-                          className="p-2 rounded-lg bg-[#0e0e12] border border-neutral-800/80 flex flex-col gap-0.5"
+                          className="p-2.5 rounded-lg bg-[#0d0d11] border border-neutral-800/70 flex flex-col gap-0.5"
                         >
                           <span className="text-[10px] text-neutral-500 uppercase">{spec.label}</span>
-                          <span className="text-neutral-200 font-medium">{spec.val}</span>
+                          <span className="text-neutral-200 font-medium text-xs">{spec.val}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-neutral-900/80 border border-neutral-800 text-[10px] font-mono text-neutral-400 leading-normal">
-                    Cycle Optimization: Zero-trust verified before routing to synthesis. Latency bound under 320ms end-to-end.
+                  <div className="p-3 rounded-lg bg-[#0d0d11] border border-neutral-800/70 text-[10px] font-mono text-neutral-400 leading-normal">
+                    Pipeline Clearance: Security verified prior to dispatch. Sub-second orchestration across checkpoints.
                   </div>
                 </div>
               </div>
@@ -335,31 +312,31 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
           )}
 
           {viewMode === 'backend' && (
-            <div className="flex flex-col items-center justify-center p-6 bg-[#0e0e12] rounded-xl border border-neutral-800 min-h-[400px]">
+            <div className="flex flex-col items-center justify-center p-6 bg-[#121216] rounded-xl border border-neutral-800/80 min-h-[400px]">
               <div className="text-xs font-mono text-neutral-400 mb-4 text-center">
-                Live Mermaid state machine generated directly from LangGraph backend runtime:
+                Live StateGraph topology generated from LangGraph runtime:
               </div>
               <img
                 src={`${backendUrl}/graph`}
                 alt="LangGraph Architecture Workflow Diagram"
-                className="max-w-full max-h-[500px] object-contain rounded-lg border border-neutral-800 shadow-inner bg-black/60 p-4"
+                className="max-w-full max-h-[500px] object-contain rounded-lg border border-neutral-800 bg-[#0a0a0d] p-4"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
               <p className="text-[11px] font-mono text-neutral-500 mt-4 text-center max-w-xl">
-                Compiled via LangGraph `draw_mermaid_png()`. Represents the actual executing graph topology in memory.
+                Generated via `draw_mermaid_png()`. Reflects the executing agent graph in memory.
               </p>
             </div>
           )}
 
           {viewMode === 'trace' && (
-            <div className="p-4 sm:p-6 bg-[#0e0e12] rounded-xl border border-neutral-800 space-y-4 font-mono">
-              <h4 className="text-xs font-bold text-neutral-200 uppercase tracking-wider">
-                Full Agentic Cycle Trajectory
+            <div className="p-4 sm:p-6 bg-[#121216] rounded-xl border border-neutral-800/80 space-y-4 font-mono">
+              <h4 className="text-xs font-semibold text-neutral-200 uppercase tracking-wider">
+                Full Agentic Execution Trajectory
               </h4>
 
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {[
                   {
                     step: '01. User Request Reception',
@@ -367,9 +344,9 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
                     result: 'Session checkpoint initial state instantiated.',
                   },
                   {
-                    step: '02. Zero-Trust NeMo Guardrails',
-                    action: 'Sub-millisecond regex + Colang jailbreak evaluation.',
-                    result: 'Safety clearance passed (or instant defensive termination).',
+                    step: '02. Zero-Trust Safety Gate',
+                    action: 'Fast regex scan + cloud-backed safety policy evaluation.',
+                    result: 'Safety clearance passed (or instant defensive refusal).',
                   },
                   {
                     step: '03. LangGraph StateGraph Routing',
@@ -399,13 +376,13 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-lg bg-[#14141a] border border-neutral-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                    className="p-3 rounded-lg bg-[#0d0d11] border border-neutral-800/70 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2"
                   >
                     <div>
-                      <div className="text-xs font-bold text-blue-400">{item.step}</div>
-                      <div className="text-[11px] text-neutral-300 font-sans mt-0.5">{item.action}</div>
+                      <div className="text-xs font-semibold text-neutral-200">{item.step}</div>
+                      <div className="text-[11px] text-neutral-400 font-sans mt-0.5">{item.action}</div>
                     </div>
-                    <div className="text-[10px] text-emerald-400 font-mono sm:text-right shrink-0">
+                    <div className="text-[10px] text-neutral-400 font-mono sm:text-right shrink-0">
                       {item.result}
                     </div>
                   </div>
@@ -416,8 +393,9 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-4 sm:px-6 py-3 border-t border-neutral-800 bg-[#121217] flex items-center justify-between text-[11px] font-mono text-neutral-500">
-          <span>LangGraph Cyclic State Machine • NeMo Guardrails • Qdrant HNSW</span>
+        <div className="px-4 sm:px-6 py-3 border-t border-neutral-800 bg-[#141419] flex items-center justify-between text-[11px] font-mono text-neutral-500">
+          <span className="hidden sm:inline">LangGraph Cyclic State Machine • Zero-Trust Guardrails • Qdrant HNSW</span>
+          <span className="sm:hidden">Cognivault Architecture</span>
           <button
             onClick={onClose}
             className="px-3 py-1 rounded bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-colors cursor-pointer"
