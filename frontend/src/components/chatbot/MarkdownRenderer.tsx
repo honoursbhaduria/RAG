@@ -132,7 +132,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 
             return (
               <code
-                className="px-1.5 py-0.5 rounded-md bg-neutral-800/90 border border-neutral-700/60 font-mono text-[12px] text-amber-300 font-medium"
+                className="px-1.5 py-0.5 rounded-md bg-neutral-800/90 border border-neutral-700/60 font-mono text-[12px] text-amber-300 font-medium break-all whitespace-pre-wrap"
                 {...props}
               >
                 {children}

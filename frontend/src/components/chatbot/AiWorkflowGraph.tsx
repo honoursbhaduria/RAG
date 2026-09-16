@@ -143,56 +143,66 @@ export const AiWorkflowGraph: React.FC<AiWorkflowGraphProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-6 select-none animate-fade-in">
-      <div className="w-full max-w-5xl bg-[#111116] border border-neutral-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-5xl bg-[#111116] border border-neutral-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95dvh]">
         {/* Modal Top Bar */}
-        <div className="px-4 sm:px-6 py-3.5 border-b border-neutral-800 flex items-center justify-between bg-[#15151c]">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-mono font-bold tracking-wider uppercase text-neutral-100">
-              Cognivault AI Workflow Architecture
+        <div className="px-3 sm:px-6 py-3 border-b border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#15151c]">
+          <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
+            <span className="text-xs font-mono font-bold tracking-wider uppercase text-neutral-100 truncate">
+              Cognivault AI Workflow
             </span>
             <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-950/80 border border-blue-800 text-blue-300">
               LangGraph StateGraph Engine
             </span>
+            <button
+              onClick={onClose}
+              className="sm:hidden px-2 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700 transition-colors cursor-pointer"
+              title="Close"
+            >
+              ✕
+            </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-end gap-2">
             {/* View Mode Switcher */}
-            <div className="flex items-center rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-[11px] font-mono">
+            <div className="flex items-center rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-[11px] font-mono w-full sm:w-auto justify-between sm:justify-start">
               <button
                 onClick={() => setViewMode('neural')}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-2 sm:px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                   viewMode === 'neural'
                     ? 'bg-neutral-800 text-white font-medium shadow-sm'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                Interactive AI DAG
+                <span className="sm:hidden">DAG</span>
+                <span className="hidden sm:inline">Interactive AI DAG</span>
               </button>
               <button
                 onClick={() => setViewMode('backend')}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-2 sm:px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                   viewMode === 'backend'
                     ? 'bg-neutral-800 text-white font-medium shadow-sm'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                Backend Mermaid
+                <span className="sm:hidden">Mermaid</span>
+                <span className="hidden sm:inline">Backend Mermaid</span>
               </button>
               <button
                 onClick={() => setViewMode('trace')}
-                className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                className={`px-2 sm:px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                   viewMode === 'trace'
                     ? 'bg-neutral-800 text-white font-medium shadow-sm'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                Execution Cycle
+                <span className="sm:hidden">Cycle</span>
+                <span className="hidden sm:inline">Execution Cycle</span>
               </button>
             </div>
 
             <button
               onClick={onClose}
-              className="px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700 transition-colors cursor-pointer"
+              className="hidden sm:inline-block px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700 transition-colors cursor-pointer"
             >
               Close
             </button>

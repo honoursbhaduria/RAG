@@ -2,9 +2,9 @@ import React from 'react';
 
 export const ChatbotSkeleton: React.FC = () => {
   return (
-    <div className="flex h-screen w-full bg-[#0d0d11] text-neutral-200 overflow-hidden font-sans select-none">
+    <div className="flex h-[100dvh] w-full bg-[#0d0d11] text-neutral-200 overflow-hidden font-sans select-none">
       {/* 1. Left Sidebar Skeleton (Desktop) */}
-      <aside className="hidden md:flex w-72 lg:w-80 flex-col border-r border-neutral-800/80 bg-[#111116] p-4 space-y-4 shrink-0">
+      <aside className="hidden lg:flex w-72 lg:w-80 flex-col border-r border-neutral-800/80 bg-[#111116] p-4 space-y-4 shrink-0">
         {/* Workspace Brand Shimmer */}
         <div className="flex items-center gap-3 pb-3 border-b border-neutral-800/80">
           <div className="w-8 h-8 rounded-xl bg-neutral-800 animate-shimmer" />

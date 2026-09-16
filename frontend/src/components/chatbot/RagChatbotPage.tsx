@@ -351,7 +351,7 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#0a0a0d] text-neutral-200 overflow-hidden font-sans select-none antialiased relative">
+    <div className="flex h-[100dvh] min-h-[100dvh] w-full bg-[#0a0a0d] text-neutral-200 overflow-hidden font-sans antialiased relative">
       {/* -------------------- MOBILE BACKDROP OVERLAY -------------------- */}
       {isSidebarOpen && (
         <div
@@ -364,41 +364,39 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
       <aside
         className={`bg-[#121217] border-r border-neutral-800 flex flex-col justify-between shrink-0 z-40 transition-all duration-300 ease-in-out ${
           isSidebarOpen
-            ? 'fixed inset-y-0 left-0 w-72 sm:w-80 translate-x-0 shadow-2xl lg:static lg:shadow-none'
-            : 'fixed inset-y-0 left-0 w-72 sm:w-80 -translate-x-full lg:w-0 lg:translate-x-0 lg:p-0 lg:overflow-hidden lg:border-r-0 lg:opacity-0'
+            ? 'fixed inset-y-0 left-0 w-[85vw] max-w-[320px] sm:w-80 translate-x-0 shadow-2xl lg:static lg:shadow-none'
+            : 'fixed inset-y-0 left-0 w-[85vw] max-w-[320px] sm:w-80 -translate-x-full lg:w-0 lg:translate-x-0 lg:p-0 lg:overflow-hidden lg:border-r-0 lg:opacity-0'
         }`}
       >
         {/* Top Header / Branding */}
-        <div className="p-4 border-b border-neutral-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="p-3.5 sm:p-4 border-b border-neutral-800/80 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={onBack}
-              className="px-2.5 py-1 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer text-xs font-mono"
+              className="px-2.5 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer text-xs font-mono shrink-0 flex items-center gap-1"
               title="Return to Landing Page"
             >
-              Back
+              <span>← Back</span>
             </button>
-            <div>
-              <h2 className="text-base font-bold tracking-wide text-neutral-100 dancing-script">
-                Cognivault Studio
-              </h2>
-            </div>
+            <h2 className="text-base font-bold tracking-wide text-neutral-100 dancing-script truncate">
+              Cognivault Studio
+            </h2>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={handleNewThread}
-              className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white transition-all cursor-pointer text-xs font-mono"
+              className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white transition-all cursor-pointer text-xs font-mono"
               title="Start New Thread"
             >
               + New
             </button>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="px-2 py-1 rounded-lg text-xs font-mono text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-xs font-mono text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
               title="Hide Sidebar"
             >
-              Hide
+              ✕
             </button>
           </div>
         </div>
@@ -482,7 +480,10 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
               {PERSONAS.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => setPersona(p.id)}
+                  onClick={() => {
+                    setPersona(p.id);
+                    if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                  }}
                   className={`text-left px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                     persona === p.id
                       ? 'bg-neutral-800 text-white border border-neutral-600/70 shadow-sm'
@@ -529,78 +530,111 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
       {/* -------------------- MAIN CHAT AREA -------------------- */}
       <div className="flex-1 flex flex-col h-full bg-[#09090c] overflow-hidden relative">
         {/* Top Navbar */}
-        <header className="h-14 px-3 sm:px-6 flex items-center justify-between bg-[#111116]/95 backdrop-blur-md shrink-0 z-10 gap-2">
-          <div className="flex items-center gap-2 overflow-x-auto py-1">
+        <header className="h-14 px-2.5 sm:px-6 flex items-center justify-between bg-[#111116]/95 backdrop-blur-md shrink-0 z-10 gap-1.5 sm:gap-2 border-b border-neutral-800/60">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             {/* Sidebar Toggle Button */}
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-mono bg-neutral-800/90 hover:bg-neutral-700 text-neutral-200 hover:text-white border border-neutral-700/60 transition-colors cursor-pointer shrink-0"
+              className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-mono bg-neutral-800/90 hover:bg-neutral-700 text-neutral-200 hover:text-white border border-neutral-700/60 transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
               title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
             >
-              {isSidebarOpen ? 'Hide Sidebar' : 'Sidebar'}
+              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+              <span className="hidden sm:inline">{isSidebarOpen ? 'Hide' : 'Sidebar'}</span>
             </button>
 
             {/* Mode Switcher Tabs */}
             <div className="flex items-center p-0.5 rounded-xl bg-neutral-900 border border-neutral-800 shrink-0">
               <button
                 onClick={() => setActiveTab('rag')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
                   activeTab === 'rag'
                     ? 'bg-neutral-800 text-white shadow-sm'
                     : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
-                Agentic RAG
+                <span className="sm:hidden">RAG</span>
+                <span className="hidden sm:inline">Agentic RAG</span>
               </button>
               <button
                 onClick={() => setActiveTab('code')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
+                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
                   activeTab === 'code'
                     ? 'bg-neutral-800 text-white shadow-sm'
                     : 'text-neutral-400 hover:text-neutral-200'
                 }`}
               >
-                Code Studio
+                <span className="sm:hidden">Code</span>
+                <span className="hidden sm:inline">Code Studio</span>
               </button>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setShowGraphModal(true)}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 hover:text-white text-xs font-mono border border-neutral-700/50 cursor-pointer transition-colors"
+              className="px-2 sm:px-3 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 hover:text-white text-xs font-mono border border-neutral-700/50 cursor-pointer transition-colors flex items-center gap-1.5"
+              title="Workflow Graph"
             >
-              Workflow Graph
+              <svg className="w-3.5 h-3.5 text-purple-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="18" cy="18" r="3"></circle>
+                <path d="M6 9v12M18 9v12M6 12h12"></path>
+              </svg>
+              <span className="hidden sm:inline">Workflow Graph</span>
+              <span className="sm:hidden text-[11px]">Graph</span>
             </button>
 
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 hover:text-white border border-neutral-700/50 cursor-pointer transition-colors text-xs font-mono"
+              className="px-2 sm:px-3 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 hover:text-white border border-neutral-700/50 cursor-pointer transition-colors text-xs font-mono flex items-center gap-1.5"
+              title="Parameters"
             >
-              Parameters
+              <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+              </svg>
+              <span className="hidden sm:inline">Parameters</span>
+              <span className="sm:hidden text-[11px]">Params</span>
             </button>
           </div>
         </header>
 
         {/* Messages Viewport */}
-        <div className="flex-1 overflow-y-auto px-3 sm:px-8 py-4 sm:py-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-2.5 sm:px-6 md:px-8 py-3.5 sm:py-6 space-y-4 sm:space-y-6 select-text">
           {activeThread.messages.length === 0 ? (
             /* Clean Empty State Hero */
-            <div className="max-w-3xl mx-auto my-auto py-12 flex flex-col items-center text-center space-y-6">
+            <div className="max-w-3xl mx-auto my-auto py-6 sm:py-12 flex flex-col items-center text-center space-y-4 sm:space-y-6 px-1">
               <div>
-                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white dancing-script">
+                <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white dancing-script">
                   Cognivault
                 </h1>
+                <p className="text-[11px] sm:text-xs text-neutral-400 font-mono mt-1">
+                  Enterprise Agentic RAG • Memory • Dual Embeddings
+                </p>
               </div>
 
               {/* Starter Prompt Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl text-left pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 w-full max-w-2xl text-left pt-1 sm:pt-2">
                 {STARTER_PROMPTS.map((p, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handleSendMessage(p.query)}
-                    className="p-3.5 rounded-xl bg-[#141419] hover:bg-[#1b1b22] border border-neutral-800 hover:border-neutral-700 text-left transition-all cursor-pointer group"
+                    onClick={() => {
+                      handleSendMessage(p.query);
+                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                    }}
+                    className="p-3 sm:p-3.5 rounded-xl bg-[#141419] hover:bg-[#1b1b22] border border-neutral-800 hover:border-neutral-700 text-left transition-all cursor-pointer group active:scale-[0.99]"
                   >
                     <div className="text-xs font-semibold text-neutral-200 group-hover:text-white">
                       {p.title}
@@ -623,15 +657,15 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
               >
                 {/* User Message Bubble */}
                 {m.role === 'user' ? (
-                  <div className="max-w-[92%] sm:max-w-[85%] rounded-2xl px-5 py-3.5 bg-[#202027] border border-neutral-700/70 text-neutral-100 shadow-md">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.content}</p>
+                  <div className="max-w-[88%] sm:max-w-[82%] rounded-2xl px-3.5 py-2.5 sm:px-5 sm:py-3.5 bg-[#202027] border border-neutral-700/70 text-neutral-100 shadow-md">
+                    <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">{m.content}</p>
                     <span className="text-[10px] font-mono text-neutral-400 mt-1.5 block text-right">
                       {m.timestamp}
                     </span>
                   </div>
                 ) : (
                   /* Assistant Message Card */
-                  <div className="w-full rounded-2xl p-4 sm:p-5 bg-[#141419] border border-neutral-800 shadow-lg space-y-4">
+                  <div className="w-full rounded-2xl p-3 sm:p-5 bg-[#141419] border border-neutral-800 shadow-lg space-y-3 sm:space-y-4 overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between border-b border-neutral-800/80 pb-2.5">
                       <div className="flex items-center gap-2">
@@ -765,11 +799,11 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
         </div>
 
         {/* -------------------- BOTTOM QUERY INPUT AREA -------------------- */}
-        <div className="p-3 sm:p-6 shrink-0 bg-transparent">
-          <div className="max-w-4xl mx-auto space-y-2">
+        <div className="p-2 sm:p-4 md:p-6 shrink-0 bg-transparent pb-3 sm:pb-6">
+          <div className="max-w-4xl mx-auto space-y-1.5 sm:space-y-2">
             {/* Optional Code Context Input Box (Code Studio Mode) */}
             {activeTab === 'code' && showCodeContextInput && (
-              <div className="p-3 rounded-xl bg-[#15151a] border border-neutral-700/60 space-y-2 animate-fade-in">
+              <div className="p-2.5 sm:p-3 rounded-xl bg-[#15151a] border border-neutral-700/60 space-y-2 animate-fade-in">
                 <div className="flex items-center justify-between text-xs font-mono text-neutral-300">
                   <span>Target Code Context</span>
                   <button
@@ -783,13 +817,13 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                   value={codeContext}
                   onChange={(e) => setCodeContext(e.target.value)}
                   placeholder="// Paste existing code snippet for debug, refactor, or optimization..."
-                  className="w-full h-20 bg-[#0d0d10] rounded-lg p-2 font-mono text-xs text-neutral-200 border border-neutral-700/60 focus:outline-none focus:border-blue-500 resize-none"
+                  className="w-full h-16 sm:h-20 bg-[#0d0d10] rounded-lg p-2 font-mono text-xs text-neutral-200 border border-neutral-700/60 focus:outline-none focus:border-blue-500 resize-none"
                 />
               </div>
             )}
 
             {/* Input Bar Container */}
-            <div className="relative rounded-2xl bg-[#17171d] border border-neutral-700/70 p-2 shadow-xl focus-within:border-neutral-500 transition-colors">
+            <div className="relative rounded-2xl bg-[#17171d] border border-neutral-700/70 p-1.5 sm:p-2.5 shadow-xl focus-within:border-neutral-500 transition-colors">
               <textarea
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
@@ -801,44 +835,48 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                 }}
                 placeholder={
                   activeTab === 'code'
-                    ? 'Ask a coding question, optimization goal, or debug request...'
+                    ? 'Ask a coding question or debug request...'
                     : activeThread.activeDocument
-                    ? `Query against ${activeThread.activeDocument.filename} or knowledge base...`
-                    : 'Query knowledge base (e.g., SRIOV, HNSW clustering, guardrails)...'
+                    ? `Query against ${activeThread.activeDocument.filename}...`
+                    : 'Query knowledge base (e.g., SRIOV, HNSW, guardrails)...'
                 }
-                rows={2}
-                className="w-full bg-transparent px-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none resize-none font-sans"
+                rows={1}
+                className="w-full bg-transparent px-2 sm:px-3 py-1 text-xs sm:text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none resize-none font-sans min-h-[38px] max-h-32"
               />
 
-              <div className="flex items-center justify-between pt-1 px-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between pt-1 px-1 sm:px-2 gap-1.5">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                   {/* File Upload Trigger */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer border border-neutral-700/60"
+                    className="px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer border border-neutral-700/60 shrink-0 flex items-center gap-1"
                     title="Upload Document (PDF, DOCS, PPT, TXT, MD, PYTHON)"
                   >
-                    Attach File
+                    <svg className="w-3 h-3 text-neutral-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                    </svg>
+                    <span className="hidden sm:inline">Attach File</span>
+                    <span className="sm:hidden">Attach</span>
                   </button>
 
                   {/* Code Context Toggle (In Code Mode) */}
                   {activeTab === 'code' && (
                     <button
                       onClick={() => setShowCodeContextInput(!showCodeContextInput)}
-                      className={`px-2 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer border ${
+                      className={`px-2 py-1 rounded-lg text-[11px] sm:text-xs font-mono transition-colors cursor-pointer border shrink-0 ${
                         showCodeContextInput
                           ? 'bg-amber-950 text-amber-300 border-amber-800'
                           : 'bg-neutral-800 text-neutral-300 hover:text-white border-neutral-700/60'
                       }`}
                     >
-                      {showCodeContextInput ? 'Context Active' : '+ Context'}
+                      {showCodeContextInput ? 'Context On' : '+ Context'}
                     </button>
                   )}
 
                   {/* Active Document Tag */}
                   {activeThread.activeDocument && (
-                    <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-950/70 border border-blue-800/60 text-[10px] font-mono text-blue-300">
-                      <span>Doc: {activeThread.activeDocument.filename}</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-950/70 border border-blue-800/60 text-[10px] font-mono text-blue-300 max-w-[110px] sm:max-w-[200px] truncate">
+                      <span className="truncate">Doc: {activeThread.activeDocument.filename}</span>
                     </span>
                   )}
                 </div>
@@ -847,16 +885,21 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={!inputQuery.trim() || isLoading}
-                  className="px-4 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed font-semibold text-xs transition-all cursor-pointer shadow-md active:scale-95"
+                  className="px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed font-semibold text-xs transition-all cursor-pointer shadow-md active:scale-95 shrink-0 flex items-center gap-1"
                 >
-                  Send
+                  <span>Send</span>
+                  <svg className="w-3 h-3 text-black shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
                 </button>
               </div>
             </div>
 
             {/* Bottom Telemetry Bar */}
             <div className="flex items-center justify-between px-1 text-[10px] font-mono text-neutral-500">
-              <span>Enter to send • Shift+Enter for new line</span>
+              <span className="hidden sm:inline">Enter to send • Shift+Enter for new line</span>
+              <span className="sm:hidden text-[9px] text-neutral-500">Cognivault Enterprise AI</span>
               <span className="hidden sm:inline">Session: {activeThreadId}</span>
             </div>
           </div>
@@ -865,135 +908,141 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
 
       {/* -------------------- RAG PARAMETERS DRAWER -------------------- */}
       {showSettings && (
-        <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-[#141419] border-l border-neutral-800 shadow-2xl z-50 p-6 flex flex-col justify-between animate-in slide-in-from-right duration-200 max-w-[100vw]">
-          <div className="space-y-6 overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-neutral-100">
-                RAG Engine Parameters
-              </h3>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="text-neutral-400 hover:text-white text-xs font-mono px-2 py-1 rounded bg-neutral-800 cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-
-            {/* Temperature Slider */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-neutral-300">Temperature</span>
-                <span className="text-blue-400 font-semibold">{temperature}</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={temperature}
-                onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                className="w-full accent-blue-500 cursor-pointer"
-              />
-              <p className="text-[10px] text-neutral-500 font-mono">
-                0.0 = Deterministic/Factual • 1.0 = Creative/Exploratory
-              </p>
-            </div>
-
-            {/* Top-K Chunks Slider */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-neutral-300">Top-K Context Chunks</span>
-                <span className="text-blue-400 font-semibold">{topK}</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="15"
-                step="1"
-                value={topK}
-                onChange={(e) => setTopK(parseInt(e.target.value))}
-                className="w-full accent-blue-500 cursor-pointer"
-              />
-              <p className="text-[10px] text-neutral-500 font-mono">
-                Number of Qdrant vector chunks to rerank via FlashRank
-              </p>
-            </div>
-
-            {/* Custom System Instruction */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono text-neutral-300 block">
-                Custom System Prompt
-              </label>
-              <textarea
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                placeholder="e.g., Focus specifically on hardware bypass, memory layout, and latency."
-                rows={3}
-                className="w-full bg-[#0d0d10] border border-neutral-700/60 rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-blue-500 resize-none font-sans"
-              />
-            </div>
-
-            {/* Code Studio Defaults */}
-            <div className="space-y-3 pt-3 border-t border-neutral-800">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 font-semibold block">
-                Code Studio Engine
-              </span>
-              <div className="grid grid-cols-2 gap-2">
+        <>
+          <div
+            onClick={() => setShowSettings(false)}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 transition-opacity"
+          />
+          <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-[#141419] border-l border-neutral-800 shadow-2xl z-50 p-4 sm:p-6 flex flex-col justify-between animate-in slide-in-from-right duration-200 max-w-[100vw]">
+            <div className="space-y-6 overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-neutral-100">
+                  RAG Engine Parameters
+                </h3>
                 <button
-                  onClick={() => setCodeEngine('groq')}
-                  className={`p-2 rounded-xl text-xs font-mono border text-center cursor-pointer transition-all ${
-                    codeEngine === 'groq'
-                      ? 'bg-amber-950/40 border-amber-600 text-amber-300'
-                      : 'border-neutral-800 text-neutral-400 hover:text-white'
-                  }`}
+                  onClick={() => setShowSettings(false)}
+                  className="text-neutral-400 hover:text-white text-xs font-mono px-2 py-1 rounded bg-neutral-800 cursor-pointer"
                 >
-                  Groq LPU
-                </button>
-                <button
-                  onClick={() => setCodeEngine('gemini')}
-                  className={`p-2 rounded-xl text-xs font-mono border text-center cursor-pointer transition-all ${
-                    codeEngine === 'gemini'
-                      ? 'bg-blue-950/40 border-blue-600 text-blue-300'
-                      : 'border-neutral-800 text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  Gemini Flash
+                  Close
                 </button>
               </div>
 
-              {/* Code Studio Language */}
-              <div className="space-y-2 pt-2">
+              {/* Temperature Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-neutral-300">Temperature</span>
+                  <span className="text-blue-400 font-semibold">{temperature}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={temperature}
+                  onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                  className="w-full accent-blue-500 cursor-pointer"
+                />
+                <p className="text-[10px] text-neutral-500 font-mono">
+                  0.0 = Deterministic/Factual • 1.0 = Creative/Exploratory
+                </p>
+              </div>
+
+              {/* Top-K Chunks Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-neutral-300">Top-K Context Chunks</span>
+                  <span className="text-blue-400 font-semibold">{topK}</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="15"
+                  step="1"
+                  value={topK}
+                  onChange={(e) => setTopK(parseInt(e.target.value))}
+                  className="w-full accent-blue-500 cursor-pointer"
+                />
+                <p className="text-[10px] text-neutral-500 font-mono">
+                  Number of Qdrant vector chunks to rerank via FlashRank
+                </p>
+              </div>
+
+              {/* Custom System Instruction */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono text-neutral-300 block">
+                  Custom System Prompt
+                </label>
+                <textarea
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  placeholder="e.g., Focus specifically on hardware bypass, memory layout, and latency."
+                  rows={3}
+                  className="w-full bg-[#0d0d10] border border-neutral-700/60 rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-blue-500 resize-none font-sans"
+                />
+              </div>
+
+              {/* Code Studio Defaults */}
+              <div className="space-y-3 pt-3 border-t border-neutral-800">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 font-semibold block">
-                  Target Language
+                  Code Studio Engine
                 </span>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {['python', 'javascript', 'typescript', 'rust', 'go', 'sql'].map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => setCodeLanguage(lang)}
-                      className={`py-1 px-2 rounded-lg text-[11px] font-mono border text-center cursor-pointer transition-all ${
-                        codeLanguage === lang
-                          ? 'bg-amber-950/40 border-amber-600 text-amber-300 font-semibold'
-                          : 'border-neutral-800 text-neutral-400 hover:text-white'
-                      }`}
-                    >
-                      {lang}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setCodeEngine('groq')}
+                    className={`p-2 rounded-xl text-xs font-mono border text-center cursor-pointer transition-all ${
+                      codeEngine === 'groq'
+                        ? 'bg-amber-950/40 border-amber-600 text-amber-300'
+                        : 'border-neutral-800 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Groq LPU
+                  </button>
+                  <button
+                    onClick={() => setCodeEngine('gemini')}
+                    className={`p-2 rounded-xl text-xs font-mono border text-center cursor-pointer transition-all ${
+                      codeEngine === 'gemini'
+                        ? 'bg-blue-950/40 border-blue-600 text-blue-300'
+                        : 'border-neutral-800 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Gemini Flash
+                  </button>
+                </div>
+
+                {/* Code Studio Language */}
+                <div className="space-y-2 pt-2">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 font-semibold block">
+                    Target Language
+                  </span>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {['python', 'javascript', 'typescript', 'rust', 'go', 'sql'].map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => setCodeLanguage(lang)}
+                        className={`py-1 px-2 rounded-lg text-[11px] font-mono border text-center cursor-pointer transition-all ${
+                          codeLanguage === lang
+                            ? 'bg-amber-950/40 border-amber-600 text-amber-300 font-semibold'
+                            : 'border-neutral-800 text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        {lang}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="pt-4 border-t border-neutral-800">
-            <button
-              onClick={() => setShowSettings(false)}
-              className="w-full py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-colors cursor-pointer"
-            >
-              Apply Settings
-            </button>
+            <div className="pt-4 border-t border-neutral-800">
+              <button
+                onClick={() => setShowSettings(false)}
+                className="w-full py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-neutral-200 transition-colors cursor-pointer"
+              >
+                Apply Settings
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* -------------------- AI WORKFLOW GRAPH MODAL -------------------- */}
