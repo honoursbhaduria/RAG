@@ -13,7 +13,7 @@ numpy==2.4.4
 pytz==2026.2
 
 # --- VECTOR DB & RETRIEVAL ---
-qdrant-client==1.17.1
+qdrant-client==1.19.0
 FlashRank==0.2.10
 
 # --- LANGCHAIN & AGENTIC ORCHESTRATION ---

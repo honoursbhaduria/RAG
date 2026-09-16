@@ -18,7 +18,11 @@ from app.ingestion.loaders.text import parse_text
 from app.ingestion.chunking.splitter import chunk_text
 from app.services.retrieval.qdrant_service import get_qdrant_client
 
-logfire.configure(service_name="enterprise-ingestion-service", inspect_arguments=False)
+logfire_token = os.getenv("LOGFIRE_TOKEN")
+if logfire_token:
+    logfire.configure(token=logfire_token, service_name="enterprise-ingestion-service", inspect_arguments=False)
+else:
+    logfire.configure(send_to_logfire=False, service_name="enterprise-ingestion-service", inspect_arguments=False)
 
 # Local folder where parsed + chunked JSON metadata is saved (replaces GCS processed bucket)
 PROCESSED_DATA_DIR = "processed_data"
