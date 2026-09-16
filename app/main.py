@@ -46,6 +46,9 @@ Welcome to the interactive API documentation. You can test endpoints directly us
     openapi_url="/api/openapi.json",
 )
 
+if logfire_token:
+    logfire.instrument_fastapi(app)
+
 # Flexible CORS for local dev, Vercel deployments, and custom domains
 raw_origins = os.getenv("ALLOWED_ORIGINS", "")
 allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
