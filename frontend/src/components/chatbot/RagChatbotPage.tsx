@@ -90,8 +90,15 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
   const [codeContext, setCodeContext] = useState('');
   const [showCodeContextInput, setShowCodeContextInput] = useState(false);
 
-  // Thread & Conversation Management
+  // Thread & Conversation Management (with localStorage persistence)
   const [threads, setThreads] = useState<Thread[]>(() => {
+    try {
+      const saved = localStorage.getItem('cognivault_threads');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
     const initialId = `session_${Date.now()}`;
     return [
       {
@@ -103,7 +110,58 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
       },
     ];
   });
-  const [activeThreadId, setActiveThreadId] = useState<string>(threads[0]?.id || 'session_1');
+
+  const [activeThreadId, setActiveThreadId] = useState<string>(() => {
+    try {
+      const savedActive = localStorage.getItem('cognivault_active_thread');
+      if (savedActive) return savedActive;
+    } catch (e) {}
+    return threads[0]?.id || 'session_1';
+  });
+
+  // Save threads & activeThreadId to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('cognivault_threads', JSON.stringify(threads));
+    } catch (e) {}
+  }, [threads]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cognivault_active_thread', activeThreadId);
+    } catch (e) {}
+  }, [activeThreadId]);
+
+  // Sync active session documents from backend database
+  useEffect(() => {
+    if (!activeThreadId) return;
+    const fetchSessionDocs = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/session/${encodeURIComponent(activeThreadId)}/documents`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.documents && Array.isArray(data.documents) && data.documents.length > 0) {
+            const backendDocs: DocumentItem[] = data.documents.map((d: any) => ({
+              filename: d.filename,
+              chunksCount: d.chunks_count || d.chunksCount || 1,
+              pointsIndexed: d.points_indexed || d.pointsIndexed || 1,
+              preview: d.preview || '',
+            }));
+            setThreads((prev) =>
+              prev.map((t) =>
+                t.id === activeThreadId
+                  ? { ...t, activeDocuments: backendDocs }
+                  : t
+              )
+            );
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully to client state if backend unreachable
+      }
+    };
+    fetchSessionDocs();
+  }, [activeThreadId]);
 
   // Input & Upload State
   const [inputQuery, setInputQuery] = useState('');
@@ -727,6 +785,55 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
 
         {/* Messages Viewport */}
         <div className="flex-1 overflow-y-auto px-2.5 sm:px-6 md:px-8 py-3.5 sm:py-6 space-y-4 sm:space-y-6 select-text">
+          {/* Active Session Saved Files Banner */}
+          {(activeThread.activeDocuments || []).length > 0 && (
+            <div className="max-w-4xl mx-auto w-full p-3 sm:p-3.5 rounded-xl bg-[#15151c] border border-neutral-700/70 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <span className="p-1.5 sm:p-2 rounded-lg bg-blue-950/80 border border-blue-800/60 text-blue-300 text-xs shrink-0 font-mono font-bold">
+                  {(activeThread.activeDocuments || []).length} SAVED
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-semibold text-neutral-200">
+                      Saved Documents in this Chat
+                    </span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">
+                      Session Isolated • Qdrant Vectors & Database
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                    {(activeThread.activeDocuments || []).map((doc) => (
+                      <span
+                        key={doc.filename}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#1a1a24] border border-neutral-700 text-[11px] font-mono text-blue-300"
+                        title={doc.filename}
+                      >
+                        <span className="truncate max-w-[130px] sm:max-w-[180px]">{doc.filename}</span>
+                        <span className="text-[9px] text-neutral-400">({doc.chunksCount || 1} chunks)</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                <button
+                  onClick={() => handleSendMessage("What files have you saved in this chat?")}
+                  className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-[11px] font-mono text-neutral-200 hover:text-white border border-neutral-700 transition-colors cursor-pointer"
+                  title="Ask assistant to inspect saved files"
+                >
+                  Inspect Files
+                </button>
+                <button
+                  onClick={handleClearAllDocuments}
+                  className="px-2 py-1 rounded-lg hover:bg-rose-950/40 text-[11px] font-mono text-neutral-400 hover:text-rose-400 border border-transparent hover:border-rose-800/50 transition-colors cursor-pointer"
+                  title="Clear all saved documents from this chat"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+
           {activeThread.messages.length === 0 ? (
             /* Clean Empty State Hero */
             <div className="max-w-3xl mx-auto my-auto py-6 sm:py-12 flex flex-col items-center text-center space-y-4 sm:space-y-6 px-1">

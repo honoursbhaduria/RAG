@@ -7,11 +7,21 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure Logfire observability
 logfire_token = os.getenv("LOGFIRE_TOKEN")
 if logfire_token:
     logfire.configure(token=logfire_token, inspect_arguments=False)
 else:
     logfire.configure(send_to_logfire=False, inspect_arguments=False)
+
+# Configure LangSmith / LangChain tracing
+langsmith_key = os.getenv("LANGSMITH_API_KEY") or os.getenv("LANGCHAIN_API_KEY")
+if langsmith_key:
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = langsmith_key
+    os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGSMITH_PROJECT", "cognivault")
+    os.environ["LANGCHAIN_ENDPOINT"] = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
 
 # Now safe to import app modules - logfire is already active
 from fastapi import FastAPI, Response, UploadFile, File, Form
@@ -22,6 +32,12 @@ from app.guardrails import initialize_rails, guard
 from app.services.code_service import generate_code_assistance
 from app.services.document_service import process_and_ingest_uploaded_file
 from app.services.retrieval.qdrant_service import delete_document_chunks, delete_session_chunks
+from app.services.session_store import (
+    save_session_document,
+    get_session_documents as db_get_session_documents,
+    delete_session_document as db_delete_session_document,
+    clear_session_documents as db_clear_session_documents
+)
 
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -134,6 +150,7 @@ class QueryResponse(BaseModel):
     thought_process: List[str] = Field(default=[], description="Step-by-step reasoning and execution plan")
     status: Optional[str] = Field(None, description="Execution status of the pipeline")
     sources: List[str] = Field(default=[], description="Retrieved and reranked context chunks")
+    active_documents: List[str] = Field(default=[], description="List of filenames currently attached to this chat session")
 
 
 class CodeAssistRequest(BaseModel):
@@ -210,7 +227,14 @@ def query(request: QueryRequest):
     thread_id = request.thread_id or "default_user"
 
     # Strictly resolve active uploaded documents for this session (zero cross-chat leakage)
-    session_docs = SESSION_ACTIVE_DOCS.get(thread_id, [])
+    session_docs = SESSION_ACTIVE_DOCS.get(thread_id)
+    if not session_docs:
+        db_docs = db_get_session_documents(thread_id)
+        if db_docs:
+            SESSION_ACTIVE_DOCS[thread_id] = db_docs
+            session_docs = db_docs
+        else:
+            session_docs = []
     session_filenames = [d["filename"] for d in session_docs if d.get("filename")]
 
     if request.filenames:
@@ -248,7 +272,8 @@ def query(request: QueryRequest):
                 "answer": rail_response,
                 "thought_process": ["Intent: Security Gate Triggered", "Action: Zero-Trust Interception", "Retrieval: Skipped"],
                 "status": "Blocked by guardrails.",
-                "sources": []
+                "sources": [],
+                "active_documents": effective_filenames
             }
 
         # Gate 2: LangGraph RAG pipeline
@@ -279,7 +304,8 @@ def query(request: QueryRequest):
             "answer": final_output.get("final_answer"),
             "thought_process": final_output.get("plan"),
             "status": final_output.get("status"),
-            "sources": extracted_sources
+            "sources": extracted_sources,
+            "active_documents": effective_filenames
         }
     except Exception as e:
         logfire.error(f"Backend Execution Failed: {e}")
@@ -288,7 +314,8 @@ def query(request: QueryRequest):
             "answer": "I apologize, but I encountered an internal error while processing your request. Please try again later.",
             "thought_process": ["Error encountered during execution."],
             "status": "error",
-            "sources": []
+            "sources": [],
+            "active_documents": effective_filenames
         }
 
 
@@ -430,6 +457,16 @@ async def upload_document(
             else:
                 SESSION_ACTIVE_DOCS[session_key].append(doc_entry)
 
+            # Persist to database (Neon Postgres or SQLite)
+            save_session_document(
+                session_id=session_key,
+                filename=upload.filename,
+                chunks_count=result.get("chunks_count", 0),
+                points_indexed=result.get("points_indexed", 0),
+                preview=result.get("preview", ""),
+                file_type=upload.filename.split(".")[-1].lower() if "." in upload.filename else "txt"
+            )
+
             total_chunks += result.get("chunks_count", 0)
             total_points += result.get("points_indexed", 0)
             if not first_preview:
@@ -487,6 +524,9 @@ async def upload_document(
 @app.get("/session/{session_id}/documents", tags=["Ingestion & Guardrails"])
 def get_session_documents(session_id: str):
     """Returns all active documents currently attached to this chat session."""
+    db_docs = db_get_session_documents(session_id)
+    if db_docs:
+        SESSION_ACTIVE_DOCS[session_id] = db_docs
     docs = SESSION_ACTIVE_DOCS.get(session_id, [])
     return {"session_id": session_id, "documents": docs, "count": len(docs)}
 
@@ -495,6 +535,7 @@ def get_session_documents(session_id: str):
 def delete_session_document(session_id: str, filename: str):
     """Deletes a specific document from a chat session and purges its vectors from Qdrant."""
     delete_document_chunks(filename=filename, session_id=session_id)
+    db_delete_session_document(session_id, filename)
     if session_id in SESSION_ACTIVE_DOCS:
         SESSION_ACTIVE_DOCS[session_id] = [
             d for d in SESSION_ACTIVE_DOCS[session_id] if d.get("filename") != filename
@@ -511,6 +552,7 @@ def delete_session_document(session_id: str, filename: str):
 def clear_session_documents(session_id: str):
     """Clears all documents from a chat session and purges all its vectors from Qdrant."""
     delete_session_chunks(session_id=session_id)
+    db_clear_session_documents(session_id)
     if session_id in SESSION_ACTIVE_DOCS:
         SESSION_ACTIVE_DOCS[session_id] = []
     return {

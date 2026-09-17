@@ -20,13 +20,41 @@ def generate_node(state: AgentState):
     persona = state.get("persona") or "Senior Technical Architect"
     system_instruction = state.get("system_prompt") or ""
     temp = float(state.get("temperature", 0.1))
+    filenames = state.get("filenames") or ([state.get("filename")] if state.get("filename") else [])
+
+    if query == "FILES_INQUIRY":
+        logfire.info(f"Answering saved files inquiry with {len(filenames)} files.")
+        if filenames:
+            items = []
+            for i, fn in enumerate(filenames, 1):
+                ext = fn.split('.')[-1].upper() if '.' in fn else 'FILE'
+                items.append(f"{i}. **`{fn}`** (`{ext}` Document) — Indexed in Qdrant & ready for questions")
+            items_str = "\n".join(items)
+            content = (
+                f"### 📂 Attached Files in this Chat ({len(filenames)}/5)\n\n"
+                f"The following **{len(filenames)} document(s)** are currently saved in this chat session's knowledge context:\n\n"
+                f"{items_str}\n\n"
+                f"> 💡 **Tip**: You can ask questions about any specific file, request a full summary, or ask comparative questions across all attached documents."
+            )
+        else:
+            content = (
+                "### 📂 No Files Currently Saved in this Chat\n\n"
+                "There are no documents attached to this chat session yet.\n\n"
+                "You can upload up to **5 documents** (PDF, Word, PPTX, TXT, Markdown, Python, CSV, SQL, etc.) using the upload button or dropzone to chat with your files."
+            )
+        return {
+            "final_answer": content,
+            "status": "Saved files listed.",
+            "plan": state["plan"] + ["Response: Active Files Listed"],
+            "messages": [{"role": "assistant", "content": content}]
+        }
 
     if query == "CONVERSATIONAL":
         logfire.info(f"Generating conversational response ({persona}).")
         prompt = f"""
         You are an expert {persona}.
         {system_instruction}
-        Answer the user's latest message using the CONVERSATION HISTORY below.
+        Answer the user's latest message using the CONVERSATION HISTORY below to maintain complete conversational context.
 
         CONVERSATION HISTORY:
         {history_str}
@@ -46,7 +74,6 @@ def generate_node(state: AgentState):
                 logfire.warning("Context truncated to fit Groq TPM limits.")
                 break
 
-        filenames = state.get("filenames") or ([state.get("filename")] if state.get("filename") else [])
         if filenames:
             doc_header = f"ACTIVE ATTACHED DOCUMENTS ({len(filenames)}): {', '.join(filenames)}\n"
         else:
@@ -68,8 +95,9 @@ def generate_node(state: AgentState):
 
         INSTRUCTIONS:
         1. When CONTEXT & DOCUMENTATION is provided from uploaded document(s), answer directly, factually, and accurately using the information in that context. Extract and present the exact facts, figures, technical terms, and data points from the provided context. When multiple source documents are present, attribute facts to their respective source file names.
-        2. If the user asks to summarize or explain the uploaded document(s), provide a well-structured, comprehensive summary highlighting the core contents, key sections, and significant findings or details.
-        3. If the answer cannot be found in the provided document context or if the user asks a general question, answer helpfully and accurately using your broader technical knowledge, clearly indicating whether information comes from the attached files or general knowledge.
+        2. Seamlessly complete context across conversation turns: read the CONVERSATION HISTORY carefully to resolve pronouns, references to previous answers, and follow-up requests (e.g. 'explain more', 'what about the second point', 'compare that').
+        3. If the user asks to summarize or explain the uploaded document(s), provide a well-structured, comprehensive summary highlighting the core contents, key sections, and significant findings or details.
+        4. If the answer cannot be found in the provided document context or if the user asks a general question, answer helpfully and accurately using your broader technical knowledge, clearly indicating whether information comes from the attached files or general knowledge.
         """
 
     with logfire.span("LLM Synthesis"):

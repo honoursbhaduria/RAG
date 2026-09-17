@@ -27,17 +27,20 @@ class Settings:
     GROQ_SLUG =  "rag"     # primary: @rag/llama-3.3-70b-versatile
     GROQ_SLUG_2 = "brag"  # fallback: @brag/llama-3.1-8b-instant
 
-    
+    # --- DATABASE (NEON POSTGRES) ---
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    NEON_DATABASE_URL = os.getenv("NEON_DATABASE_URL")
+
     # --- OBSERVABILITY ---
     LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY", "")
     LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "true" if os.getenv("LANGSMITH_API_KEY") else "false")
-    LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "rag_scale_test")
+    LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "cognivault")
     LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
 
 # Apply LangChain environment variables for automatic tracing
 os.environ["LANGCHAIN_TRACING_V2"] = "true" if os.getenv("LANGSMITH_API_KEY") else "false"
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGSMITH_API_KEY", "")
-os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGSMITH_PROJECT", "rag_scale_test")
+os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGSMITH_PROJECT", "cognivault")
 os.environ["LANGCHAIN_ENDPOINT"] = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
 
 settings = Settings()

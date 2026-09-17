@@ -27,5 +27,17 @@ services:
         sync: false
       - key: LOGFIRE_TOKEN
         sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: LANGSMITH_API_KEY
+        sync: false
+      - key: LANGCHAIN_API_KEY
+        sync: false
+      - key: LANGCHAIN_TRACING_V2
+        value: "true"
+      - key: LANGSMITH_PROJECT
+        value: cognivault
       - key: ALLOWED_ORIGINS
         value: "*"

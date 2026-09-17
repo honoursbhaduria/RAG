@@ -58,3 +58,5 @@ tenvv
 
 # Logs
 *.log
+node_modules/
+data/

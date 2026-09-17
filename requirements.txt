@@ -58,4 +58,8 @@ langfuse                    # Live production monitoring, tracing & user feedbac
 sentence-transformers       # Used by FlashRank reranker internally
 langchain_google_genai
 
+# --- DATABASE & PERSISTENCE (NEON POSTGRES) ---
+psycopg2-binary             # PostgreSQL driver for Neon serverless database
+psycopg[binary]             # Modern PostgreSQL 3 client
+
 langchain-google-vertexai

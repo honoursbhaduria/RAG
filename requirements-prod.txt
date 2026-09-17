@@ -43,3 +43,7 @@ python-pptx==1.0.2
 python-docx==1.2.0
 pypdf==6.11.0
 beautifulsoup4==4.14.3
+
+# --- DATABASE (NEON POSTGRES) ---
+psycopg2-binary>=2.9.9
+psycopg>=3.1.18
