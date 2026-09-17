@@ -46,8 +46,11 @@ def generate_node(state: AgentState):
                 logfire.warning("Context truncated to fit Groq TPM limits.")
                 break
 
-        filename = state.get("filename")
-        doc_header = f"ACTIVE ATTACHED DOCUMENT: {filename}\n" if filename else ""
+        filenames = state.get("filenames") or ([state.get("filename")] if state.get("filename") else [])
+        if filenames:
+            doc_header = f"ACTIVE ATTACHED DOCUMENTS ({len(filenames)}): {', '.join(filenames)}\n"
+        else:
+            doc_header = ""
 
         prompt = f"""
         You are an expert {persona}.
@@ -64,9 +67,9 @@ def generate_node(state: AgentState):
         "{user_msg}"
 
         INSTRUCTIONS:
-        1. If the user question pertains to their resume, internship, work experience, education, skills, projects, or uploaded document, extract and present the EXACT facts, names, dates, companies (e.g. internships, roles, technologies, institutions, CGPA) from the CONTEXT above. Do not claim you don't have access when the context is provided.
-        2. If the user asks to summarize or explain the uploaded document or resume, provide a well-structured summary covering education, experience, technical skills, and key projects.
-        3. If the user asks a question from outside the uploaded document or knowledge base (e.g. general technical concepts, math, coding, or facts not in the file), answer helpfully, accurately, and comprehensively using your broader knowledge base, clearly noting that the answer is based on general technical knowledge.
+        1. When CONTEXT & DOCUMENTATION is provided from uploaded document(s), answer directly, factually, and accurately using the information in that context. Extract and present the exact facts, figures, technical terms, and data points from the provided context. When multiple source documents are present, attribute facts to their respective source file names.
+        2. If the user asks to summarize or explain the uploaded document(s), provide a well-structured, comprehensive summary highlighting the core contents, key sections, and significant findings or details.
+        3. If the answer cannot be found in the provided document context or if the user asks a general question, answer helpfully and accurately using your broader technical knowledge, clearly indicating whether information comes from the attached files or general knowledge.
         """
 
     with logfire.span("LLM Synthesis"):

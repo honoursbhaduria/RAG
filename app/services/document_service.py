@@ -49,17 +49,33 @@ SCRIPT_INJECTION_PATTERNS = [
 ]
 
 
+# Signatures detecting SQL injection attacks
+SQL_INJECTION_PATTERNS = [
+    r"(?i)\bUNION\s+(?:ALL\s+)?SELECT\b",
+    r"(?i)\b(?:DROP|ALTER|TRUNCATE)\s+TABLE\b",
+    r"(?i)\bINSERT\s+INTO\s+.*\s+VALUES\b",
+    r"(?i)\bDELETE\s+FROM\s+\w+\s+WHERE\b",
+    r"(?i)\b(?:EXEC|EXECUTE)\s*\(\s*['\"]",
+    r"(?i)\bWAITFOR\s+DELAY\s+['\"]",
+    r"(?i)\b(?:BENCHMARK|SLEEP)\s*\(\s*\d+\s*,",
+    r"(?i)(?:'|\")\s*OR\s+['\"]?1['\"]?\s*=\s*['\"]?1",
+    r"(?i)(?:'|\")\s*OR\s+(?:true|1=1)\b",
+    r"(?i);\s*(?:DROP|DELETE|UPDATE|INSERT)\b",
+]
+
+
 def validate_document_safety(content: str, filename: str) -> tuple[bool, str | None]:
     """
     Validates document content against prompt injection, jailbreak vectors,
-    malicious scripts (XSS, reverse shells), and NeMo Guardrails policy gates
+    malicious scripts (XSS, reverse shells), SQL injection attacks, and NeMo Guardrails policy gates
     before allowing ingestion into the RAG pipeline.
     """
     with logfire.span("Document Guardrails Verification", file=filename):
         content_lower = content.lower()
         is_python_file = filename.lower().endswith(".py")
+        is_sql_file = filename.lower().endswith(".sql")
 
-        # 1. Regex pattern check for prompt injections & jailbreak exploits (Preserved)
+        # 1. Regex pattern check for prompt injections & jailbreak exploits
         for pattern in JAILBREAK_PATTERNS:
             if re.search(pattern, content_lower):
                 logfire.warning(
@@ -67,7 +83,30 @@ def validate_document_safety(content: str, filename: str) -> tuple[bool, str | N
                 )
                 return False, f"Guardrail Violation: File '{filename}' contains disallowed prompt injection pattern ('{pattern}')."
 
-        # 2. Malicious script injection & XSS detection
+        # 2. SQL injection detection
+        if not is_sql_file:
+            for pattern in SQL_INJECTION_PATTERNS:
+                if re.search(pattern, content):
+                    logfire.warning(
+                        f"SQL injection detected in uploaded file '{filename}' (matched '{pattern}')"
+                    )
+                    return False, f"Guardrail Violation: File '{filename}' contains prohibited SQL injection payload."
+        else:
+            # For SQL files, check for blind/destructive injection payloads
+            destructive_sql_patterns = [
+                r"(?i)\bWAITFOR\s+DELAY\s+['\"]",
+                r"(?i)\b(?:BENCHMARK|SLEEP)\s*\(\s*\d+\s*,",
+                r"(?i)(?:'|\")\s*OR\s+['\"]?1['\"]?\s*=\s*['\"]?1",
+                r"(?i)\bUNION\s+(?:ALL\s+)?SELECT\s+.*\bFROM\s+information_schema",
+            ]
+            for pattern in destructive_sql_patterns:
+                if re.search(pattern, content):
+                    logfire.warning(
+                        f"Destructive SQL exploit detected in SQL file '{filename}' (matched '{pattern}')"
+                    )
+                    return False, f"Guardrail Violation: File '{filename}' contains prohibited SQL exploit payload."
+
+        # 3. Malicious script injection & XSS detection
         if is_python_file:
             # For Python code, block web injection vectors (XSS, script tags, cookie theft, reverse shells, rm -rf)
             python_danger_patterns = [
@@ -93,10 +132,10 @@ def validate_document_safety(content: str, filename: str) -> tuple[bool, str | N
                     )
                     return False, f"Guardrail Violation: File '{filename}' contains potential script injection or unsafe markup."
 
-        # 3. Check document header / sample segments against NeMo rails
-        # Run first 800 chars through NeMo guard gate (skip on pure Python code to avoid false positives)
+        # 4. Check document header / sample segments against NeMo rails
+        # Run first 800 chars through NeMo guard gate (skip on pure Python or SQL code to avoid false positives)
         sample_query = content[:800].strip()
-        if sample_query and not is_python_file:
+        if sample_query and not (is_python_file or is_sql_file):
             try:
                 rail_fired, rail_response = guard(sample_query)
                 if rail_fired:

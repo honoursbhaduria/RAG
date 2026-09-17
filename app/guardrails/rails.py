@@ -88,6 +88,20 @@ SCRIPT_INJECTION_PATTERNS = [
     r"pty\.spawn\s*\(",
 ]
 
+# Signatures detecting SQL injection attacks
+SQL_INJECTION_PATTERNS = [
+    r"(?i)\bUNION\s+(?:ALL\s+)?SELECT\b",
+    r"(?i)\b(?:DROP|ALTER|TRUNCATE)\s+TABLE\b",
+    r"(?i)\bINSERT\s+INTO\s+.*\s+VALUES\b",
+    r"(?i)\bDELETE\s+FROM\s+\w+\s+WHERE\b",
+    r"(?i)\b(?:EXEC|EXECUTE)\s*\(\s*['\"]",
+    r"(?i)\bWAITFOR\s+DELAY\s+['\"]",
+    r"(?i)\b(?:BENCHMARK|SLEEP)\s*\(\s*\d+\s*,",
+    r"(?i)(?:'|\")\s*OR\s+['\"]?1['\"]?\s*=\s*['\"]?1",
+    r"(?i)(?:'|\")\s*OR\s+(?:true|1=1)\b",
+    r"(?i);\s*(?:DROP|DELETE|UPDATE|INSERT)\b",
+]
+
 
 def guard(message: str) -> tuple[bool, str | None]:
     """
@@ -95,7 +109,7 @@ def guard(message: str) -> tuple[bool, str | None]:
 
     Returns:
         (True,  rail_response) — a rail fired; return this response immediately,
-                                skip the RAG pipeline entirely.
+                                 skip the RAG pipeline entirely.
         (False, None)          — message is clean; proceed to LangGraph.
     """
     msg_lower = message.lower()
@@ -106,7 +120,13 @@ def guard(message: str) -> tuple[bool, str | None]:
             logfire.warning(f"Guardrail triggered via script injection pattern | match='{pattern}' | query='{message[:80]}'")
             return True, "Security Guardrail Alert: Potential script injection or unsafe executable code pattern detected and intercepted. Please submit a valid technical inquiry."
 
-    # 2. Fast-path pattern gate for overt jailbreaks and injection attempts (<1ms)
+    # 2. Fast-path pattern gate for SQL injection attempts (<1ms)
+    for pattern in SQL_INJECTION_PATTERNS:
+        if re.search(pattern, message):
+            logfire.warning(f"Guardrail triggered via SQL injection pattern | match='{pattern}' | query='{message[:80]}'")
+            return True, "Security Guardrail Alert: Potential SQL injection exploit detected and intercepted. Please submit a valid inquiry."
+
+    # 3. Fast-path pattern gate for overt jailbreaks and injection attempts (<1ms)
     for pattern in JAILBREAK_PATTERNS:
         if re.search(pattern, msg_lower):
             logfire.info(f"Guardrail triggered via jailbreak pattern | query='{message[:80]}'")

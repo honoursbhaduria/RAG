@@ -92,26 +92,28 @@ def get_document_chunks(filename: str, session_id: str | None = None, limit: int
             with_vectors=False
         )
 
-        # Step 2: Fall back to filename only (without session_id) if 0 points found
+        # Step 2: If session_id provided, do not leak across sessions; only match within session
         if not points and session_id:
-            scroll_filter = models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="source",
-                        match=models.MatchValue(value=filename)
-                    )
-                ]
-            )
-            points, _ = client.scroll(
+            # Case-insensitive source fallback within the SAME session
+            all_pts, _ = client.scroll(
                 collection_name=settings.QDRANT_COLLECTION,
-                scroll_filter=scroll_filter,
-                limit=limit,
+                scroll_filter=models.Filter(
+                    must=[models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id))]
+                ),
+                limit=100,
                 with_payload=True,
                 with_vectors=False
             )
-
-        # Step 3: Case-insensitive / partial match fallback
-        if not points:
+            fn_clean = filename.lower().strip()
+            points = [
+                p for p in all_pts
+                if p.payload and (
+                    fn_clean in str(p.payload.get("source", "")).lower() or
+                    str(p.payload.get("source", "")).lower() in fn_clean
+                )
+            ][:limit]
+        elif not points and not session_id:
+            # Global fallback when no session_id is used
             all_pts, _ = client.scroll(
                 collection_name=settings.QDRANT_COLLECTION,
                 limit=100,
@@ -123,8 +125,7 @@ def get_document_chunks(filename: str, session_id: str | None = None, limit: int
                 p for p in all_pts
                 if p.payload and (
                     fn_clean in str(p.payload.get("source", "")).lower() or
-                    str(p.payload.get("source", "")).lower() in fn_clean or
-                    ("resume" in fn_clean and "resume" in str(p.payload.get("source", "")).lower())
+                    str(p.payload.get("source", "")).lower() in fn_clean
                 )
             ][:limit]
 
@@ -167,17 +168,27 @@ def search_enterprise_knowledge(
 
     merged: dict[str, dict] = {}
 
-    # Build optional filter if file is targeted
+    # Build optional filter if files or session are targeted
     query_filter = None
+    should_conditions = []
     if filter_source:
-        query_filter = models.Filter(
-            should=[
-                models.FieldCondition(
-                    key="source",
-                    match=models.MatchValue(value=filter_source)
-                )
-            ]
+        if isinstance(filter_source, str):
+            should_conditions.append(
+                models.FieldCondition(key="source", match=models.MatchValue(value=filter_source))
+            )
+        elif isinstance(filter_source, (list, tuple, set)):
+            for fs in filter_source:
+                if fs:
+                    should_conditions.append(
+                        models.FieldCondition(key="source", match=models.MatchValue(value=fs))
+                    )
+    if session_id:
+        should_conditions.append(
+            models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id))
         )
+
+    if should_conditions:
+        query_filter = models.Filter(should=should_conditions)
 
     for vector_name in (GEMINI_VECTOR, LOCAL_VECTOR):
         vector = query_vectors.get(vector_name)
@@ -225,4 +236,168 @@ def search_enterprise_knowledge(
         f"Vector search merged {len(results)} results "
         f"(searched fields: {', '.join(query_vectors.keys())})."
     )
+    return results
+
+
+def delete_document_chunks(filename: str, session_id: str | None = None) -> bool:
+    """
+    Deletes all vector points associated with a specific filename,
+    optionally restricted to a specific session_id.
+    """
+    if not filename:
+        return False
+    try:
+        must_conditions = [
+            models.FieldCondition(key="source", match=models.MatchValue(value=filename))
+        ]
+        if session_id:
+            must_conditions.append(
+                models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id))
+            )
+        client.delete(
+            collection_name=settings.QDRANT_COLLECTION,
+            points_selector=models.FilterSelector(
+                filter=models.Filter(must=must_conditions)
+            )
+        )
+        logfire.info(f"Deleted vector chunks for document '{filename}' (session='{session_id}')")
+        return True
+    except Exception as e:
+        logfire.warning(f"Failed to delete vector chunks for '{filename}': {e}")
+        return False
+
+
+def delete_session_chunks(session_id: str) -> bool:
+    """
+    Deletes all vector points associated with a specific session_id.
+    """
+    if not session_id:
+        return False
+    try:
+        client.delete(
+            collection_name=settings.QDRANT_COLLECTION,
+            points_selector=models.FilterSelector(
+                filter=models.Filter(
+                    must=[models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id))]
+                )
+            )
+        )
+        logfire.info(f"Deleted all vector chunks for session '{session_id}'")
+        return True
+    except Exception as e:
+        logfire.warning(f"Failed to delete session vector chunks for '{session_id}': {e}")
+        return False
+
+
+def get_session_chunks(session_id: str, limit: int = 30, filter_sources: list[str] | None = None) -> list[dict]:
+    """
+    Retrieves chunks belonging exclusively to a specific session_id.
+    Guarantees no points from other sessions leak in.
+    """
+    if not session_id:
+        return []
+    try:
+        must_conditions = [
+            models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id))
+        ]
+        if filter_sources:
+            must_conditions.append(
+                models.Filter(
+                    should=[
+                        models.FieldCondition(key="source", match=models.MatchValue(value=src))
+                        for src in filter_sources if src
+                    ]
+                )
+            )
+        points, _ = client.scroll(
+            collection_name=settings.QDRANT_COLLECTION,
+            scroll_filter=models.Filter(must=must_conditions),
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+        results = []
+        for p in points:
+            payload = p.payload or {}
+            text = payload.get("text", "")
+            if text:
+                results.append({
+                    "content": text,
+                    "source": payload.get("source", "Uploaded Document"),
+                    "score": 1.0,
+                    "embedder": payload.get("embedder", "direct_session"),
+                })
+        logfire.info(f"Fetched {len(results)} chunks for session '{session_id}'.")
+        return results
+    except Exception as e:
+        logfire.warning(f"Failed to fetch session chunks for '{session_id}': {e}")
+        return []
+
+
+def search_session_documents(
+    query: str,
+    session_id: str,
+    limit: int = 10,
+    filter_sources: list[str] | None = None
+) -> list[dict]:
+    """
+    Performs semantic vector search strictly partitioned to a specific chat session_id.
+    Guarantees zero cross-session context pollution.
+    """
+    if not session_id:
+        return []
+
+    try:
+        query_vectors = embed_query(query)
+    except Exception as e:
+        logfire.error(f"❌ Query embedding failed: {e}")
+        return []
+
+    # Must match session_id
+    must_conditions = [
+        models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id))
+    ]
+    if filter_sources:
+        must_conditions.append(
+            models.Filter(
+                should=[
+                    models.FieldCondition(key="source", match=models.MatchValue(value=src))
+                    for src in filter_sources if src
+                ]
+            )
+        )
+
+    session_filter = models.Filter(must=must_conditions)
+    merged: dict[str, dict] = {}
+
+    for vector_name in (GEMINI_VECTOR, LOCAL_VECTOR):
+        vector = query_vectors.get(vector_name)
+        if vector is None:
+            continue
+
+        try:
+            response = client.query_points(
+                collection_name=settings.QDRANT_COLLECTION,
+                query=vector,
+                query_filter=session_filter,
+                using=vector_name,
+                limit=limit,
+                with_payload=True,
+            )
+            for res in response.points:
+                payload = res.payload or {}
+                key = str(res.id)
+                candidate = {
+                    "content": payload.get("text", ""),
+                    "source": payload.get("source", "Unknown"),
+                    "score": res.score,
+                    "embedder": payload.get("embedder", vector_name),
+                }
+                if key not in merged or candidate["score"] > merged[key]["score"]:
+                    merged[key] = candidate
+        except Exception as e:
+            logfire.warning(f"Session search on '{vector_name}' failed: {e}")
+
+    results = sorted(merged.values(), key=lambda d: d["score"], reverse=True)[:limit]
+    logfire.info(f"Session '{session_id}' vector search returned {len(results)} chunks.")
     return results

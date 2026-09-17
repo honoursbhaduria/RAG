@@ -21,16 +21,19 @@ interface Message {
   codeLanguage?: string;
 }
 
+interface DocumentItem {
+  filename: string;
+  chunksCount?: number;
+  pointsIndexed?: number;
+  preview?: string;
+}
+
 interface Thread {
   id: string;
   title: string;
   createdAt: string;
   messages: Message[];
-  activeDocument?: {
-    filename: string;
-    chunksCount?: number;
-    pointsIndexed?: number;
-  };
+  activeDocuments?: DocumentItem[];
 }
 
 const BACKEND_URL = API_BASE_URL;
@@ -79,6 +82,7 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [temperature, setTemperature] = useState(0.1);
   const [topK, setTopK] = useState(5);
+  const [customParamsEnabled, setCustomParamsEnabled] = useState(false);
 
   // Code Studio Mode State
   const [codeEngine, setCodeEngine] = useState<'groq' | 'gemini'>('groq');
@@ -95,6 +99,7 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
         title: 'Initial RAG Session',
         createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         messages: [],
+        activeDocuments: [],
       },
     ];
   });
@@ -142,6 +147,7 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
       title: `Session ${threads.length + 1}`,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       messages: [],
+      activeDocuments: [],
     };
     setThreads([newThread, ...threads]);
     setActiveThreadId(newId);
@@ -152,16 +158,30 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
     }
   };
 
-  // Handle Document Upload via POST /upload
+  // Max documents allowed per session
+  const MAX_SESSION_FILES = 5;
+
+  // Handle Multi-file Document Upload via POST /upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    const currentDocs = activeThread.activeDocuments || [];
+    if (currentDocs.length + selectedFiles.length > MAX_SESSION_FILES) {
+      setUploadFeedback(
+        `Session limit reached: Maximum ${MAX_SESSION_FILES} documents per chat. You already have ${currentDocs.length}.`
+      );
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     setUploadingFile(true);
-    setUploadFeedback('Scanning file with NeMo Guardrails & Chunking...');
+    setUploadFeedback(`Scanning ${selectedFiles.length} file(s) with NeMo Guardrails, SQL & Script scanners...`);
 
     const formData = new FormData();
-    formData.append('file', file);
+    for (const file of selectedFiles) {
+      formData.append('files', file);
+    }
     formData.append('session_id', activeThreadId);
 
     try {
@@ -177,27 +197,52 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
       const data = await res.json();
 
       if (data.success) {
+        const newDocs: DocumentItem[] = [];
+        if (data.files && Array.isArray(data.files)) {
+          for (const f of data.files) {
+            if (f.success) {
+              newDocs.push({
+                filename: f.filename,
+                chunksCount: f.chunks_count,
+                pointsIndexed: f.points_indexed,
+                preview: f.preview,
+              });
+            }
+          }
+        } else if (data.filename) {
+          newDocs.push({
+            filename: data.filename,
+            chunksCount: data.chunks_count,
+            pointsIndexed: data.points_indexed,
+            preview: data.preview,
+          });
+        }
+
         setThreads((prev) =>
-          prev.map((t) =>
-            t.id === activeThreadId
-              ? {
-                  ...t,
-                  activeDocument: {
-                    filename: data.filename,
-                    chunksCount: data.chunks_count,
-                    pointsIndexed: data.points_indexed,
-                  },
+          prev.map((t) => {
+            if (t.id === activeThreadId) {
+              const existing = t.activeDocuments || [];
+              const combined = [...existing];
+              for (const nd of newDocs) {
+                const idx = combined.findIndex((d) => d.filename === nd.filename);
+                if (idx >= 0) {
+                  combined[idx] = nd;
+                } else {
+                  combined.push(nd);
                 }
-              : t
-          )
+              }
+              return { ...t, activeDocuments: combined.slice(0, MAX_SESSION_FILES) };
+            }
+            return t;
+          })
         );
 
         setUploadFeedback(
-          `Document '${data.filename}' verified safe & indexed into Qdrant (${data.chunks_count || 1} chunks).`
+          data.message || `Indexed ${newDocs.length} file(s) into chat context (${data.chunks_count || 1} chunks).`
         );
         setTimeout(() => setUploadFeedback(null), 6000);
       } else {
-        setUploadFeedback(`Blocked: ${data.reason || data.message || 'File failed security check.'}`);
+        setUploadFeedback(`Blocked: ${data.reason || data.message || 'File failed security checks.'}`);
       }
     } catch (err) {
       setUploadFeedback(`Upload error: ${(err as Error).message}`);
@@ -207,13 +252,45 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
     }
   };
 
-  // Remove Active Document from Session
-  const handleRemoveActiveDocument = () => {
+  // Remove a Single Document from Session
+  const handleRemoveDocument = async (filename: string) => {
     setThreads((prev) =>
       prev.map((t) =>
-        t.id === activeThreadId ? { ...t, activeDocument: undefined } : t
+        t.id === activeThreadId
+          ? {
+              ...t,
+              activeDocuments: (t.activeDocuments || []).filter((d) => d.filename !== filename),
+            }
+          : t
       )
     );
+
+    try {
+      await fetch(
+        `${BACKEND_URL}/session/${encodeURIComponent(activeThreadId)}/documents/${encodeURIComponent(filename)}`,
+        { method: 'DELETE' }
+      );
+    } catch (err) {
+      console.warn('Failed to delete document from backend:', err);
+    }
+  };
+
+  // Clear All Documents from Session
+  const handleClearAllDocuments = async () => {
+    setThreads((prev) =>
+      prev.map((t) =>
+        t.id === activeThreadId ? { ...t, activeDocuments: [] } : t
+      )
+    );
+
+    try {
+      await fetch(
+        `${BACKEND_URL}/session/${encodeURIComponent(activeThreadId)}/documents`,
+        { method: 'DELETE' }
+      );
+    } catch (err) {
+      console.warn('Failed to clear documents from backend:', err);
+    }
   };
 
   // Send Query (RAG or Code Assist)
@@ -282,6 +359,9 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
           )
         );
       } else {
+        const activeDocs = activeThread.activeDocuments || [];
+        const filenames = activeDocs.map((d) => d.filename);
+
         const res = await fetch(`${BACKEND_URL}/query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -289,10 +369,10 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
             q: queryText,
             thread_id: activeThreadId,
             persona,
-            system_prompt: systemPrompt || undefined,
-            temperature,
-            top_k: topK,
-            filename: activeThread.activeDocument?.filename || undefined,
+            system_prompt: customParamsEnabled && systemPrompt ? systemPrompt : undefined,
+            temperature: customParamsEnabled ? temperature : 0.1,
+            top_k: customParamsEnabled ? topK : 5,
+            filenames: filenames.length > 0 ? filenames : undefined,
           }),
         });
 
@@ -403,36 +483,58 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
 
         {/* Scrollable Sidebar Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {/* Active Document Ingestion Hub */}
+          {/* Active Documents Ingestion Hub */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-neutral-400">
-                Active Knowledge Doc
+                Attached Files ({(activeThread.activeDocuments || []).length}/5)
               </span>
+              {(activeThread.activeDocuments || []).length > 0 && (
+                <button
+                  onClick={handleClearAllDocuments}
+                  className="text-[10px] font-mono text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer"
+                  title="Clear all documents from this chat session"
+                >
+                  Clear All
+                </button>
+              )}
             </div>
 
-            {activeThread.activeDocument ? (
-              <div className="p-3 rounded-xl bg-[#181820] border border-blue-500/30 flex items-start justify-between gap-2">
-                <div className="overflow-hidden">
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-blue-300 truncate">
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-950 text-blue-300 border border-blue-800/60 font-semibold">
-                      DOC
-                    </span>
-                    <span className="truncate">{activeThread.activeDocument.filename}</span>
+            {/* List of active documents */}
+            {(activeThread.activeDocuments || []).length > 0 && (
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                {(activeThread.activeDocuments || []).map((doc) => (
+                  <div
+                    key={doc.filename}
+                    className="p-2.5 rounded-xl bg-[#181820] border border-neutral-700/60 hover:border-neutral-500/80 flex items-start justify-between gap-2 transition-colors"
+                  >
+                    <div className="overflow-hidden min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-blue-300 truncate">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-blue-950 text-blue-300 border border-blue-800/60 font-semibold shrink-0">
+                          {doc.filename.split('.').pop()?.toUpperCase() || 'DOC'}
+                        </span>
+                        <span className="truncate" title={doc.filename}>{doc.filename}</span>
+                      </div>
+                      <p className="text-[10px] font-mono text-neutral-400 mt-1">
+                        {doc.chunksCount || 1} chunks • Qdrant HNSW
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveDocument(doc.filename)}
+                      className="text-neutral-400 hover:text-rose-400 text-xs font-mono p-1 rounded hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
+                      title={`Remove ${doc.filename}`}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
-                  <p className="text-[10px] font-mono text-neutral-400 mt-1">
-                    {activeThread.activeDocument.chunksCount || 1} chunks • Qdrant HNSW Indexed
-                  </p>
-                </div>
-                <button
-                  onClick={handleRemoveActiveDocument}
-                  className="text-neutral-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-neutral-800 transition-colors cursor-pointer"
-                  title="Remove Document"
-                >
-                  Remove
-                </button>
+                ))}
               </div>
-            ) : (
+            )}
+
+            {/* Upload Dropzone / Button */}
+            {(activeThread.activeDocuments || []).length < 5 ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className={`p-3 rounded-xl border border-dashed border-neutral-700/80 hover:border-neutral-500 bg-[#15151a] hover:bg-[#191920] cursor-pointer transition-colors text-center ${
@@ -444,11 +546,20 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                   ref={fileInputRef}
                   onChange={handleFileUpload}
                   className="hidden"
+                  multiple
                   accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md,.py,.json,.csv,.html,.xml,.yaml,.yml,.sh,.sql"
                 />
-                <p className="text-xs text-neutral-200 font-medium font-mono">Upload Knowledge File</p>
+                <p className="text-xs text-neutral-200 font-medium font-mono">
+                  {(activeThread.activeDocuments || []).length > 0 ? '+ Add More Files' : 'Upload Knowledge Files'}
+                </p>
                 <p className="text-[10px] text-neutral-400 font-mono mt-1">
-                  PDF • DOCX • TXT • MD • PPT • PY
+                  Multi-file • PDF, DOCX, TXT, MD, PY, SQL
+                </p>
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-xl border border-neutral-800 bg-[#141418] text-center">
+                <p className="text-[10px] font-mono text-amber-400/90">
+                  Maximum 5 files reached for this chat.
                 </p>
               </div>
             )}
@@ -592,9 +703,9 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
             <button
               onClick={() => setShowSettings(!showSettings)}
               className="px-2 sm:px-3 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 text-neutral-200 hover:text-white border border-neutral-700/50 cursor-pointer transition-colors text-xs font-mono flex items-center gap-1.5"
-              title="Parameters"
+              title="Parameters (Professional Purpose Only - Keep Off by default)"
             >
-              <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-3.5 h-3.5 text-neutral-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="4" y1="21" x2="4" y2="14"></line>
                 <line x1="4" y1="10" x2="4" y2="3"></line>
                 <line x1="12" y1="21" x2="12" y2="12"></line>
@@ -607,6 +718,9 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
               </svg>
               <span className="hidden sm:inline">Parameters</span>
               <span className="sm:hidden text-[11px]">Params</span>
+              <span className="text-[9px] px-1 py-0.2 rounded bg-neutral-800 text-neutral-400 border border-neutral-700/70 font-mono">
+                Pro
+              </span>
             </button>
           </div>
         </header>
@@ -836,8 +950,10 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                 placeholder={
                   activeTab === 'code'
                     ? 'Ask a coding question or debug request...'
-                    : activeThread.activeDocument
-                    ? `Query against ${activeThread.activeDocument.filename}...`
+                    : (activeThread.activeDocuments || []).length === 1
+                    ? `Query against ${activeThread.activeDocuments![0].filename}...`
+                    : (activeThread.activeDocuments || []).length > 1
+                    ? `Query across ${(activeThread.activeDocuments || []).length} attached documents...`
                     : 'Query knowledge base (e.g., SRIOV, HNSW, guardrails)...'
                 }
                 rows={1}
@@ -849,8 +965,13 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                   {/* File Upload Trigger */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-colors cursor-pointer border border-neutral-700/60 shrink-0 flex items-center gap-1"
-                    title="Upload Document (PDF, DOCS, PPT, TXT, MD, PYTHON)"
+                    disabled={(activeThread.activeDocuments || []).length >= 5}
+                    className="px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-mono bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer border border-neutral-700/60 shrink-0 flex items-center gap-1"
+                    title={
+                      (activeThread.activeDocuments || []).length >= 5
+                        ? 'Maximum 5 files reached'
+                        : 'Upload Documents (PDF, DOCX, TXT, MD, PYTHON, SQL)'
+                    }
                   >
                     <svg className="w-3 h-3 text-neutral-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
@@ -873,11 +994,28 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                     </button>
                   )}
 
-                  {/* Active Document Tag */}
-                  {activeThread.activeDocument && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-950/70 border border-blue-800/60 text-[10px] font-mono text-blue-300 max-w-[110px] sm:max-w-[200px] truncate">
-                      <span className="truncate">Doc: {activeThread.activeDocument.filename}</span>
-                    </span>
+                  {/* Active Document Tags / Chips */}
+                  {(activeThread.activeDocuments || []).length > 0 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-[150px] sm:max-w-[340px] py-0.5 scrollbar-none">
+                      {(activeThread.activeDocuments || []).map((doc) => (
+                        <span
+                          key={doc.filename}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-neutral-800 border border-neutral-700 text-[10px] font-mono text-neutral-200 shrink-0"
+                        >
+                          <span className="truncate max-w-[80px] sm:max-w-[120px]">{doc.filename}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveDocument(doc.filename);
+                            }}
+                            className="text-neutral-400 hover:text-rose-400 cursor-pointer text-xs leading-none"
+                            title={`Remove ${doc.filename}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
 
@@ -914,11 +1052,21 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
             className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 transition-opacity"
           />
           <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-[#141419] border-l border-neutral-800 shadow-2xl z-50 p-4 sm:p-6 flex flex-col justify-between animate-in slide-in-from-right duration-200 max-w-[100vw]">
-            <div className="space-y-6 overflow-y-auto">
+            <div className="space-y-5 overflow-y-auto">
               <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-                <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-neutral-100">
-                  RAG Engine Parameters
-                </h3>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-neutral-100">
+                      RAG Engine Parameters
+                    </h3>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-amber-300 border border-amber-800/40 font-semibold">
+                      PRO ONLY
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 font-mono mt-0.5">
+                    Advanced Model & Retrieval Configuration
+                  </p>
+                </div>
                 <button
                   onClick={() => setShowSettings(false)}
                   className="text-neutral-400 hover:text-white text-xs font-mono px-2 py-1 rounded bg-neutral-800 cursor-pointer"
@@ -927,58 +1075,107 @@ export const RagChatbotPage: React.FC<RagChatbotPageProps> = ({ onBack }) => {
                 </button>
               </div>
 
-              {/* Temperature Slider */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-neutral-300">Temperature</span>
-                  <span className="text-blue-400 font-semibold">{temperature}</span>
+              {/* Prominent Disclaimer Banner */}
+              <div className="p-3.5 rounded-xl bg-[#181820] border border-amber-800/40 text-neutral-300 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300 font-mono">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>Professional Purpose Only</span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={temperature}
-                  onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                  className="w-full accent-blue-500 cursor-pointer"
-                />
-                <p className="text-[10px] text-neutral-500 font-mono">
-                  0.0 = Deterministic/Factual • 1.0 = Creative/Exploratory
+                <p className="text-[11px] font-sans text-neutral-400 leading-relaxed">
+                  Only for professional purpose — no need to activate this. Production defaults (Deterministic Temperature: 0.1, Top-5 FlashRank reranked context) are already pre-calibrated for maximum accuracy and zero hallucination. Keep turned off for normal chat.
                 </p>
               </div>
 
-              {/* Top-K Chunks Slider */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-neutral-300">Top-K Context Chunks</span>
-                  <span className="text-blue-400 font-semibold">{topK}</span>
+              {/* Activation Switch */}
+              <div className="p-3 rounded-xl bg-[#0f0f13] border border-neutral-800 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-mono font-medium text-neutral-200 block">
+                    Custom Tuning Parameters
+                  </span>
+                  <span className="text-[10px] font-mono text-neutral-500">
+                    {customParamsEnabled ? 'Active (Overrides defaults)' : 'Turned Off (Production defaults active)'}
+                  </span>
                 </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="15"
-                  step="1"
-                  value={topK}
-                  onChange={(e) => setTopK(parseInt(e.target.value))}
-                  className="w-full accent-blue-500 cursor-pointer"
-                />
-                <p className="text-[10px] text-neutral-500 font-mono">
-                  Number of Qdrant vector chunks to rerank via FlashRank
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setCustomParamsEnabled(!customParamsEnabled)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    customParamsEnabled ? 'bg-amber-600' : 'bg-neutral-800'
+                  }`}
+                  title={customParamsEnabled ? 'Disable Custom Tuning' : 'Enable Custom Tuning (Pro Only)'}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      customParamsEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
 
-              {/* Custom System Instruction */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono text-neutral-300 block">
-                  Custom System Prompt
-                </label>
-                <textarea
-                  value={systemPrompt}
-                  onChange={(e) => setSystemPrompt(e.target.value)}
-                  placeholder="e.g., Focus specifically on hardware bypass, memory layout, and latency."
-                  rows={3}
-                  className="w-full bg-[#0d0d10] border border-neutral-700/60 rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-blue-500 resize-none font-sans"
-                />
+              {/* Sliders and Controls (Disabled/Locked when customParamsEnabled is false) */}
+              <div
+                className={`space-y-5 transition-opacity ${
+                  !customParamsEnabled ? 'opacity-30 pointer-events-none select-none' : ''
+                }`}
+              >
+                {/* Temperature Slider */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-neutral-300">Temperature</span>
+                    <span className="text-blue-400 font-semibold">{temperature}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={temperature}
+                    disabled={!customParamsEnabled}
+                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                    className="w-full accent-blue-500 cursor-pointer"
+                  />
+                  <p className="text-[10px] text-neutral-500 font-mono">
+                    0.0 = Deterministic/Factual • 1.0 = Creative/Exploratory
+                  </p>
+                </div>
+
+                {/* Top-K Chunks Slider */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-neutral-300">Top-K Context Chunks</span>
+                    <span className="text-blue-400 font-semibold">{topK}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="15"
+                    step="1"
+                    value={topK}
+                    disabled={!customParamsEnabled}
+                    onChange={(e) => setTopK(parseInt(e.target.value))}
+                    className="w-full accent-blue-500 cursor-pointer"
+                  />
+                  <p className="text-[10px] text-neutral-500 font-mono">
+                    Number of Qdrant vector chunks to rerank via FlashRank
+                  </p>
+                </div>
+
+                {/* Custom System Instruction */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-neutral-300 block">
+                    Custom System Prompt
+                  </label>
+                  <textarea
+                    value={systemPrompt}
+                    disabled={!customParamsEnabled}
+                    onChange={(e) => setSystemPrompt(e.target.value)}
+                    placeholder="e.g., Focus specifically on hardware bypass, memory layout, and latency."
+                    rows={3}
+                    className="w-full bg-[#0d0d10] border border-neutral-700/60 rounded-xl p-2.5 text-xs text-neutral-200 focus:outline-none focus:border-blue-500 resize-none font-sans"
+                  />
+                </div>
               </div>
 
               {/* Code Studio Defaults */}

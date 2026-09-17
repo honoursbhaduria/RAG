@@ -16,48 +16,51 @@ def planner_node(state: AgentState):
         history += f"{role}: {msg.get('content', '')}\n"
     
     user_message = state.get("messages", [])[-1]["content"] if state.get("messages") else ""
-    filename = state.get("filename")
+    filenames = state.get("filenames") or ([state.get("filename")] if state.get("filename") else [])
+    filename = filenames[0] if filenames else None
     
-    doc_info = f"ACTIVE ATTACHED DOCUMENT: {filename}\n" if filename else "NO DOCUMENT ATTACHED.\n"
+    if filenames:
+        doc_info = f"ACTIVE ATTACHED DOCUMENTS ({len(filenames)}): {', '.join(filenames)}\n"
+    else:
+        doc_info = "NO DOCUMENTS ATTACHED.\n"
     
-    user_msg_lower = user_message.lower().strip()
-    doc_keywords = ["resume", "cv", "intern", "internship", "experience", "education", "skill", "project", "document", "pdf", "file", "upload", "who am i", "about me", "my work", "background"]
-    is_doc_intent = any(k in user_msg_lower for k in doc_keywords) or bool(filename)
+    user_msg_stripped = user_message.strip().lower()
+    has_docs = bool(filenames)
+    is_pure_greeting = user_msg_stripped in ["hi", "hello", "hey", "good morning", "good evening", "thanks", "thank you", "bye"]
 
     prompt = f"""
-    You are an intelligent Assistant Planner in an Enterprise RAG and Document Q&A system.
-    Analyze the conversation history, the active attached document, and the latest user message.
-    
+    You are an intelligent Assistant Planner in an Enterprise RAG and Multi-Document Q&A system.
+    Analyze the conversation history, the active attached documents in this chat session, and the user's latest message.
+
     {doc_info}
     CONVERSATION HISTORY:
     {history}
-    
+
     LATEST MESSAGE:
     "{user_message}"
-    
-    Task:
-    1. If the user asks about their resume, CV, internships, work experience, education, projects, skills, or asking about an uploaded document, respond with 'DOCUMENT_SUMMARY' or an optimal search query. DO NOT respond with 'CONVERSATIONAL'.
-    2. If the user asks to summarize, explain, or give an overview of the attached document (e.g. "summarize the PDF", "what is this file about?", "tell me about my resume"), respond with 'DOCUMENT_SUMMARY'.
-    3. If the user asks a technical question, code request, architecture query, or a specific question about the document or general topics, output an optimal, keyword-rich search query.
-    4. ONLY respond with 'CONVERSATIONAL' if the message is purely a brief greeting with no questions (e.g. "hi", "hello", "thanks").
-    
-    Output ONLY 'CONVERSATIONAL', 'DOCUMENT_SUMMARY', or the search query.
+
+    Rules:
+    1. If documents ARE attached to this session:
+       - If the user asks for a summary, overview, or asks what is in the document(s), output 'DOCUMENT_SUMMARY'.
+       - If the user asks any substantive question, technical question, or asks about content/data in the files, formulate a concise, keyword-rich search query to retrieve the relevant sections.
+       - ONLY output 'CONVERSATIONAL' if the message is a trivial greeting with no question.
+    2. If NO documents are attached to this session:
+       - If the user asks a technical, architectural, or knowledge question, formulate an optimal search query.
+       - If the message is a greeting or general conversational remark, output 'CONVERSATIONAL'.
+
+    Output ONLY 'CONVERSATIONAL', 'DOCUMENT_SUMMARY', or the optimal search query string with no explanation.
     """
-    
+
     with logfire.span("🧠 Planner Decision"):
         decision = llm.invoke(prompt).content.strip()
-        # Clean any surrounding quotes or backticks
         decision = decision.strip('"`\'')
         logfire.info(f"Intent identified: {decision}")
 
-    # Safety override: never treat document or resume queries as conversational
-    if (decision == "CONVERSATIONAL" or "CONVERSATIONAL" in decision) and is_doc_intent:
-        logfire.info(f"Overriding CONVERSATIONAL to document retrieval for query: {user_message}")
-        if any(w in user_msg_lower for w in ["summarize", "tell me about", "overview", "who am i", "my resume", "what is on"]):
-            decision = "DOCUMENT_SUMMARY"
-        else:
-            decision = f"{filename or 'resume'} {user_message}"
-    
+    # Safety guard: if documents are attached and user asked a non-greeting, never fall back to conversational
+    if has_docs and not is_pure_greeting and (decision == "CONVERSATIONAL" or "CONVERSATIONAL" in decision):
+        logfire.info(f"Correcting planner CONVERSATIONAL intent to document retrieval for active files: {filenames}")
+        decision = user_message
+
     if decision == "CONVERSATIONAL":
         return {
             "current_query": "CONVERSATIONAL",
@@ -66,17 +69,17 @@ def planner_node(state: AgentState):
             "plan": ["Intent: Conversational/Memory", "Retrieval: Skipped"]
         }
     elif decision == "DOCUMENT_SUMMARY" or "DOCUMENT_SUMMARY" in decision:
+        files_label = f"{len(filenames)} document(s): {', '.join(filenames)}" if filenames else "uploaded document"
         return {
             "current_query": "DOCUMENT_SUMMARY",
             "is_document_query": True,
-            "status": f"Generating document summary for {filename or 'uploaded document'}...",
-            "plan": ["Intent: Document Summary", f"Target File: {filename or 'Active Document'}"]
+            "status": f"Generating document summary for {files_label}...",
+            "plan": ["Intent: Document Summary", f"Target: {files_label}"]
         }
-    
-    is_doc = bool(filename or is_doc_intent)
+
     return {
         "current_query": decision,
-        "is_document_query": is_doc,
+        "is_document_query": has_docs,
         "status": f"Research needed. Searching for: {decision}",
         "plan": ["Intent: Query", f"Search Term: {decision}"]
     }

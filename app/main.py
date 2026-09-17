@@ -21,6 +21,7 @@ from app.agents.graph import rag_agent
 from app.guardrails import initialize_rails, guard
 from app.services.code_service import generate_code_assistance
 from app.services.document_service import process_and_ingest_uploaded_file
+from app.services.retrieval.qdrant_service import delete_document_chunks, delete_session_chunks
 
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -120,6 +121,11 @@ class QueryRequest(BaseModel):
         description="Optional filename of an uploaded document to prioritize in context.",
         example="architecture.pdf"
     )
+    filenames: Optional[List[str]] = Field(
+        default=None,
+        description="Optional list of filenames of uploaded documents attached to this chat session.",
+        example=["architecture.pdf", "benchmarks.txt"]
+    )
 
 
 class QueryResponse(BaseModel):
@@ -175,7 +181,8 @@ def get_graph_image():
         return {"error": f"Could not generate graph image: {e}"}
     
     
-SESSION_ACTIVE_DOCS: dict[str, str] = {}
+MAX_SESSION_DOCUMENTS = 5
+SESSION_ACTIVE_DOCS: dict[str, list[dict]] = {}
 
 
 @app.post(
@@ -197,24 +204,21 @@ curl -X POST "http://localhost:8000/query" \\
 def query(request: QueryRequest):
     """
     Executes the LangGraph RAG flow with memory using a POST request.
+    Retrieval is strictly isolated to the specified thread_id / session_id.
     """
     q = request.q
     thread_id = request.thread_id or "default_user"
 
-    # Resolve active uploaded document (from request, current thread, or latest upload)
-    q_lower = q.lower()
-    doc_keywords = ["resume", "cv", "intern", "internship", "experience", "education", "profile", "document", "pdf", "file", "upload", "who am i", "my work", "about me"]
-    is_doc_query = any(k in q_lower for k in doc_keywords)
+    # Strictly resolve active uploaded documents for this session (zero cross-chat leakage)
+    session_docs = SESSION_ACTIVE_DOCS.get(thread_id, [])
+    session_filenames = [d["filename"] for d in session_docs if d.get("filename")]
 
-    effective_filename = (
-        request.filename
-        or SESSION_ACTIVE_DOCS.get(thread_id)
-        or SESSION_ACTIVE_DOCS.get("default_user")
-        or (SESSION_ACTIVE_DOCS.get("_latest") if is_doc_query else None)
-    )
-
-    if effective_filename:
-        SESSION_ACTIVE_DOCS[thread_id] = effective_filename
+    if request.filenames:
+        effective_filenames = [f for f in request.filenames if f]
+    elif request.filename:
+        effective_filenames = [request.filename]
+    else:
+        effective_filenames = session_filenames
 
     initial_state = {
         "messages": [{"role": "user", "content": q}],
@@ -226,15 +230,16 @@ def query(request: QueryRequest):
         "system_prompt": request.system_prompt,
         "temperature": request.temperature if request.temperature is not None else 0.1,
         "top_k": request.top_k if request.top_k is not None else 5,
-        "filename": effective_filename,
+        "filename": effective_filenames[0] if effective_filenames else None,
+        "filenames": effective_filenames,
         "session_id": thread_id,
     }
-    
+
     # Configuration for Memory (Thread ID)
     config = {"configurable": {"thread_id": thread_id}}
-    
+
     try:
-        # Gate 1: NeMo Guardrails — blocks overt prompt injection, XSS script tags, and malicious jailbreaks
+        # Gate 1: NeMo Guardrails — blocks overt prompt injection, XSS script tags, SQL injections, and malicious jailbreaks
         rail_fired, rail_response = guard(q)
         if rail_fired:
             logfire.info(f"Request blocked by guardrails | thread={thread_id}")
@@ -247,7 +252,6 @@ def query(request: QueryRequest):
             }
 
         # Gate 2: LangGraph RAG pipeline
-        # Run the graph synchronously to preserve Logfire context variables
         final_output = rag_agent.invoke(initial_state, config=config)
 
         raw_docs = final_output.get("documents", [])
@@ -261,11 +265,15 @@ def query(request: QueryRequest):
                 src = d["source"]
                 if src and src not in extracted_sources:
                     extracted_sources.append(src)
-        if effective_filename and effective_filename not in extracted_sources:
-            extracted_sources.insert(0, effective_filename)
+
+        # Include effective filenames in sources if retrieved docs are present
+        for fn in effective_filenames:
+            if fn not in extracted_sources and raw_docs:
+                extracted_sources.insert(0, fn)
+
         if not extracted_sources and raw_docs:
             extracted_sources = [d[:80] + "..." if len(d) > 80 else d for d in raw_docs[:3]]
-        
+
         return {
             "question": q,
             "answer": final_output.get("final_answer"),
@@ -294,7 +302,7 @@ def query(request: QueryRequest):
 def code_assist(request: CodeAssistRequest):
     """
     Executes specialized coding copilot generation using Groq or Gemini.
-    Protected by NeMo & Regex Security Gate to prevent prompt injection and script payloads.
+    Protected by NeMo & Regex Security Gate to prevent prompt injection, script payloads, and SQL exploits.
     """
     rail_fired, rail_response = guard(request.prompt)
     if rail_fired:
@@ -320,10 +328,10 @@ def code_assist(request: CodeAssistRequest):
 
 
 class UploadFileResponse(BaseModel):
-    success: bool = Field(..., description="Whether file passed guardrails and was successfully indexed")
-    status: str = Field(..., description="Status: indexed, blocked, empty, or error")
-    safe: bool = Field(..., description="Whether document passed security guardrails")
-    filename: str = Field(..., description="Name of the processed file")
+    success: bool = Field(..., description="Whether file(s) passed guardrails and was successfully indexed")
+    status: str = Field(..., description="Status: indexed, partial, blocked, empty, or error")
+    safe: bool = Field(..., description="Whether document(s) passed security guardrails")
+    filename: str = Field(..., description="Name of the processed file (or comma-separated list)")
     session_id: Optional[str] = Field(None, description="Session or conversation ID associated with the uploaded file")
     chunks_count: Optional[int] = Field(None, description="Number of text chunks extracted")
     points_indexed: Optional[int] = Field(None, description="Number of vector points upserted to Qdrant")
@@ -331,27 +339,182 @@ class UploadFileResponse(BaseModel):
     guardrail_status: Optional[str] = Field(None, description="Status from NeMo Guardrails")
     message: Optional[str] = Field(None, description="Detailed status message")
     reason: Optional[str] = Field(None, description="Rejection reason if blocked")
+    files: Optional[List[dict]] = Field(default=[], description="Detailed results for each file in batch")
+    total_active_documents: Optional[int] = Field(None, description="Total active files currently attached to this chat session")
 
 
 @app.post(
     "/upload",
     response_model=UploadFileResponse,
     tags=["Ingestion & Guardrails"],
-    summary="Upload Document with Guardrails Validation & RAG Ingestion",
-    description="Validates uploaded documents against NeMo Guardrails and injection attacks, chunks content, embeds using dual vectors, and indexes into Qdrant."
+    summary="Upload Document(s) with Guardrails Validation & RAG Ingestion",
+    description="Validates uploaded documents against NeMo Guardrails, SQL/script injection attacks, chunks content, embeds using dual vectors, and indexes into Qdrant with session isolation."
 )
 async def upload_document(
-    file: UploadFile = File(...),
+    files: Optional[List[UploadFile]] = File(None),
+    file: Optional[UploadFile] = File(None),
     session_id: Optional[str] = Form(None)
 ):
     """
-    Upload a document (PDF, TXT, MD, Python, JSON, HTML, etc.).
-    The file first passes through safety guardrails. If safe, it is ingested into the RAG vector store with session metadata.
+    Upload one or multiple documents (PDF, TXT, MD, Python, JSON, HTML, etc.).
+    Enforces a strict limit of up to 5 documents per chat session.
+    Every file systematically undergoes parsing, injection checks, chunking, dual embedding, and Qdrant storage.
     """
-    content = await file.read()
-    result = process_and_ingest_uploaded_file(content, file.filename, session_id=session_id)
-    if result.get("success"):
-        key = session_id or "default_user"
-        SESSION_ACTIVE_DOCS[key] = file.filename
-        SESSION_ACTIVE_DOCS["_latest"] = file.filename
-    return result
+    session_key = session_id or "default_user"
+    if session_key not in SESSION_ACTIVE_DOCS:
+        SESSION_ACTIVE_DOCS[session_key] = []
+
+    # Gather incoming files
+    incoming_files: List[UploadFile] = []
+    if files:
+        incoming_files.extend([f for f in files if f.filename])
+    if file and file.filename and file not in incoming_files:
+        incoming_files.append(file)
+
+    if not incoming_files:
+        return {
+            "success": False,
+            "status": "empty",
+            "safe": False,
+            "filename": "",
+            "session_id": session_key,
+            "reason": "No valid files provided for upload.",
+            "files": [],
+            "total_active_documents": len(SESSION_ACTIVE_DOCS[session_key]),
+        }
+
+    # Enforce session document limit (Max 5 documents per chat)
+    current_count = len(SESSION_ACTIVE_DOCS[session_key])
+    if current_count + len(incoming_files) > MAX_SESSION_DOCUMENTS:
+        err_msg = (
+            f"Limit exceeded: Chat session already has {current_count} document(s). "
+            f"Uploading {len(incoming_files)} more would exceed the limit of {MAX_SESSION_DOCUMENTS} per chat. "
+            f"Please remove existing documents before uploading more."
+        )
+        return {
+            "success": False,
+            "status": "blocked",
+            "safe": False,
+            "filename": incoming_files[0].filename,
+            "session_id": session_key,
+            "reason": err_msg,
+            "message": err_msg,
+            "files": [],
+            "total_active_documents": current_count,
+        }
+
+    processed_results = []
+    total_chunks = 0
+    total_points = 0
+    first_preview = None
+
+    for upload in incoming_files:
+        content = await upload.read()
+        result = process_and_ingest_uploaded_file(content, upload.filename, session_id=session_key)
+        processed_results.append(result)
+
+        if result.get("success"):
+            # Upsert into session active docs list
+            existing_idx = next(
+                (i for i, d in enumerate(SESSION_ACTIVE_DOCS[session_key]) if d.get("filename") == upload.filename),
+                None
+            )
+            doc_entry = {
+                "filename": upload.filename,
+                "chunks_count": result.get("chunks_count", 0),
+                "points_indexed": result.get("points_indexed", 0),
+                "preview": result.get("preview", ""),
+            }
+            if existing_idx is not None:
+                SESSION_ACTIVE_DOCS[session_key][existing_idx] = doc_entry
+            else:
+                SESSION_ACTIVE_DOCS[session_key].append(doc_entry)
+
+            total_chunks += result.get("chunks_count", 0)
+            total_points += result.get("points_indexed", 0)
+            if not first_preview:
+                first_preview = result.get("preview")
+
+    all_success = all(r.get("success") for r in processed_results)
+    any_success = any(r.get("success") for r in processed_results)
+    first_failure = next((r for r in processed_results if not r.get("success")), None)
+    filenames_str = ", ".join([u.filename for u in incoming_files])
+
+    if all_success:
+        return {
+            "success": True,
+            "status": "indexed",
+            "safe": True,
+            "filename": filenames_str,
+            "session_id": session_key,
+            "chunks_count": total_chunks,
+            "points_indexed": total_points,
+            "preview": first_preview,
+            "guardrail_status": "Verified Safe (NeMo Guardrails, SQL & Script Scanners passed)",
+            "message": f"Successfully indexed {len(incoming_files)} file(s) into chat session ({total_chunks} chunks).",
+            "files": processed_results,
+            "total_active_documents": len(SESSION_ACTIVE_DOCS[session_key]),
+        }
+    elif any_success:
+        return {
+            "success": True,
+            "status": "partial",
+            "safe": True,
+            "filename": filenames_str,
+            "session_id": session_key,
+            "chunks_count": total_chunks,
+            "points_indexed": total_points,
+            "preview": first_preview,
+            "guardrail_status": "Partial (Some files rejected by security checks)",
+            "message": f"Partially indexed: {sum(1 for r in processed_results if r.get('success'))} succeeded, {sum(1 for r in processed_results if not r.get('success'))} rejected.",
+            "files": processed_results,
+            "total_active_documents": len(SESSION_ACTIVE_DOCS[session_key]),
+        }
+    else:
+        return {
+            "success": False,
+            "status": first_failure.get("status", "blocked") if first_failure else "blocked",
+            "safe": False,
+            "filename": filenames_str,
+            "session_id": session_key,
+            "reason": first_failure.get("reason", "Files failed safety checks.") if first_failure else "Failed safety check.",
+            "message": first_failure.get("reason", "Files failed safety checks.") if first_failure else "Failed safety check.",
+            "files": processed_results,
+            "total_active_documents": len(SESSION_ACTIVE_DOCS[session_key]),
+        }
+
+
+@app.get("/session/{session_id}/documents", tags=["Ingestion & Guardrails"])
+def get_session_documents(session_id: str):
+    """Returns all active documents currently attached to this chat session."""
+    docs = SESSION_ACTIVE_DOCS.get(session_id, [])
+    return {"session_id": session_id, "documents": docs, "count": len(docs)}
+
+
+@app.delete("/session/{session_id}/documents/{filename}", tags=["Ingestion & Guardrails"])
+def delete_session_document(session_id: str, filename: str):
+    """Deletes a specific document from a chat session and purges its vectors from Qdrant."""
+    delete_document_chunks(filename=filename, session_id=session_id)
+    if session_id in SESSION_ACTIVE_DOCS:
+        SESSION_ACTIVE_DOCS[session_id] = [
+            d for d in SESSION_ACTIVE_DOCS[session_id] if d.get("filename") != filename
+        ]
+    return {
+        "success": True,
+        "message": f"Document '{filename}' deleted from session '{session_id}'.",
+        "session_id": session_id,
+        "remaining_documents": SESSION_ACTIVE_DOCS.get(session_id, [])
+    }
+
+
+@app.delete("/session/{session_id}/documents", tags=["Ingestion & Guardrails"])
+def clear_session_documents(session_id: str):
+    """Clears all documents from a chat session and purges all its vectors from Qdrant."""
+    delete_session_chunks(session_id=session_id)
+    if session_id in SESSION_ACTIVE_DOCS:
+        SESSION_ACTIVE_DOCS[session_id] = []
+    return {
+        "success": True,
+        "message": f"All documents cleared for session '{session_id}'.",
+        "session_id": session_id
+    }
