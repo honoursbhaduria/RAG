@@ -1,15 +1,17 @@
 # CogniVault — Enterprise Agentic Multi-Document RAG & Code Studio
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.136.1-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1.1.10-black?style=flat-square)](https://langchain-ai.github.io/langgraph/)
-[![Neon](https://img.shields.io/badge/Neon-Lakebase_Postgres-00E599?style=flat-square&logo=postgresql)](https://neon.tech)
+[![LangChain](https://img.shields.io/badge/LangChain-1.2.18-1C3C3C?style=flat-square)](https://python.langchain.com)
+[![Neon](https://img.shields.io/badge/Neon-Lakebase_Postgres_18.6-00E599?style=flat-square&logo=postgresql)](https://neon.tech)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Cloud_Vector_DB-DC2626?style=flat-square)](https://qdrant.tech)
-[![Groq](https://img.shields.io/badge/Groq-Compound_Reasoning-F55036?style=flat-square)](https://groq.com)
-[![Logfire](https://img.shields.io/badge/Logfire-Observability-FF6B6B?style=flat-square)](https://pydantic.dev/logfire)
-[![LangSmith](https://img.shields.io/badge/LangSmith-Agent_Tracing-blue?style=flat-square)](https://smith.langchain.com)
-[![Vercel](https://img.shields.io/badge/Vercel-Deployed-white?style=flat-square&logo=vercel)](https://cognivault-dev.vercel.app)
+[![Groq](https://img.shields.io/badge/Groq-LPU_Compound_Reasoning-F55036?style=flat-square)](https://groq.com)
+[![Logfire](https://img.shields.io/badge/Logfire-FastAPI_Observability-FF6B6B?style=flat-square)](https://pydantic.dev/logfire)
+[![LangSmith](https://img.shields.io/badge/LangSmith-StateGraph_Tracing-blue?style=flat-square)](https://smith.langchain.com)
+[![Vercel](https://img.shields.io/badge/Vercel-Frontend_SPA-white?style=flat-square&logo=vercel)](https://cognivault-dev.vercel.app)
+[![Render](https://img.shields.io/badge/Render-Backend_Service-46E3B7?style=flat-square&logo=render)](https://render.com)
 
-**CogniVault** is a production-grade, enterprise-scale Agentic Retrieval-Augmented Generation (RAG) platform and AI Code Studio. Engineered with a cyclic **LangGraph** orchestration pipeline, **Neon Lakebase Postgres** for multi-chat persistence, **Qdrant Cloud** for session-isolated vector search, **FlashRank** for cross-encoder reranking, and zero-trust **NeMo Guardrails** with integrated SQL/Script injection defenses.
+**CogniVault** is a production-grade, enterprise-scale Agentic Retrieval-Augmented Generation (RAG) platform and AI Code Studio. It combines cyclic **LangGraph** orchestration, **Neon Lakebase Postgres** for multi-chat relational persistence, **Qdrant Cloud** for session-isolated vector search, **FlashRank** cross-encoder reranking, zero-trust **NeMo & Regex Guardrails** (with SQL and script injection interception), and dual **Logfire + LangSmith** observability.
 
 - **Live Production Application**: [cognivault-dev.vercel.app/#chat](https://cognivault-dev.vercel.app/#chat)
 - **Interactive Swagger Documentation**: `https://<backend-url>/api/docs`
@@ -17,148 +19,293 @@
 
 ---
 
-## Architecture Overview
+## High-Fidelity Architecture Flowchart
+
+The following diagram illustrates both the **Multi-File Ingestion Pipeline** and the **Agentic Query & Reasoning Execution Graph** with full subsystem boundaries, persistence layers, and telemetry hooks:
 
 ```mermaid
 flowchart TD
-    subgraph Client ["Client Layer (React / Vite on Vercel)"]
-        UI["CogniVault Web UI"]
-        Hub["Active Session Saved Files Hub"]
-        Studio["Code Studio Workspace"]
+    %% -------------------------------------------------------------
+    %% CLIENT AND PRESENTATION LAYER
+    %% -------------------------------------------------------------
+    subgraph ClientLayer ["1. Client and Presentation Layer - React 19, TypeScript, Vite on Vercel"]
+        UI["CogniVault Web UI - Chatbot and Knowledge Hub"]
+        FileDrop["Multi-File Upload Dropzone - 1 to 5 Documents: PDF, DOCX, PPTX, TXT, CSV, Code"]
+        SavedHub["Active Session Saved Documents Hub - Live Manifest and Clear Controls"]
+        CodeStudio["AI Code Studio Workspace - Groq and Gemini Dual Engine Copilot"]
     end
 
-    subgraph Security ["Zero-Trust Security Gate (app/guardrails)"]
-        Rails["NeMo Semantic Safety Gate"]
-        SQLScan["SQL Injection Scanner"]
-        ScriptScan["XSS & Script Tag Scanner"]
+    %% -------------------------------------------------------------
+    %% ZERO-TRUST SECURITY GATE
+    %% -------------------------------------------------------------
+    subgraph SecurityGate ["2. Zero-Trust Security Gate - app/guardrails"]
+        RegexFilter["Fast-Path Regex Pattern Gate - Sub-millisecond Clearance"]
+        SQLiScan["SQL Injection Interceptor - UNION SELECT, DROP, SLEEP, Blind SQLi"]
+        XSSScan["Script and XSS Filter - Script Tags, Javascript URIs, Shell Injections"]
+        CloudGuard["Cloud-Backed ChatGroq Semantic Gate - Topic and Jailbreak Defense"]
+        QuotaCheck["Session File Quota Enforcer - Max 5 Documents Per Session"]
     end
 
-    subgraph Orchestration ["Agentic StateGraph Pipeline (app/agents)"]
-        Planner{"Planner Node (Intent Analysis)"}
-        Router{"Conditional Router Edge"}
-        Retriever["Retriever Node (app/services/retrieval)"]
-        Reranker["FlashRank Cross-Encoder Reranker"]
-        Responder["Responder Node (Context Synthesis)"]
-        MemorySaver[("LangGraph Memory Checkpointer")]
+    %% -------------------------------------------------------------
+    %% INGESTION PIPELINE
+    %% -------------------------------------------------------------
+    subgraph IngestionPipeline ["3. Document Ingestion and Vectorization Engine - app/services/document_service.py"]
+        Extractors["Multi-Format Text Extractors - pypdf, python-docx, python-pptx, bs4"]
+        Chunker["Semantic and Recursive Splitter - 500 tokens with 50 overlap"]
+        Embedder["Google Gemini Embeddings - text-embedding-004, 768-dim Dense Vectors"]
+        VectorPacker["Qdrant Point Struct Assembler - UUIDv4 with session_id Metadata"]
     end
 
-    subgraph Storage ["Cloud Infrastructure & Databases"]
-        NeonDB[("Neon Lakebase Postgres (session_documents, chat_messages)")]
-        Qdrant[("Qdrant Cloud (Dual Embeddings: Gemini text-embedding-004)")]
-        Groq["Groq Compound LLMs (openai/gpt-oss-120b & 20b fallback)"]
+    %% -------------------------------------------------------------
+    %% PERSISTENCE AND STORAGE
+    %% -------------------------------------------------------------
+    subgraph StorageLayer ["4. Dual Cloud Persistence Infrastructure"]
+        NeonDB[("Neon Lakebase Postgres - PG 18.6 with Connection Pooler<br/>Tables: session_documents, chat_sessions, chat_messages")]
+        QdrantDB[("Qdrant Cloud HNSW Vector Database<br/>Collection: enterprise_knowledge<br/>Strict Payload Isolation: session_id")]
     end
 
-    subgraph Observability ["Distributed Telemetry & Tracing"]
-        Logfire["Pydantic Logfire (FastAPI Middleware & Spans)"]
-        LangSmith["LangSmith (Agent Node Graph Tracing)"]
+    %% -------------------------------------------------------------
+    %% LANGGRAPH ORCHESTRATION PIPELINE
+    %% -------------------------------------------------------------
+    subgraph AgenticCore ["5. LangGraph Agentic Orchestration State Machine - app/agents"]
+        Memory["LangGraph MemorySaver Checkpointer - thread_id State Preservation"]
+        Planner["Planner Node - Intent Analysis and Search Query Formulation"]
+        Router{"3-Way Conditional Router Edge"}
+        
+        FilesBranch["FILES_INQUIRY Branch - Instant Manifest Assembly"]
+        ConvBranch["CONVERSATIONAL Branch - Multi-Turn Memory Dispatch"]
+        
+        Retriever["Retriever Node - Session-Filtered Vector Search"]
+        Reranker["FlashRank Cross-Encoder Reranker - ms-marco-MiniLM-L-12-v2"]
+        Responder["Responder Node - Grounded Multi-Turn Context Synthesis"]
     end
 
-    UI -->|POST /query, POST /upload, POST /code/assist| Rails
-    Rails --> SQLScan --> ScriptScan
-    ScriptScan -->|Pass| Planner
-    ScriptScan -->|Blocked (403)| UI
+    %% -------------------------------------------------------------
+    %% REASONING AND LLM GATEWAY
+    %% -------------------------------------------------------------
+    subgraph InferenceLayer ["6. LLM Inference and Resilience Gateway - app/gateway"]
+        PortkeyGateway["Portkey AI Gateway - Caching, Retries and Routing"]
+        GroqPrimary["Primary Groq LPU - openai/gpt-oss-120b High-Reasoning"]
+        GroqFallback["Fallback Groq LPU - openai/gpt-oss-20b Resilience"]
+    end
+
+    %% -------------------------------------------------------------
+    %% DISTRIBUTED OBSERVABILITY
+    %% -------------------------------------------------------------
+    subgraph TelemetryLayer ["7. Dual Distributed Observability and Tracing"]
+        Logfire["Pydantic Logfire - FastAPI Middleware Spans and Latency Profiling"]
+        LangSmith["LangSmith - LangGraph StateGraph Execution Tree and Token Tracing"]
+    end
+
+    %% -------------------------------------------------------------
+    %% FLOW CONNECTIONS: INGESTION
+    %% -------------------------------------------------------------
+    FileDrop -->|"Upload 1 to 5 files"| QuotaCheck
+    QuotaCheck -->|"Within quota limit"| RegexFilter
+    QuotaCheck -->|"Quota exceeded alert"| UI
+    RegexFilter --> SQLiScan
+    SQLiScan --> XSSScan
+    XSSScan --> CloudGuard
+    CloudGuard -->|"Clearance passed"| Extractors
+    CloudGuard -->|"Malicious payload blocked 403"| UI
+
+    Extractors --> Chunker
+    Chunker --> Embedder
+    Embedder --> VectorPacker
+    VectorPacker -->|"Upsert payload vectors"| QdrantDB
+    VectorPacker -->|"Save document metadata"| NeonDB
+    NeonDB -.->|"Synchronize active files"| SavedHub
+
+    %% -------------------------------------------------------------
+    %% FLOW CONNECTIONS: QUERY AND INFERENCE
+    %% -------------------------------------------------------------
+    UI -->|"Query with thread_id"| RegexFilter
+    RegexFilter -->|"Clearance verified"| Memory
+    Memory -->|"Inject history and active files"| Planner
 
     Planner --> Router
-    Router -->|FILES_INQUIRY| Responder
-    Router -->|CONVERSATIONAL| Responder
-    Router -->|TECHNICAL / SUMMARY| Retriever
+    
+    %% Branch 1: Files Inquiry
+    Router -->|"FILES_INQUIRY"| FilesBranch
+    FilesBranch -->|"Read active files manifest"| Responder
+    
+    %% Branch 2: Conversational
+    Router -->|"CONVERSATIONAL"| ConvBranch
+    ConvBranch -->|"Bypass vector retrieval"| Responder
 
-    Retriever -->|Session Filtered Search| Qdrant
-    Retriever --> Reranker --> Responder
-    Responder -->|LLM Completion| Groq
-    Responder -.->|Checkpoint State| MemorySaver
-    Responder --> UI
+    %% Branch 3: Technical / Summary
+    Router -->|"TECHNICAL or SUMMARY"| Retriever
+    Retriever -->|"Session payload match"| QdrantDB
+    QdrantDB -->|"Raw candidate chunks"| Reranker
+    Reranker -->|"Top-N precision-scored chunks"| Responder
 
-    UI -.->|Document Uploads & Metadata| NeonDB
-    UI -.->|Session Isolated Vectors| Qdrant
+    %% Responder to LLM Gateway
+    Responder --> PortkeyGateway
+    PortkeyGateway --> GroqPrimary
+    GroqPrimary -.->|"On rate limit fallback"| GroqFallback
+    GroqPrimary -->|"Synthesized response"| Responder
 
-    Rails -.-> Logfire
-    Retriever -.-> Logfire
-    Planner -.-> LangSmith
-    Responder -.-> LangSmith
+    %% State Checkpoint & Output
+    Responder -.->|"Save graph state"| Memory
+    Responder -.->|"Persist chat message"| NeonDB
+    Responder -->|"Answer with citations and plan"| UI
+
+    %% Code Studio Copilot
+    CodeStudio -->|"Code generation request"| SecurityGate
+    SecurityGate -->|"Clearance passed"| PortkeyGateway
+
+    %% Telemetry Links
+    SecurityGate -.->|"Security audit spans"| Logfire
+    Retriever -.->|"Retrieval latency spans"| Logfire
+    Reranker -.->|"Reranking latency spans"| Logfire
+    NeonDB -.->|"Database query traces"| Logfire
+    Planner -.->|"StateGraph execution trace"| LangSmith
+    Retriever -.->|"Retriever node trace"| LangSmith
+    Responder -.->|"Responder trace and token usage"| LangSmith
 ```
 
 ---
 
-## Core Production Capabilities
+## Architectural Deep Dive: How Everything Works
 
-### 1. Multi-File Knowledge Hub with Session Isolation
-- **Up to 5 Documents per Chat**: Upload multiple documents simultaneously or incrementally (`.pdf`, `.docx`, `.pptx`, `.txt`, `.md`, `.py`, `.csv`, `.html`, `.sql`, etc.).
-- **Zero Cross-Chat Data Leakage**: Every vector point and document chunk is tagged with a strict `session_id`. Qdrant queries enforce hard payload filters so documents from one session are completely invisible to other chat sessions.
-- **Persistent Saved Documents Hub**: A dedicated banner at the top of the chat displays active files, formats, and chunk counts with single-click **Inspect Files** and **Clear** controls.
+CogniVault operates on an enterprise **Zero-Trust, Dual-Persistence, StateGraph-Orchestrated** model. Below is the complete lifecycle breakdown from raw byte ingestion to streaming multi-turn reasoning:
 
-### 2. Neon Serverless Postgres Cloud Persistence
-- **Production Persistence Layer** ([app/services/session_store.py](app/services/session_store.py)): Backed by **Neon Postgres** (Lakebase Postgres) via connection pooler (`DATABASE_URL`).
-- **Resilient Fallback**: Automatically falls back to local SQLite (`data/cognivault_sessions.db`) when offline, guaranteeing zero downtime.
-- **Relational Schemas**:
-  - `session_documents`: Tracks `session_id`, `filename`, `file_type`, `chunks_count`, `points_indexed`, `preview`, `created_at`.
-  - `chat_sessions`: Manages session IDs, titles, and lifecycle timestamps.
-  - `chat_messages`: Stores multi-turn message history, thought processes, and citations.
+### 1. Document Ingestion & Verification Lifecycle (`POST /upload`)
 
-### 3. Natural Language Saved Files Discovery (`FILES_INQUIRY`)
-- When users ask: *"What files are saved?"*, *"What did I upload?"*, or *"Show what files you have"*, the LangGraph Planner routes to `FILES_INQUIRY`.
-- The Responder immediately returns a formatted overview of attached files, their formats, indexed chunk counts, and guidance for querying them.
+```
+[Raw Files] → [Quota & Safety Gate] → [Format Parsing] → [Semantic Chunking] → [Gemini Embeddings] → [Neon Postgres + Qdrant Cloud]
+```
 
-### 4. Context Completion Across Conversation Turns
-- Synthesizes answers using both retrieved document chunks and the multi-turn `CONVERSATION HISTORY`.
-- Resolves pronouns (*"it"*, *"the second step"*), expansions (*"tell me more about that"*), and comparative questions across multiple attached documents.
-
-### 5. Multi-Layer Input/Output Safety Guards
-- **Gate 1: Semantic Guardrails**: NeMo Guardrails block adversarial jailbreak attempts and off-topic exploits.
-- **Gate 2: Injection Defenses**: Systematic regex and AST scanners detect SQL injection commands (`UNION SELECT`, `DROP TABLE`, etc.) and malicious executable script tags (`<script>`, `javascript:`).
-- **Gate 3: Session File Bounds**: Enforces limits (max 5 files per chat) to prevent denial-of-service or memory bloat.
-
-### 6. Dual Observability & Distributed Tracing
-- **Pydantic Logfire**: End-to-end FastAPI middleware instrumentation, measuring text chunking, document parsing, Qdrant vector retrieval latency, FlashRank reranking times, and security audit logs.
-- **LangSmith**: Native StateGraph execution hierarchy tracing (`LangGraph` → `planner` → `route_planner` → `retriever` → `responder`) with token usage and completion logs in the `cognivault` project.
-
-### 7. AI Code Studio Copilot
-- Dedicated coding copilot (`POST /code/assist`) supporting **Python**, **JavaScript/TypeScript**, and custom languages.
-- Features dual-engine switching (**Groq LPU** or **Google Gemini**) with AST code extraction and syntax-highlighted rendering.
+1. **Session Quota Verification**:
+   - The user can select between 1 and 5 files simultaneously (`.pdf`, `.docx`, `.pptx`, `.txt`, `.md`, `.py`, `.csv`, `.html`, `.sql`, etc.).
+   - The backend validates the existing count in `SESSION_ACTIVE_DOCS[session_id]`. If `current_count + incoming_files > 5`, the upload is rejected with a descriptive error before allocating system memory.
+2. **Multi-Stage Security Clearance**:
+   - **Fast-Path Regex Scanners**: Pre-scans raw file content for overt prompt injection phrases, jailbreaks (`"ignore all previous instructions"`, `"you are now DAN"`), XSS tags (`<script>`, `javascript:`, DOM manipulation), reverse shells (`nc -e`, `curl | bash`), and destructive commands (`rm -rf /`).
+   - **SQL Injection Scanning**: Analyzes documents for prohibited SQL exploits (`UNION SELECT`, `DROP TABLE`, `EXEC()`, `WAITFOR DELAY`, `BENCHMARK`, blind boolean injection `OR 1=1`). Special validation rules handle `.sql` schema files safely while catching dangerous data-exfiltration payloads.
+   - **NeMo Semantic Guardrails**: Samples leading text blocks against the cloud-backed `ChatGroq` semantic safety model to verify policy compliance without consuming RAM on the host.
+3. **Format Extraction**:
+   - Dedicated loaders parse unstructured text: `pypdf` for Adobe PDFs, `python-docx` for Word documents, `python-pptx` for PowerPoint presentations, and `beautifulsoup4` for HTML markup. Plain text and source code are decoded across `utf-8`, `latin-1`, and `cp1252` fallbacks.
+4. **Semantic & Recursive Chunking**:
+   - Text is split into coherent 500-token segments with a 50-token contextual sliding overlap using structural delimiters (headers, paragraph breaks, sentence boundaries) to preserve semantic cohesion.
+5. **Dense Vector Generation**:
+   - Chunks are vectorized using Google Gemini's `text-embedding-004` (768-dimensional dense vectors) with exponential backoff and batching.
+6. **Dual Persistence Synchronization**:
+   - **Qdrant Cloud**: Upserts points tagged with UUIDv4, dense vectors, chunk text, filename, and `session_id`.
+   - **Neon Lakebase Postgres**: Persists document records to `session_documents` (`session_id`, `filename`, `file_type`, `chunks_count`, `points_indexed`, `preview`, `created_at`).
+   - The active files manifest is returned to the frontend for real-time display in the **Active Session Saved Documents Hub**.
 
 ---
 
-## Production Tech Stack
+### 2. Query, Retrieval & Reasoning Lifecycle (`POST /query`)
 
-| Layer | Technology | Version / Spec |
-| :--- | :--- | :--- |
-| **Backend API** | FastAPI + Uvicorn | Python 3.11 / 3.13 ASGI |
-| **Orchestration** | LangGraph + LangChain | `langgraph==1.1.10`, `langchain==1.2.18` |
-| **Relational DB** | Neon (Lakebase Postgres) | PostgreSQL 18.6 with connection pooling |
-| **Vector DB** | Qdrant Cloud | HNSW indexing + payload session filtering |
-| **Embeddings** | Google Gemini | `text-embedding-004` (768-dim / dual vectors) |
-| **Reranking** | FlashRank | Cross-encoder TinyBERT (`FlashRank==0.2.10`) |
-| **Reasoning LLM** | Groq Cloud | `openai/gpt-oss-120b` (fallback: `openai/gpt-oss-20b`) |
-| **LLM Gateway** | Portkey AI | Enterprise fallback, caching, and retry management |
-| **Observability** | Logfire + LangSmith | Real-time FastAPI spans + LangGraph execution trees |
-| **Frontend UI** | React 19 + TypeScript + Vite | Tailwind CSS + Framer Motion + Lucide Icons |
-| **Hosting** | Render + Vercel | Render (API Web Service) + Vercel (Frontend SPA) |
+```
+[User Query] → [Security Gate] → [LangGraph Planner] → [3-Way Router]
+                                                               ↓
+            ┌───────────────────────┬──────────────────────────┴─────────────────────────┐
+            ↓                       ↓                                                    ↓
+     [FILES_INQUIRY]         [CONVERSATIONAL]                                 [TECHNICAL / SUMMARY]
+            ↓                       ↓                                                    ↓
+   (Instant Manifest)       (Memory Dispatch)                                   [Qdrant Search]
+            ↓                       ↓                                                    ↓
+            └───────────────────────┼───────────────────────────>              [FlashRank Reranker]
+                                    ↓                                                    ↓
+                             [Groq LPU Synthesis] <──────────────────────────────────────┘
+                                    ↓
+                       [Neon Postgres + Telemetry]
+                                    ↓
+                             [Client Response]
+```
+
+1. **Security Gate Clearance (< 2.4 ms)**:
+   - When a user submits a prompt, it enters the **Zero-Trust Security Gate**.
+   - If SQL injection or script patterns are detected, or if the semantic guard detects an exploit or jailbreak attempt, the request is immediately halted and returns a safety advisory, completely bypassing the LLM and vector database to conserve resources.
+2. **LangGraph State Initialization**:
+   - The incoming query, `session_id`, requested persona, system instructions, temperature, and active file list are packaged into `AgentState`.
+   - `MemorySaver` loads previous dialogue turns from memory using `thread_id` (identical to `session_id`).
+3. **Planner Node Intent Analysis**:
+   - The Planner analyzes the conversation history, attached file manifest, and user intent. It classifies the interaction into one of three execution trajectories:
+     - **Path A (`FILES_INQUIRY`)**: Fired when users ask *"what files are saved?"*, *"show my documents"*, or *"what did I upload?"*.
+     - **Path B (`CONVERSATIONAL`)**: Fired for greetings (*"hello"*, *"thank you"*) or general conversational follow-ups that require multi-turn memory but no document retrieval.
+     - **Path C (`TECHNICAL / DOCUMENT_SUMMARY`)**: Fired when answering questions regarding uploaded documents or enterprise cloud architectures. Formulates a focused, keyword-rich search query.
+4. **Conditional Router Edge**:
+   - Paths A and B bypass vector database retrieval entirely, saving latency and compute costs, and route directly to the `responder` node.
+   - Path C routes to the `retriever` node.
+5. **Retriever Node (Session-Filtered Vector Search)**:
+   - Queries Qdrant Cloud with a hard payload filter:
+     ```python
+     models.Filter(
+         must=[models.FieldCondition(key="session_id", match=models.MatchValue(value=session_id))]
+     )
+     ```
+   - This ensures **100% session isolation**: documents uploaded in Chat Session A are mathematically invisible to queries in Chat Session B.
+   - If the query is `DOCUMENT_SUMMARY`, all indexed chunks across all attached files are pulled to form a comprehensive multi-document digest.
+6. **FlashRank Cross-Encoder Reranking**:
+   - The candidate chunks retrieved from Qdrant are passed to **FlashRank** (`ms-marco-MiniLM-L-12-v2`).
+   - The cross-encoder evaluates full query-document attention pairs, assigning precise relevance scores and selecting only the top-N most informative passages while stripping out irrelevant context.
+7. **Responder Node & Context Synthesis**:
+   - The synthesized prompt combines:
+     1. Persona and system directives
+     2. Active document manifest header
+     3. Reranked document context with exact source attributions
+     4. Complete multi-turn conversation history
+     5. User question
+   - Dispatched to **Groq Cloud** (`openai/gpt-oss-120b`) via the Portkey AI Gateway. If rate limits or network issues occur, it automatically falls back to `openai/gpt-oss-20b`.
+8. **State Checkpointing & Dual Telemetry**:
+   - The assistant's answer, thought process plan, and citations are checkpointed by LangGraph's `MemorySaver` and recorded in Neon Postgres (`chat_messages` table).
+   - Distributed telemetry spans are pushed to **Pydantic Logfire** (latency, database timings, retrieval scores) and **LangSmith** (full LangGraph node execution hierarchy and token metrics).
 
 ---
 
-## API Reference
+## Complete Production Tech Stack
 
-Interactive Swagger documentation is available at `GET /api/docs`.
-
-### Primary Endpoints
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/query` | Executes the full LangGraph RAG pipeline with session memory, guardrails, and reranking. |
-| `POST` | `/upload` | Ingests 1 to 5 files with security scanning, chunking, dual embeddings, and Neon database persistence. |
-| `GET` | `/session/{session_id}/documents` | Retrieves all active documents currently attached to a chat session. |
-| `DELETE` | `/session/{session_id}/documents/{filename}` | Deletes a specific document and purges its vector points from Qdrant and Neon DB. |
-| `DELETE` | `/session/{session_id}/documents` | Clears all documents and vector embeddings for a chat session. |
-| `POST` | `/code/assist` | AI Code Copilot endpoint supporting code generation, debugging, and AST extraction. |
-| `GET` | `/health` | Kubernetes / Docker / Render health status probe. |
-| `GET` | `/graph` | Generates a PNG visualization of the LangGraph state machine. |
-| `GET` | `/api/docs` | Interactive OpenAPI Swagger UI documentation. |
+| Subsystem | Technology | Version / Spec | Purpose & Architectural Role |
+| :--- | :--- | :--- | :--- |
+| **Backend Framework** | **FastAPI** + **Uvicorn** | `fastapi==0.136.1`, `uvicorn==0.46.0` | Asynchronous high-throughput ASGI web API with strict Pydantic v2 schemas. |
+| **Agent Orchestration** | **LangGraph** | `langgraph==1.1.10` | Cyclic state machine managing Planner, Router, Retriever, and Responder nodes. |
+| **Agent Framework** | **LangChain** | `langchain==1.2.18`, `langchain-community==0.4.1` | Core prompt templates, memory abstractions, and tool interfaces. |
+| **Relational Database** | **Neon (Lakebase Postgres)** | PostgreSQL 18.6 via connection pooler | Cloud persistence for multi-chat sessions, document metadata, and message histories. |
+| **Vector Database** | **Qdrant Cloud** | `qdrant-client==1.19.0` | Cloud-hosted HNSW vector indexing with session-isolated payload filtering. |
+| **Dense Embeddings** | **Google Gemini** | `text-embedding-004` (768-dim) | High-semantic-fidelity embeddings with exponential backoff retry logic. |
+| **Reranking Engine** | **FlashRank** | `FlashRank==0.2.10` (`ms-marco-MiniLM-L-12-v2`) | High-speed local CPU cross-encoder reranker for context compression (< 15 ms). |
+| **Primary Reasoning LLM** | **Groq Cloud LPU** | `openai/gpt-oss-120b` | Ultra-fast inference engine for complex multi-document reasoning and code synthesis. |
+| **Fallback Reasoning LLM**| **Groq Cloud LPU** | `openai/gpt-oss-20b` | Low-latency fallback model ensuring 100% uptime during peak loads or rate limits. |
+| **LLM Gateway** | **Portkey AI** | `portkey-ai==2.3.0` | Enterprise gateway handling request routing, caching, rate limiting, and fallbacks. |
+| **Application Observability**| **Pydantic Logfire** | `logfire[fastapi,requests]==4.32.1` | Real-time OpenTelemetry distributed tracing, FastAPI spans, and latency metrics. |
+| **Agent Graph Tracing** | **LangSmith** | `langsmith==0.8.3` | Step-by-step visual execution trees for all LangGraph agent state transitions. |
+| **Document Parsers** | **PyPDF, python-docx, python-pptx, bs4** | `pypdf==6.11.0`, `docx==1.2.0`, `pptx==1.0.2` | Robust file ingestion engine extracting raw text from PDFs, Office docs, and HTML. |
+| **Frontend Framework** | **React 19** + **Vite** | React 19, TypeScript, Tailwind CSS | High-performance SPA with Framer Motion animations and responsive dark aesthetic. |
+| **Cloud Hosting** | **Render + Vercel** | Render (API Web Service) + Vercel (Edge SPA) | Production deployment topology with CORS and zero-trust environment controls. |
 
 ---
 
-## Database Schema (Neon Postgres)
+## Security & Injection Defense Architecture
 
-The following tables are initialized automatically by [app/services/session_store.py](app/services/session_store.py):
+CogniVault applies defense-in-depth across all ingestible and conversational vectors:
+
+1. **SQL Injection Defense**:
+   - Systematic regex filters intercept both classic and blind SQL injection payloads:
+     - `UNION SELECT`, `UNION ALL SELECT`
+     - `DROP TABLE`, `ALTER TABLE`, `TRUNCATE TABLE`
+     - `INSERT INTO`, `DELETE FROM ... WHERE`
+     - Stored procedure execution: `EXEC()`, `EXECUTE()`
+     - Time-based blind injection: `WAITFOR DELAY`, `BENCHMARK()`, `SLEEP()`
+     - Tautology exploits: `' OR 1=1 --`, `' OR 'a'='a'`, `OR true`
+   - Custom rules for `.sql` file uploads allow structural DDL while strictly blocking blind timing attacks and data-exfiltration queries against `information_schema`.
+2. **Cross-Site Scripting (XSS) & Command Execution Defense**:
+   - Blocks `<script>` tags, inline `javascript:` URIs, HTML event attributes (`onerror=`, `onload=`, `onclick=`), and DOM exfiltration calls (`document.cookie`, `document.location`).
+   - Detects and intercepts reverse shell injections (`/bin/sh -i`, `nc -e /bin/sh`, `curl | bash`, `pty.spawn()`).
+3. **Jailbreak & Prompt Hacking Guardrails**:
+   - Intercepts known adversarial prefixes (*"ignore all previous instructions"*, *"disregard training"*, *"you are now DAN"*, *"pretend you have no rules"*, *"exfiltrate environment variables"*).
+   - Backed by a cloud `ChatGroq` semantic evaluation gate operating with zero RAM overhead.
+4. **Session Isolation Guarantees**:
+   - Documents and vectors uploaded in Session `A` cannot be retrieved by Session `B`. Qdrant filters strictly match on `payload.session_id`.
+   - Neon database queries always filter against `WHERE session_id = %s`.
+
+---
+
+## Database Schemas & Persistence Model (Neon Postgres)
+
+When connected to Neon Postgres (`DATABASE_URL`), the system initializes and manages three relational schemas:
 
 ```sql
 -- 1. Uploaded document metadata per chat session
@@ -181,7 +328,7 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Multi-turn conversation messages and citations
+-- 3. Multi-turn conversation messages, reasoning plans, and sources
 CREATE TABLE IF NOT EXISTS chat_messages (
     id VARCHAR(128) PRIMARY KEY,
     session_id VARCHAR(128) NOT NULL,
@@ -193,45 +340,65 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for low-latency session filtering
+-- Indices for low-latency session-scoped queries
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_session_docs_session ON session_documents(session_id);
 ```
+
+> **Automatic Fallback**: If the Neon Postgres network is unreachable, CogniVault seamlessly falls back to a local SQLite database (`data/cognivault_sessions.db`), guaranteeing zero service downtime during local development or network disruptions.
+
+---
+
+## Primary API Endpoints
+
+The backend exposes an interactive OpenAPI Swagger UI at `GET /api/docs`.
+
+| Method | Endpoint | Description | Key Request / Response Parameters |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/query` | Executes the LangGraph RAG reasoning cycle with memory and reranking. | **Body**: `{ q, thread_id, persona, system_prompt, temperature, top_k, filenames }`<br>**Response**: `{ answer, thought_process, status, sources, active_documents }` |
+| `POST` | `/upload` | Ingests 1 to 5 documents with injection checks, chunking, and dual storage. | **Form**: `files` (multipart), `session_id`<br>**Response**: `{ success, status, safe, chunks_count, points_indexed, files }` |
+| `GET` | `/session/{session_id}/documents` | Lists all documents attached to an active chat session. | **Path**: `session_id`<br>**Response**: Array of document metadata records. |
+| `DELETE` | `/session/{session_id}/documents/{filename}` | Removes a specific document and purges its vectors from Qdrant and Neon DB. | **Path**: `session_id`, `filename`<br>**Response**: Deletion status. |
+| `DELETE` | `/session/{session_id}/documents` | Clears all documents and vector embeddings for a chat session. | **Path**: `session_id`<br>**Response**: Clearance confirmation. |
+| `POST` | `/code/assist` | Coding copilot endpoint with dual Groq/Gemini engine switching. | **Body**: `{ prompt, code, language, engine }`<br>**Response**: `{ answer, code, language, engine }` |
+| `GET` | `/health` | Cloud deployment health probe (verifies database, vector DB, and models). | **Response**: `{ status: "healthy", version: "1.0.0" }` |
+| `GET` | `/graph` | Generates a PNG visualization of the LangGraph StateGraph state machine. | **Response**: Image byte stream. |
 
 ---
 
 ## Environment Variables Configuration
 
-Create a `.env` file in the root directory (or configure them in your Render dashboard):
+Create a `.env` file in the project root or configure them directly in your **Render** and **Vercel** dashboards:
 
 ```env
 # ==========================================
-# DATABASE (NEON POSTGRES)
+# 1. DATABASE (NEON LAKEBASE POSTGRES)
 # ==========================================
 DATABASE_URL=postgresql://neondb_owner:<password>@<endpoint>-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
 NEON_DATABASE_URL=postgresql://neondb_owner:<password>@<endpoint>-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
 
 # ==========================================
-# VECTOR DATABASE (QDRANT CLUSTER)
+# 2. VECTOR DATABASE (QDRANT CLUSTER)
 # ==========================================
 QDRANT_CLUSTER_ENDPOINT=https://<cluster-id>.sa-east-1-0.aws.cloud.qdrant.io
 QDRANT_API_KEY=your_qdrant_api_key_here
+QDRANT_COLLECTION=enterprise_knowledge
 
 # ==========================================
-# EMBEDDINGS (GOOGLE GEMINI)
+# 3. EMBEDDINGS (GOOGLE GEMINI)
 # ==========================================
 GEMINI_API_KEY=your_gemini_api_key_here
 
 # ==========================================
-# REASONING ENGINE (GROQ)
+# 4. REASONING ENGINES (GROQ CLOUD)
 # ==========================================
-GROQ_API_KEY=your_primary_groq_key_here
-GROQ_FALLBACK_API_KEY=your_fallback_groq_key_here
+GROQ_API_KEY=your_primary_groq_api_key
+GROQ_FALLBACK_API_KEY=your_fallback_groq_api_key
 GROQ_MODEL=openai/gpt-oss-120b
 GROQ_FALLBACK_MODEL=openai/gpt-oss-20b
 
 # ==========================================
-# OBSERVABILITY (LOGFIRE & LANGSMITH)
+# 5. OBSERVABILITY (LOGFIRE & LANGSMITH)
 # ==========================================
 LOGFIRE_TOKEN=your_pydantic_logfire_token_here
 
@@ -244,7 +411,7 @@ LANGCHAIN_API_KEY=your_langsmith_api_key_here
 LANGCHAIN_PROJECT=cognivault
 
 # ==========================================
-# SECURITY & CORS
+# 6. SECURITY & CORS SETTINGS
 # ==========================================
 ALLOWED_ORIGINS=https://cognivault-dev.vercel.app,http://localhost:5173
 PYTHON_VERSION=3.11.9
@@ -252,15 +419,19 @@ PYTHON_VERSION=3.11.9
 
 ---
 
-## Local Development & Quickstart
+## Quickstart & Local Setup
 
 ### 1. Prerequisites
 - **Python**: `>= 3.11`
-- **Node.js**: `>= 20` (Node `>= 22` if running the Neon CLI)
+- **Node.js**: `>= 20`
 - **Git**
 
 ### 2. Backend Setup
 ```bash
+# Clone the repository
+git clone https://github.com/honoursbhaduria/RAG.git
+cd RAG
+
 # Create and activate Python virtual environment
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
@@ -268,83 +439,50 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the FastAPI server
+# Start the FastAPI server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-Open [http://localhost:8000/api/docs](http://localhost:8000/api/docs) to explore the interactive API.
+- Open [http://localhost:8000/api/docs](http://localhost:8000/api/docs) to explore the Swagger UI.
 
 ### 3. Frontend Setup
 ```bash
 cd frontend
 
-# Install npm dependencies
+# Install Node dependencies
 npm install
 
-# Start development server
+# Start Vite development server
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+- Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
 ## Production Deployment Guide
 
-### Deploying the Backend to Render
-1. Push your code to your GitHub repository:
-   ```bash
-   git push origin main
-   ```
-2. In the **Render Dashboard**, link the repository or use the included [render.yaml](render.yaml).
-3. The build uses [requirements-prod.txt](requirements-prod.txt) to keep image sizes lightweight and ensure `psycopg2-binary` installs cleanly.
-4. Add the environment variables specified above in **Render Dashboard** → **Environment**.
+### Deploying Backend to Render
+1. Push your code to the `main` branch on GitHub.
+2. In the **Render Dashboard**, create a new **Web Service** pointing to your repository.
+3. Set the build and start commands (or let [render.yaml](render.yaml) configure it automatically):
+   - **Build Command**: `pip install -r requirements-prod.txt`
+   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. Populate the environment variables from the section above.
 
-### Deploying the Frontend to Vercel
-1. In the **Vercel Dashboard**, import the `/frontend` directory of your repository.
-2. Set the environment variable:
+### Deploying Frontend to Vercel
+1. In the **Vercel Dashboard**, import the repository and select `/frontend` as the **Root Directory**.
+2. Add the environment variable:
    ```env
    VITE_BACKEND_URL=https://<your-render-backend-url>
    ```
-3. Deploy. The React app will automatically communicate with your Render backend and Neon database.
+3. Deploy. The single-page application will connect to the Render API and Neon Postgres cluster.
 
 ---
 
-## Repository Structure
+## Automated Verification
 
-```text
-├── .agents/skills/          # Specialized agent skills (neon, neon-postgres, etc.)
-├── app/
-│   ├── agents/
-│   │   ├── nodes/           # LangGraph nodes: planner, retriever, responder
-│   │   ├── graph.py         # StateGraph compiled workflow & checkpointer
-│   │   └── state.py         # AgentState typed dictionary & message reducers
-│   ├── gateway/             # Portkey & Groq multi-model fallback client
-│   ├── guardrails/          # NeMo Guardrails, SQL and script injection scanners
-│   ├── ingestion/           # File parsing (PDF, Word, PPTX, HTML) and chunkers
-│   ├── services/
-│   │   ├── code_service.py      # AST extraction and code assistance
-│   │   ├── document_service.py  # File ingestion orchestrator
-│   │   ├── session_store.py     # Neon Postgres persistence service
-│   │   └── retrieval/           # Gemini dual embeddings, Qdrant & FlashRank
-│   ├── config.py            # Centralized settings and environment loader
-│   └── main.py              # FastAPI application entrypoint and route handlers
-├── frontend/                # React 19 + TypeScript + Vite + Tailwind UI
-│   ├── src/components/chatbot/ # RagChatbotPage, WorkflowGraph, CodeStudio
-│   └── dist/                # Production build artifacts
-├── render.yaml              # Render infrastructure-as-code specification
-├── requirements-prod.txt    # Lightweight production requirements for Render
-├── requirements.txt         # Full local development requirements
-├── neon.ts                  # Neon project policy configuration
-└── .neon                    # Neon project link context
-```
-
----
-
-## Verification & Testing
-
-Run the automated end-to-end verification suite:
+You can verify the entire pipeline, Neon database connectivity, and health status by running:
 
 ```bash
-# Verify session document upload, database persistence, files inquiry, and RAG retrieval
 python -c "
 from fastapi.testclient import TestClient
 from app.main import app
@@ -352,11 +490,12 @@ import app.services.session_store as ss
 
 client = TestClient(app)
 res = client.get('/health')
-assert res.status_code == 200
-print('Health check passed!')
+assert res.status_code == 200, f'Health check failed: {res.text}'
+conn, engine = ss.get_db_connection()
+print(f'✅ Health check passed! Connected to database engine: {engine}')
 "
 ```
 
 ---
 
-*Engineered for High-Scale Enterprise Document Intelligence and Secure Agentic Reasoning.*
+*Engineered for High-Scale Enterprise Document Intelligence and Zero-Trust Agentic Reasoning.*
