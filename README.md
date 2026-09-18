@@ -21,147 +21,122 @@
 
 ## High-Fidelity Architecture Flowchart
 
-The following diagram illustrates both the **Multi-File Ingestion Pipeline** and the **Agentic Query & Reasoning Execution Graph** with full subsystem boundaries, persistence layers, and telemetry hooks:
+The following diagram illustrates both the **Multi-File Ingestion Pipeline** and the **Agentic Query & Reasoning Execution Graph** across 6 crystal-clear architectural tiers:
 
 ```mermaid
 flowchart TD
-    %% -------------------------------------------------------------
-    %% CLIENT AND PRESENTATION LAYER
-    %% -------------------------------------------------------------
-    subgraph ClientLayer ["1. Client and Presentation Layer - React 19, TypeScript, Vite on Vercel"]
-        UI["CogniVault Web UI - Chatbot and Knowledge Hub"]
-        FileDrop["Multi-File Upload Dropzone - 1 to 5 Documents: PDF, DOCX, PPTX, TXT, CSV, Code"]
-        SavedHub["Active Session Saved Documents Hub - Live Manifest and Clear Controls"]
-        CodeStudio["AI Code Studio Workspace - Groq and Gemini Dual Engine Copilot"]
+    %% ============================================================
+    %% TIER 1: CLIENT APPLICATION LAYER
+    %% ============================================================
+    subgraph TIER1 ["1. Client Application Layer - React 19 / Vite on Vercel"]
+        UI["CogniVault Web UI - Chatbot & Code Studio"]
+        UploadZone["Document Upload Hub - 1 to 5 Files: PDF, Office, Code, TXT"]
     end
 
-    %% -------------------------------------------------------------
-    %% ZERO-TRUST SECURITY GATE
-    %% -------------------------------------------------------------
-    subgraph SecurityGate ["2. Zero-Trust Security Gate - app/guardrails"]
-        RegexFilter["Fast-Path Regex Pattern Gate - Sub-millisecond Clearance"]
-        SQLiScan["SQL Injection Interceptor - UNION SELECT, DROP, SLEEP, Blind SQLi"]
-        XSSScan["Script and XSS Filter - Script Tags, Javascript URIs, Shell Injections"]
-        CloudGuard["Cloud-Backed ChatGroq Semantic Gate - Topic and Jailbreak Defense"]
-        QuotaCheck["Session File Quota Enforcer - Max 5 Documents Per Session"]
+    %% ============================================================
+    %% TIER 2: ZERO-TRUST SECURITY GATE
+    %% ============================================================
+    subgraph TIER2 ["2. Zero-Trust Security & Policy Gate - Sub-2.4ms Fast Path"]
+        GuardGate{"Security Clearance Gate"}
+        BlockedReturn["HTTP 403 Refusal - Malicious Request Intercepted"]
     end
 
-    %% -------------------------------------------------------------
-    %% INGESTION PIPELINE
-    %% -------------------------------------------------------------
-    subgraph IngestionPipeline ["3. Document Ingestion and Vectorization Engine - app/services/document_service.py"]
-        Extractors["Multi-Format Text Extractors - pypdf, python-docx, python-pptx, bs4"]
-        Chunker["Semantic and Recursive Splitter - 500 tokens with 50 overlap"]
-        Embedder["Google Gemini Embeddings - text-embedding-004, 768-dim Dense Vectors"]
-        VectorPacker["Qdrant Point Struct Assembler - UUIDv4 with session_id Metadata"]
+    %% ============================================================
+    %% TIER 3: INGESTION OR AGENTIC BRAIN
+    %% ============================================================
+    subgraph TIER3_INGEST ["3A. Document Ingestion Pipeline"]
+        DocParser["Multi-Format Parser - pypdf, python-docx, python-pptx, bs4"]
+        Chunker["Semantic & Recursive Splitter - 500 tokens with 50 overlap"]
+        GeminiEmbed["Gemini Embeddings - text-embedding-004, 768-dim Dense Vectors"]
     end
 
-    %% -------------------------------------------------------------
-    %% PERSISTENCE AND STORAGE
-    %% -------------------------------------------------------------
-    subgraph StorageLayer ["4. Dual Cloud Persistence Infrastructure"]
+    subgraph TIER3_AGENT ["3B. LangGraph StateGraph Brain - app/agents"]
+        Checkpointer[("MemorySaver Checkpointer - thread_id")]
+        PlannerNode["Planner Node - Intent Analysis & Query Formulation"]
+        RouterNode{"3-Way Intent Router"}
+    end
+
+    %% ============================================================
+    %% TIER 4: 3-WAY EXECUTION & PRECISION RETRIEVAL
+    %% ============================================================
+    subgraph TIER4_BRANCHES ["4. Execution Paths & Precision Retrieval"]
+        FilesManifest["Path A: FILES_INQUIRY - Instant Manifest Assembly"]
+        ChatMemory["Path B: CONVERSATIONAL - Multi-Turn Memory Dispatch"]
+        RetrieverNode["Path C: Retriever Node - Session-Scoped Search"]
+        FlashRankRerank["FlashRank Cross-Encoder - ms-marco-MiniLM-L-12-v2"]
+    end
+
+    %% ============================================================
+    %% TIER 5: REASONING & RESILIENCE GATEWAY
+    %% ============================================================
+    subgraph TIER5 ["5. Compound LLM Synthesis & Resilience Gateway"]
+        ResponderNode["Responder Node - Grounded Multi-Turn Synthesis"]
+        GroqPrimary["Primary Groq LPU: openai/gpt-oss-120b"]
+        GroqFallback["Fallback Groq LPU: openai/gpt-oss-20b"]
+    end
+
+    %% ============================================================
+    %% TIER 6: DUAL PERSISTENCE & OBSERVABILITY
+    %% ============================================================
+    subgraph TIER6_STORAGE ["6A. Cloud Persistence Infrastructure"]
         NeonDB[("Neon Lakebase Postgres - PG 18.6 with Connection Pooler<br/>Tables: session_documents, chat_sessions, chat_messages")]
-        QdrantDB[("Qdrant Cloud HNSW Vector Database<br/>Collection: enterprise_knowledge<br/>Strict Payload Isolation: session_id")]
+        QdrantDB[("Qdrant Cloud Vector Store<br/>Collection: enterprise_knowledge<br/>Strict Payload Isolation: session_id")]
     end
 
-    %% -------------------------------------------------------------
-    %% LANGGRAPH ORCHESTRATION PIPELINE
-    %% -------------------------------------------------------------
-    subgraph AgenticCore ["5. LangGraph Agentic Orchestration State Machine - app/agents"]
-        Memory["LangGraph MemorySaver Checkpointer - thread_id State Preservation"]
-        Planner["Planner Node - Intent Analysis and Search Query Formulation"]
-        Router{"3-Way Conditional Router Edge"}
-        
-        FilesBranch["FILES_INQUIRY Branch - Instant Manifest Assembly"]
-        ConvBranch["CONVERSATIONAL Branch - Multi-Turn Memory Dispatch"]
-        
-        Retriever["Retriever Node - Session-Filtered Vector Search"]
-        Reranker["FlashRank Cross-Encoder Reranker - ms-marco-MiniLM-L-12-v2"]
-        Responder["Responder Node - Grounded Multi-Turn Context Synthesis"]
+    subgraph TIER6_TELEMETRY ["6B. Distributed Observability"]
+        Logfire["Pydantic Logfire - FastAPI Spans & Latency Profiling"]
+        LangSmith["LangSmith - StateGraph Execution Trees & Tokens"]
     end
 
-    %% -------------------------------------------------------------
-    %% REASONING AND LLM GATEWAY
-    %% -------------------------------------------------------------
-    subgraph InferenceLayer ["6. LLM Inference and Resilience Gateway - app/gateway"]
-        PortkeyGateway["Portkey AI Gateway - Caching, Retries and Routing"]
-        GroqPrimary["Primary Groq LPU - openai/gpt-oss-120b High-Reasoning"]
-        GroqFallback["Fallback Groq LPU - openai/gpt-oss-20b Resilience"]
-    end
+    %% ============================================================
+    %% EXECUTION FLOWS & CONNECTIONS
+    %% ============================================================
+    %% Ingestion Pipeline Flow
+    UploadZone -->|"Multipart POST /upload"| GuardGate
+    GuardGate -->|"Attack Detected: SQLi, XSS, or Jailbreak"| BlockedReturn
+    BlockedReturn -->|"Immediate Safety Notice"| UI
 
-    %% -------------------------------------------------------------
-    %% DISTRIBUTED OBSERVABILITY
-    %% -------------------------------------------------------------
-    subgraph TelemetryLayer ["7. Dual Distributed Observability and Tracing"]
-        Logfire["Pydantic Logfire - FastAPI Middleware Spans and Latency Profiling"]
-        LangSmith["LangSmith - LangGraph StateGraph Execution Tree and Token Tracing"]
-    end
+    GuardGate -->|"Files Verified Clean"| DocParser
+    DocParser --> Chunker --> GeminiEmbed
+    GeminiEmbed -->|"Save Dense Vectors"| QdrantDB
+    GeminiEmbed -->|"Save Document Metadata"| NeonDB
 
-    %% -------------------------------------------------------------
-    %% FLOW CONNECTIONS: INGESTION
-    %% -------------------------------------------------------------
-    FileDrop -->|"Upload 1 to 5 files"| QuotaCheck
-    QuotaCheck -->|"Within quota limit"| RegexFilter
-    QuotaCheck -->|"Quota exceeded alert"| UI
-    RegexFilter --> SQLiScan
-    SQLiScan --> XSSScan
-    XSSScan --> CloudGuard
-    CloudGuard -->|"Clearance passed"| Extractors
-    CloudGuard -->|"Malicious payload blocked 403"| UI
+    %% Query Pipeline Flow
+    UI -->|"User Query: POST /query"| GuardGate
+    GuardGate -->|"Query Verified Clean"| PlannerNode
+    Checkpointer -.->|"Restore Thread History"| PlannerNode
 
-    Extractors --> Chunker
-    Chunker --> Embedder
-    Embedder --> VectorPacker
-    VectorPacker -->|"Upsert payload vectors"| QdrantDB
-    VectorPacker -->|"Save document metadata"| NeonDB
-    NeonDB -.->|"Synchronize active files"| SavedHub
+    PlannerNode --> RouterNode
 
-    %% -------------------------------------------------------------
-    %% FLOW CONNECTIONS: QUERY AND INFERENCE
-    %% -------------------------------------------------------------
-    UI -->|"Query with thread_id"| RegexFilter
-    RegexFilter -->|"Clearance verified"| Memory
-    Memory -->|"Inject history and active files"| Planner
+    %% 3-Way Router Dispatches
+    RouterNode -->|"Intent: FILES_INQUIRY"| FilesManifest
+    RouterNode -->|"Intent: CONVERSATIONAL"| ChatMemory
+    RouterNode -->|"Intent: TECHNICAL or SUMMARY"| RetrieverNode
 
-    Planner --> Router
-    
-    %% Branch 1: Files Inquiry
-    Router -->|"FILES_INQUIRY"| FilesBranch
-    FilesBranch -->|"Read active files manifest"| Responder
-    
-    %% Branch 2: Conversational
-    Router -->|"CONVERSATIONAL"| ConvBranch
-    ConvBranch -->|"Bypass vector retrieval"| Responder
+    %% Session Vector Search & Cross-Encoder Reranking
+    RetrieverNode -->|"Session-Isolated Vector Match"| QdrantDB
+    QdrantDB -->|"Raw Candidate Chunks"| FlashRankRerank
+    FlashRankRerank -->|"Top-N Reranked Context"| ResponderNode
 
-    %% Branch 3: Technical / Summary
-    Router -->|"TECHNICAL or SUMMARY"| Retriever
-    Retriever -->|"Session payload match"| QdrantDB
-    QdrantDB -->|"Raw candidate chunks"| Reranker
-    Reranker -->|"Top-N precision-scored chunks"| Responder
+    FilesManifest -->|"Structured File Manifest"| ResponderNode
+    ChatMemory -->|"Conversation Memory"| ResponderNode
 
-    %% Responder to LLM Gateway
-    Responder --> PortkeyGateway
-    PortkeyGateway --> GroqPrimary
-    GroqPrimary -.->|"On rate limit fallback"| GroqFallback
-    GroqPrimary -->|"Synthesized response"| Responder
+    %% Groq LPU Inference
+    ResponderNode -->|"Grounded Prompt"| GroqPrimary
+    GroqPrimary -.->|"Automatic Failover"| GroqFallback
+    GroqPrimary -->|"Synthesized Response"| ResponderNode
 
-    %% State Checkpoint & Output
-    Responder -.->|"Save graph state"| Memory
-    Responder -.->|"Persist chat message"| NeonDB
-    Responder -->|"Answer with citations and plan"| UI
+    %% Final Answer Dispatch & Persistence
+    ResponderNode -->|"Final Answer + Citations + Plan"| UI
+    ResponderNode -.->|"Checkpoint Graph State"| Checkpointer
+    ResponderNode -.->|"Persist Chat Message & Sources"| NeonDB
 
-    %% Code Studio Copilot
-    CodeStudio -->|"Code generation request"| SecurityGate
-    SecurityGate -->|"Clearance passed"| PortkeyGateway
-
-    %% Telemetry Links
-    SecurityGate -.->|"Security audit spans"| Logfire
-    Retriever -.->|"Retrieval latency spans"| Logfire
-    Reranker -.->|"Reranking latency spans"| Logfire
-    NeonDB -.->|"Database query traces"| Logfire
-    Planner -.->|"StateGraph execution trace"| LangSmith
-    Retriever -.->|"Retriever node trace"| LangSmith
-    Responder -.->|"Responder trace and token usage"| LangSmith
+    %% Distributed Telemetry Spans
+    GuardGate -.->|"Security Audit Spans"| Logfire
+    RetrieverNode -.->|"Vector Search Latency"| Logfire
+    FlashRankRerank -.->|"Rerank Duration Spans"| Logfire
+    PlannerNode -.->|"Agent Decision Tree"| LangSmith
+    ResponderNode -.->|"Token Consumption Traces"| LangSmith
 ```
 
 ---
